@@ -1,0 +1,47 @@
+# Publishes the English Quiz web app with this repo's own GitHub Pages:
+#   https://ravivh.com/englishQuiz/
+# (ravivh.com is the custom domain of ravivhi/ravivhi.github.io, so every repo's Pages site
+# is served at ravivh.com/<repo>/.) tests/ and android/ are left out of the published site.
+name: Publish to ravivh.com/englishQuiz
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'tests/**'
+      - 'android/**'
+      - '**/*.md'
+      - '.gitignore'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Collect the site (no tests, android project or repo files)
+        run: |
+          mkdir _site
+          rsync -a --exclude '.git/' --exclude '.github/' --exclude 'tests/' --exclude 'android/' \
+            --exclude '_site/' --exclude '.gitignore' --exclude '*.md' ./ _site/
+          touch _site/.nojekyll
+      - uses: actions/upload-pages-artifact@v3
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

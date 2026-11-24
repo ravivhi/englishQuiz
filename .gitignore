@@ -1,0 +1,14 @@
+# local-only test photos (copyrighted workbook pages) and test deps
+/tests/fixtures/
+/tests/node_modules/
+
+# Android TWA build output (keys live in C:\Users\Raviv.Hilleli\signing-keys\englishQuiz)
+/android/build/
+/android/app/build/
+/android/.gradle/
+*.keystore
+*.jks
+*.apk
+*.aab
+*.idsig
+*.stackdump
