@@ -1045,6 +1045,31 @@ async function testShop() {
   // saved on the device
   await page.reload();
   check((await text('menu-avatar')) === '🐱' && (await page.evaluate(() => getComputedStyle(document.body).backgroundImage)).includes('0, 82, 212'), 'after a reload the cat and the sea background are still there');
+  // 👀 tapping a background not bought yet shows it right away, for a try (never saved)
+  const bgNow = () => page.evaluate(() => getComputedStyle(document.body).backgroundImage);
+  const savedTheme = () => page.evaluate(() => JSON.parse(localStorage.getItem('englishquiz-shop')).theme);
+  await page.click(item('shop-themes', 'forest'));
+  check((await bgNow()).includes('19, 78, 94') && (await cls('shop-themes', 'forest')).includes('preview') && (await text('shop-msg')).includes('👀') && (await text('shop-msg')).includes('חסרות'),
+    'a background you cannot afford yet: the first tap shows how it looks, and says how many points are missing');
+  check((await savedTheme()) === 'ocean' && (await cls('shop-themes', 'ocean')).includes('active') && (await total()) === 0, 'the try buys nothing and the sea is still the one in use');
+  await page.click(item('shop-themes', 'purple'));
+  check((await bgNow()).includes('74, 0, 224') && !(await cls('shop-themes', 'forest')).includes('preview'), 'tapping a background you own ends the try and uses it');
+  await page.click(item('shop-themes', 'ocean'));
+  await page.click(item('shop-themes', 'forest'));
+  await page.reload();
+  check((await bgNow()).includes('0, 82, 212') && (await savedTheme()) === 'ocean', 'a reload in the middle of a try is back to the sea');
+  await page.click(item('shop-themes', 'forest'));
+  await page.click('#shop-back');
+  check((await bgNow()).includes('0, 82, 212'), 'leaving the shop in the middle of a try is back to the sea');
+  await page.evaluate(() => { grandTotal = 80; localStorage.setItem('englishquiz-total-points', '80'); });
+  await page.click('#shop-btn');
+  await page.click(item('shop-themes', 'forest'));
+  check((await bgNow()).includes('19, 78, 94') && (await cls('shop-themes', 'forest')).includes('confirm') && (await text('shop-msg')).includes('👀') && (await total()) === 80,
+    'a background you can afford: the first tap shows it and asks "buy?"');
+  await page.click(item('shop-themes', 'forest'));
+  check((await total()) === 5 && (await savedTheme()) === 'forest' && (await cls('shop-themes', 'forest')).includes('active') && !(await cls('shop-themes', 'forest')).includes('preview'), 'the second tap buys it and it stays');
+  await page.click(item('shop-themes', 'ocean'));
+  await page.evaluate(() => { grandTotal = 0; localStorage.setItem('englishquiz-total-points', '0'); });
   // the character in the game: it asks the question and hops on a right answer
   await page.evaluate(() => { showStart(); document.getElementById('words-input').value = 'cat\tחתול\ndog\tכלב\nsun\tשמש\nmoon\tירח'; renderWords(); startFromInput(); });
   check(await vis('game-screen') && (await text('game-avatar')) === '🐱' && (await page.$eval('.instruction-text', e => e.textContent)).startsWith('🐱'), 'the cat shows in the game, before the question');

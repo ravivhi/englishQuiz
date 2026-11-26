@@ -441,6 +441,7 @@
         .shop-item.poor { opacity: 0.55; }
         .shop-item.confirm { border-color: #dd6b20; background: #fffaf0; }
         .shop-item.confirm .shop-price { background: #dd6b20; color: #fff; }
+        .shop-item.preview { outline: 3px dashed #805ad5; outline-offset: 2px; }   /* 👀 the background shown for a try */
 
         /* learning cards: the English word (read aloud) and its Hebrew meaning on one card */
         #learn-screen { flex-direction: column; }
@@ -1366,6 +1367,7 @@
         function showStart() {
             collectCoins();   // a box left closed on the result screen: its points are added anyway
             stepQuiz = null;
+            if (themePreview) { themePreview = null; applyShop(); }   // out of the shop: back to the background that was bought
             showDaily();   // (a day may have passed while the app was open)
             for (const id of ["summary-screen", "game-screen", "learn-screen", "learn-done-screen", "shop-screen"]) document.getElementById(id).style.display = "none";
             document.getElementById("start-screen").style.display = "flex";
@@ -2622,6 +2624,7 @@
             try { localStorage.setItem(EARNED_KEY, String(earnedTotal)); } catch (e) {}
         }
         let shopConfirm = null;   // the item waiting for the second tap
+        let themePreview = null;  // 👀 a background not bought yet, shown for a try while in the shop (never saved)
 
         // A box is earned during the game at the last face: count it, start the streak again from 0 (the last face
         // stays up until the next answer), show a short note, play the happy sound.
@@ -2799,7 +2802,7 @@
         }
         function saveShop() { try { localStorage.setItem(SHOP_KEY, JSON.stringify(shop)); } catch (e) {} }
         function applyShop() {
-            const a = SHOP_AVATARS.find(x => x.id === shop.avatar), t = SHOP_THEMES.find(x => x.id === shop.theme) || SHOP_THEMES[0];
+            const a = SHOP_AVATARS.find(x => x.id === shop.avatar), t = SHOP_THEMES.find(x => x.id === (themePreview || shop.theme)) || SHOP_THEMES[0];
             putPic(document.getElementById("menu-avatar"), a);
             const sb = document.getElementById("shop-btn");   // a red count on the shop button while boxes wait to be opened
             if (shop.boxes > 0) sb.dataset.boxes = shop.boxes; else delete sb.dataset.boxes;
@@ -3285,7 +3288,8 @@
                     const owned = shop.owned.includes(it.id), active = kind === "avatar" ? shop.avatar === it.id : shop.theme === it.id;
                     const b = document.createElement("button");
                     b.type = "button";
-                    b.className = "shop-item" + (active ? " active" : owned ? " owned" : grandTotal < it.price ? " poor" : "") + (shopConfirm === it.id ? " confirm" : "");
+                    b.className = "shop-item" + (active ? " active" : owned ? " owned" : grandTotal < it.price ? " poor" : "") + (shopConfirm === it.id ? " confirm" : "")
+                        + (kind === "theme" && themePreview === it.id ? " preview" : "");
                     b.dataset.id = it.id;
                     const pic = document.createElement("div");
                     if (kind === "avatar") { pic.className = "shop-pic"; putPic(pic, it); }
@@ -3310,6 +3314,10 @@
         function shopTap(it, kind) {
             const msg = document.getElementById("shop-msg");
             const use = () => { if (kind === "avatar") shop.avatar = shop.avatar === it.id ? null : it.id; else shop.theme = it.id; };
+            // 👀 a background not bought yet: show it right away for a try (until another one is tapped or the shop is left)
+            const tryOn = kind === "theme" && !shop.owned.includes(it.id);
+            if (kind === "theme" && themePreview !== (tryOn ? it.id : null)) { themePreview = tryOn ? it.id : null; applyShop(); }
+            const look = tryOn ? "👀 ככה זה נראה! " : "";
             if (shop.owned.includes(it.id)) {   // already mine: switch to it (tapping the character in use takes it off)
                 shopConfirm = null;
                 use(); saveShop(); applyShop();
@@ -3317,13 +3325,14 @@
             } else if (grandTotal < it.price) {
                 shopConfirm = null;
                 msg.style.color = "#c05621";
-                msg.textContent = `חסרות עוד ${it.price - grandTotal} נקודות ל${it.name} – המשיכו לשחק! 💪`;
-            } else if (shopConfirm !== it.id) {   // first tap: ask
+                msg.textContent = look + `חסרות עוד ${it.price - grandTotal} נקודות ל${it.name} – המשיכו לשחק! 💪`;
+            } else if (shopConfirm !== it.id) {   // first tap: ask (a background is already shown for a try)
                 shopConfirm = it.id;
                 msg.style.color = "#c05621";
-                msg.textContent = `לקנות ${it.name} ב-${it.price} נקודות? לחצו שוב לאישור`;
+                msg.textContent = look + `לקנות ${it.name} ב-${it.price} נקודות? לחצו שוב לאישור`;
             } else {   // second tap: buy and use it
                 shopConfirm = null;
+                if (kind === "theme") themePreview = null;
                 grandTotal -= it.price;
                 try { localStorage.setItem(TOTAL_KEY, String(grandTotal)); } catch (e) {}
                 shop.owned.push(it.id);
