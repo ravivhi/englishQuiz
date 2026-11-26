@@ -319,6 +319,10 @@
         .cat-prize.taken { border: 2px solid #d69e2e; background: linear-gradient(135deg, #fefcbf, #fbd38d); color: #975a16; cursor: default; }
         @keyframes prize-glow { 0%, 100% { transform: scale(1); box-shadow: 0 0 0 rgba(236,201,75,0); } 50% { transform: scale(1.03); box-shadow: 0 0 18px rgba(236,201,75,0.9); } }
         @media (prefers-reduced-motion: reduce) { .cat-prize.open { animation: none; } }
+        /* 👋 the child's name under the title (dashed until it is typed) */
+        #player-name { display: block; margin: 0 auto 6px; padding: 2px 12px; border: 1px solid transparent; border-radius: 14px; background: none;
+                       color: #553c9a; font-family: inherit; font-size: 0.95rem; font-weight: bold; cursor: pointer; touch-action: manipulation; }
+        #player-name.empty { border: 1px dashed #b794f4; background: rgba(250, 245, 255, 0.9); }
         .cat-row { display: flex; gap: 6px; align-items: stretch; }
         .cat-row > .cat-step { flex: 1; min-width: 0; }
         /* the 📖 learn and 📝 quiz buttons next to each part */
@@ -642,7 +646,8 @@
             <button type="button" id="shop-btn" onclick="openShop()" aria-label="חנות" title="חנות">🏪</button>
             <button type="button" id="menu-avatar" onclick="avatarTap()" aria-label="הדמות שלי – לחצו עליה" title="לחצו על הדמות!"></button>
             <div id="avatar-bubble" role="status" onclick="avatarBubbleTap()"></div>
-            <div class="result-title" id="app-title" style="margin-bottom:10px;" aria-label="בוחן באנגלית"><span style="color:#e53e3e">ב</span><span style="color:#dd6b20">ו</span><span style="color:#d69e2e">ח</span><span style="color:#38a169">ן</span> <span style="color:#3182ce">ב</span><span style="color:#805ad5">א</span><span style="color:#e53e3e">נ</span><span style="color:#dd6b20">ג</span><span style="color:#d69e2e">ל</span><span style="color:#38a169">י</span><span style="color:#3182ce">ת</span></div>
+            <div class="result-title" id="app-title" style="margin-bottom:4px;" aria-label="בוחן באנגלית"><span style="color:#e53e3e">ב</span><span style="color:#dd6b20">ו</span><span style="color:#d69e2e">ח</span><span style="color:#38a169">ן</span> <span style="color:#3182ce">ב</span><span style="color:#805ad5">א</span><span style="color:#e53e3e">נ</span><span style="color:#dd6b20">ג</span><span style="color:#d69e2e">ל</span><span style="color:#38a169">י</span><span style="color:#3182ce">ת</span></div>
+            <button type="button" id="player-name" onclick="askName()"></button>
             <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin:-4px 0 6px;">
                 <div id="grand-total" style="font-weight:bold;color:#2b6cb0;"></div>
                 <div id="menu-fire" title="ימים ברצף: כל יום שמשחקים (מסיימים בוחן) מוסיף 🔥. מ-10 ימים ברצף הנקודות בסוף כל בוחן כפולות!" style="font-weight:bold;color:#dd6b20;white-space:nowrap;"></div>
@@ -778,7 +783,7 @@
 
         <div id="learn-done-screen" style="display:none;">
             <div class="emoji-animation">🎉</div>
-            <div class="result-title">כל הכבוד!</div>
+            <div class="result-title" id="learn-done-title">כל הכבוד!</div>
             <p id="learn-done-text" style="font-size:1.2rem;margin:8px 0;"></p>
             <p id="learn-unlock" style="font-size:1.1rem;font-weight:bold;color:#553c9a;margin:8px 0;">עכשיו בוחן קצר על המילים 📝</p>
             <button class="btn-restart" id="learn-quiz-btn" onclick="startStepQuiz()">📝 לבוחן</button>
@@ -1079,14 +1084,14 @@
             const successRate = (correctFirstTryCount / totalWords) * 100;
 
             let emoji = "💪";
-            let title = "כל הכבוד על המאמץ!";
+            let title = praise("כל הכבוד על המאמץ");
             
             if (successRate >= 90) {
                 emoji = "🏆";
-                title = "וואו! אתם פשוט אלופים!";
+                title = playerName ? `וואו ${playerName}! אתם פשוט אלופים!` : "וואו! אתם פשוט אלופים!";
             } else if (successRate >= 70) {
                 emoji = "⭐";
-                title = "עבודה מצוינת!";
+                title = praise("עבודה מצוינת");
             }
 
             const bonusContainer = document.getElementById("bonus-container");
@@ -1264,6 +1269,45 @@
         }
 
         // In-app confirm dialog (the browser's confirm() shows the site's address)
+        // 👋 the child's name: typed once (tap the greeting under the title), saved on the device, used in the praise
+        const NAME_KEY = "englishquiz-player-name", NAME_MAX = 20;
+        let playerName = "";
+        try { playerName = (localStorage.getItem(NAME_KEY) || "").trim().slice(0, NAME_MAX); } catch (e) {}
+        const praise = text => playerName ? `${text}, ${playerName}!` : `${text}!`;   // "כל הכבוד" → "כל הכבוד, נועה!"
+        function showPlayerName() {
+            const b = document.getElementById("player-name");
+            b.textContent = playerName ? `👋 שלום, ${playerName}!` : "👋 איך קוראים לך? לחצו כאן";
+            b.classList.toggle("empty", !playerName);
+            b.setAttribute("aria-label", playerName ? `שלום, ${playerName}! לחצו כדי לשנות את השם` : "איך קוראים לך? לחצו כדי לכתוב את השם");
+        }
+        function setPlayerName(v) {
+            playerName = (v || "").replace(/\s+/g, " ").trim().slice(0, NAME_MAX);
+            try { if (playerName) localStorage.setItem(NAME_KEY, playerName); else localStorage.removeItem(NAME_KEY); } catch (e) {}
+            showPlayerName();
+        }
+        function askName() {
+            document.getElementById("name-dialog")?.remove();
+            const bg = document.createElement("div");
+            bg.id = "name-dialog"; bg.dataset.dialog = "1";
+            bg.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:1000;padding:16px;";
+            bg.innerHTML = `<form dir="rtl" style="background:#fff;color:#1a202c;border-radius:16px;padding:22px 20px 16px;max-width:320px;width:100%;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.3);">
+                <div style="font-size:1.25rem;font-weight:bold;margin-bottom:12px;">👋 איך קוראים לך?</div>
+                <input data-name type="text" maxlength="${NAME_MAX}" autocomplete="off" placeholder="השם שלך" aria-label="השם שלך"
+                    style="width:100%;box-sizing:border-box;padding:10px;font-size:1.2rem;font-family:inherit;text-align:center;border:2px solid #b794f4;border-radius:10px;margin-bottom:14px;">
+                <div style="display:flex;gap:10px;justify-content:center;">
+                    <button type="submit" style="flex:1;padding:10px;font-size:1rem;font-weight:bold;border:none;border-radius:10px;background:#805ad5;color:#fff;cursor:pointer;">שמירה</button>
+                    <button type="button" data-cancel style="flex:1;padding:10px;font-size:1rem;border:none;border-radius:10px;background:#e2e8f0;color:#2d3748;cursor:pointer;">ביטול</button>
+                </div></form>`;
+            const input = bg.querySelector("[data-name]");
+            input.value = playerName;
+            bg.querySelector("form").onsubmit = e => { e.preventDefault(); setPlayerName(input.value); bg.remove(); };
+            bg.querySelector("[data-cancel]").onclick = () => bg.remove();
+            bg.onclick = e => { if (e.target === bg) bg.remove(); };
+            document.body.appendChild(bg);
+            input.focus();
+        }
+        showPlayerName();
+
         function askConfirm(text, okText, okColor = "#e53e3e") {
             return new Promise(resolve => {
                 const bg = document.createElement("div");
@@ -2230,6 +2274,7 @@
             try { speechSynthesis.cancel(); } catch (e) {}
             document.getElementById("learn-screen").style.display = "none";
             document.getElementById("learn-done-screen").style.display = "block";
+            document.getElementById("learn-done-title").textContent = praise("כל הכבוד");
             document.getElementById("learn-done-text").textContent = `סיימתם ללמוד: ${catEmoji(steps[index].name)} ${stepLabel(steps[index])}`;
             saveSession("learn-done");
         }
@@ -2603,9 +2648,10 @@
             pop.id = "level-bonus";
             pop.setAttribute("role", "dialog"); pop.dataset.dialog = "1";   // the phone back button closes it too
             pop.innerHTML = `<div class="lb-rain" aria-hidden="true"></div><div class="lb-card">
-                <div class="lb-trophy">🏆</div><div class="lb-title">כל הנושאים ברמה ${level} ירוקים!</div>
+                <div class="lb-trophy">🏆</div><div class="lb-title"></div>
                 <div class="lb-sub">בונוס מיוחד${prize > LEVEL_BONUS ? " · 🔥 כפול בזכות הימים ברצף!" : ""}</div><div class="lb-coins">+<span class="lb-n">0</span> 💰</div>
                 <div class="lb-tap">לחצו להמשך</div></div>`;
+            pop.querySelector(".lb-title").textContent = (playerName ? `${playerName}, ` : "") + `כל הנושאים ברמה ${level} ירוקים!`;
             const rain = pop.querySelector(".lb-rain");
             if (!matchMedia("(prefers-reduced-motion: reduce)").matches) for (let k = 0; k < 36; k++) {
                 const c = document.createElement("span");

@@ -1905,7 +1905,51 @@ async function testFire() {
   await page.close();
 }
 
-const TESTS = { fire: testFire, wordbank: testWordbank, random: testRandom, layout: testLayout, back: testBack, tabs: testTabs, streak: testStreak, pairs: () => eachFixture('pairs', testPairs), list: () => eachFixture('list', testList), translation: testTranslationRetry, practice: testPractice, chooser: testChooser, header: testHeader, persist: testPersist, learn: testLearn, shop: testShop, box: testBox, phoneback: testPhoneBack, avatar: testAvatar, celebrate: testCelebrate, boxextra: testBoxExtra, keep: testKeep, wand: testWand, pictures: testPictures };
+async function testName() {
+  console.log('\n[name] the child types their name once; the greeting and the praise use it');
+  const page = await openPage();
+  const btn = () => page.$eval('#player-name', b => ({ text: b.textContent, empty: b.classList.contains('empty'), r: b.getBoundingClientRect().toJSON() }));
+  let b = await btn();
+  check(b.empty && b.text.includes('איך קוראים לך') && b.r.width > 0 && b.r.right <= 360, `no name yet: the main screen asks for it ("${b.text}")`);
+  await page.click('#player-name');
+  await page.waitForSelector('#name-dialog input', { timeout: 3000 });
+  check(await page.evaluate(() => document.activeElement === document.querySelector('#name-dialog input')), 'tapping it opens a box with the cursor in the name field');
+  await page.type('#name-dialog input', '  נועה  ');
+  await page.click('#name-dialog [type=submit]');
+  b = await btn();
+  check(!(await page.$('#name-dialog')) && !b.empty && b.text === '👋 שלום, נועה!', `saved: the greeting says "${b.text}"`);
+  await page.reload({ waitUntil: 'load' });
+  b = await btn();
+  check(b.text === '👋 שלום, נועה!' && (await page.evaluate(() => localStorage.getItem('englishquiz-player-name'))) === 'נועה', 'the name is still there after a reload (saved on the device)');
+  // the praise uses it: the quiz result, the end of a learning part, the level pop-up
+  const title = await page.evaluate(() => {
+    document.getElementById('words-input').value = Array.from({ length: 4 }, (_, i) => `word${i + 1}\tמילה${i + 1}`).join('\n');
+    renderWords(); startFromInput();
+    while (currentIndex < wordsData.length) { const c = wordsData[currentIndex].correct; [...document.querySelectorAll('#answers-container button')].find(x => x.innerText === c).click(); clearTimeout(nextQuestionTimer); nextQuestionTimer = null; currentIndex++; loadQuestion(); }
+    return document.getElementById('summary-title').textContent;
+  });
+  check(title === 'וואו נועה! אתם פשוט אלופים!', `the quiz result says "${title}"`);
+  await page.evaluate(() => { showStart(); showLevelBonus(3); });
+  const lbTitle = await page.$eval('#level-bonus .lb-title', e => e.textContent);
+  check(lbTitle === 'נועה, כל הנושאים ברמה 3 ירוקים!', `the level pop-up says "${lbTitle}"`);
+  await page.evaluate(() => document.getElementById('level-bonus').remove());
+  // the back button closes the box without saving; a name can be changed, and removed
+  await page.click('#player-name');
+  await page.waitForSelector('#name-dialog input', { timeout: 3000 });
+  check((await page.$eval('#name-dialog input', i => i.value)) === 'נועה', 'opening it again shows the name to change');
+  await page.evaluate(() => { document.querySelector('#name-dialog input').value = 'דני'; history.back(); });
+  await page.waitForFunction(() => !document.getElementById('name-dialog'), { timeout: 3000 });
+  check((await btn()).text === '👋 שלום, נועה!', 'the phone back button closes it without saving');
+  await page.click('#player-name');
+  await page.waitForSelector('#name-dialog input', { timeout: 3000 });
+  await page.evaluate(() => { document.querySelector('#name-dialog input').value = ''; document.querySelector('#name-dialog [type=submit]').click(); });
+  b = await btn();
+  check(b.empty && (await page.evaluate(() => localStorage.getItem('englishquiz-player-name'))) === null && (await page.evaluate(() => praise('כל הכבוד'))) === 'כל הכבוד!', 'an empty name removes it (back to asking, praise without a name)');
+  check(page.pageErrors.length === 0, `no page errors${page.pageErrors.length ? ': ' + page.pageErrors.join('; ') : ''}`);
+  await page.close();
+}
+
+const TESTS = { fire: testFire, wordbank: testWordbank, random: testRandom, layout: testLayout, back: testBack, tabs: testTabs, streak: testStreak, pairs: () => eachFixture('pairs', testPairs), list: () => eachFixture('list', testList), translation: testTranslationRetry, practice: testPractice, chooser: testChooser, header: testHeader, persist: testPersist, learn: testLearn, shop: testShop, box: testBox, phoneback: testPhoneBack, avatar: testAvatar, celebrate: testCelebrate, boxextra: testBoxExtra, keep: testKeep, wand: testWand, pictures: testPictures, name: testName };
 try {
   let ran = 0;
   for (const [name, run] of Object.entries(TESTS)) {
