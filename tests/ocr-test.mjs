@@ -1039,6 +1039,20 @@ async function testLearn() {
     await fireworks();
     check(rowFits && Math.max(pathO, cardO, doneO, quizO, sumO, sum2O) <= 0, `${w}x${h}: the path (a row with both buttons), the card, the well-done screen, the quiz and both summaries fit without page scrolling (${pathO}/${cardO}/${doneO}/${quizO}/${sumO}/${sum2O}px)`);
   }
+  // a card shows only the word's own picture: a word without one shows none (never its category's, e.g. 🍕 on "fork")
+  const pics = await page.evaluate(async () => {
+    const steps = learnSteps(await loadLevel(1)), out = {};
+    for (const [i, s] of steps.entries()) for (const [j, w] of s.words.entries()) {
+      const key = w.pic ? 'with' : 'without';
+      if (out[key]) continue;
+      await startLearning(1, i); learn.i = j; showCard();
+      const e = document.getElementById('learn-emoji');
+      out[key] = { en: w.en, pic: w.pic, shown: e.textContent, visible: getComputedStyle(e).display !== 'none' };
+    }
+    return out;
+  });
+  check(pics.with.shown === pics.with.pic && pics.with.visible, `a word with a picture shows it (${pics.with.en} ${pics.with.shown})`);
+  check(pics.without.shown === '' && !pics.without.visible, `a word without a picture shows no picture at all (${pics.without.en})`);
   check(page.pageErrors.length === 0, `no page errors${page.pageErrors.length ? ': ' + page.pageErrors.join('; ') : ''}`);
   await page.close();
 }

@@ -525,6 +525,7 @@
         @keyframes cardPop { from { transform: scale(0.92); opacity: 0.4; } to { transform: scale(1); opacity: 1; } }
         .learn-en { display: flex; align-items: center; justify-content: center; gap: 10px; max-width: 100%; }
         .learn-emoji { font-size: clamp(2rem, 7vh, 3.2rem); line-height: 1; }
+        .learn-emoji:empty { display: none; }   /* a word with no picture of its own */
         #learn-word, #learn-meaning { font-size: clamp(1.8rem, 6vh, 2.6rem); font-weight: bold; line-height: 1.2; overflow-wrap: anywhere; }
         #learn-speak { flex: none; width: 48px; height: 48px; font-size: 1.6rem; line-height: 1; background: rgba(255,255,255,0.25); border: none; border-radius: 50%; cursor: pointer; }
         .learn-nav { display: flex; gap: 10px; margin-top: clamp(12px, 3vh, 24px); }
@@ -2261,7 +2262,7 @@
             card.classList.remove("pop"); void card.offsetWidth; card.classList.add("pop");   // a small pop for each new card
             document.getElementById("learn-title").textContent = `${catEmoji(s.name)} ${stepLabel(s)}`;
             document.getElementById("learn-count").textContent = `${learn.i + 1}/${s.words.length}`;
-            document.getElementById("learn-emoji").textContent = w.pic || catEmoji(s.name);   // the word's own picture, else its category's
+            document.getElementById("learn-emoji").textContent = w.pic;   // only the word's own picture (none: nothing; a category picture misled, e.g. 🍕 on "fork")
             document.getElementById("learn-word").textContent = w.en;
             document.getElementById("learn-meaning").textContent = chosen[w.en.toLowerCase()] || w.he;
             updateLearnNav();
