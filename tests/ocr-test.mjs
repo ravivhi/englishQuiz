@@ -864,7 +864,7 @@ async function testLearn() {
   check(st.length === want.length && st.every((s, i) => s.name === `${i + 1}. ${want[i].name}` && s.meta.endsWith(`${want[i].n} מילים`)), `level 1 shows one part per category (big ones split): ${st.length} parts, every Hebrew category name in order`);
   check(want.every(w => w.n >= 4 && w.n <= 15), 'every part has 4-15 words');
   check(st.every(s => s.learn && s.quiz && !s.done && s.state === ''), 'nothing is locked: every part has a 📖 learn and a 📝 quiz button, none is green yet');
-  check(!(await page.$eval('#cat-list', e => e.textContent.includes('🔒'))), 'no lock anywhere on the path');
+  check(!(await page.$$eval('#cat-list .cat-row', rs => rs.some(r => r.textContent.includes('🔒')))), 'no topic is locked (only the 🎁 prize box at the end)');
   check((await text('path-progress')) === `⭐ 0/${want.length}`, 'the path counts 0 passed parts');
   check(!(await vis('words-count')) && !(await vis('start-btn')), 'the word list and the start button are hidden in the learning tab');
   check((await page.$eval('#cat-level-select', e => e.value)) === '1', 'the learning tab uses the chosen level');
@@ -956,13 +956,24 @@ async function testLearn() {
   await page.evaluate(n => { learnProgress = { 1: [0, 1], 5: Array.from({ length: n - 1 }, (_, i) => i) }; localStorage.setItem('englishquiz-learn-progress', JSON.stringify(learnProgress)); renderPath(); }, n5);
   await page.waitForFunction(n => document.querySelectorAll('#cat-list .cat-step.done').length === n - 1, { timeout: 10000 }, n5);
   const pts = () => page.evaluate(() => [grandTotal, +localStorage.getItem('englishquiz-total-points'), JSON.parse(localStorage.getItem('englishquiz-level-bonus') || '[]')]);
+  const prize = () => page.$eval('#cat-list .cat-prize', b => ({ cls: b.className, name: b.querySelector('.cat-name').textContent, last: b === b.parentNode.lastElementChild }));
+  let pz = await prize();
+  check(pz.cls.includes('locked') && pz.name.includes('1000') && pz.last, `after the last topic there is a locked box that says "${pz.name}"`);
   const before = await pts();
+  await page.click('#cat-list .cat-prize');
+  check((await pts())[0] === before[0] && !(await page.$('#level-bonus')) && (await text('cat-status')).includes('🔒'), 'tapping it while locked gives nothing and says how to open it');
   await page.click(`${row(n5 - 1)} .cat-learn`);
   await doStep(0);
-  check((await text('step-result')).includes('ברמה 5') && !(await vis('next-step-btn')), 'passing the last part of level 5 says all its topics are passed');
-  // 🏆 the whole level green: a 1000-point bonus, once, with a golden pop-up
+  check((await text('step-result')).includes('ברמה 5') && (await text('step-result')).includes('1000') && !(await vis('next-step-btn')), 'passing the last part of level 5 says all its topics are passed and the 1000 box opened');
   let after = await pts();
-  check(after[0] === before[0] + 1000 && after[1] === after[0] && after[2].includes(5), `a whole level green gives a bonus of 1000 points right away, saved (${before[0]} → ${after[0]}, levels ${JSON.stringify(after[2])})`);
+  check(after[0] === before[0] && !(await page.$('#level-bonus')), 'the bonus is not given by itself: it waits in the box');
+  await page.click('#change-words-btn');
+  await page.waitForFunction(() => document.querySelector('#cat-list .cat-prize.open'), { timeout: 10000 });
+  // 🏆 tapping the open box: a 1000-point bonus, once, with a golden pop-up
+  const base = await pts();   // with the quiz points of that last part
+  await page.click('#cat-list .cat-prize');
+  after = await pts();
+  check(after[0] === base[0] + 1000 && after[1] === after[0] && after[2].includes(5), `tapping the open box gives 1000 points right away, saved (${base[0]} → ${after[0]}, levels ${JSON.stringify(after[2])})`);
   await page.waitForSelector('#level-bonus', { timeout: 4000 });
   await new Promise(r => setTimeout(r, 2300));
   const lb = await page.evaluate(() => { const p = document.getElementById('level-bonus'), c = p.querySelector('.lb-card').getBoundingClientRect();
@@ -971,17 +982,31 @@ async function testLearn() {
   check(lb.n === '1000' && lb.title.includes('5') && lb.rain > 10 && lb.fw && lb.fits, `a golden pop-up: the points count up to +${lb.n}, coins rain (${lb.rain}), fireworks, and it fits the screen ("${lb.title}")`);
   await page.click('#level-bonus');
   check(!(await page.$('#level-bonus')), 'a tap closes it');
-  await page.evaluate(() => stepQuizResult(1, true));   // the same level done again (e.g. replaying its last part): no second bonus
+  pz = await prize();
+  check(pz.cls.includes('taken'), 'the box now shows the prize was taken');
+  await page.click('#cat-list .cat-prize');
   after = await pts();
-  check(after[0] === before[0] + 1000 && !(await page.$('#level-bonus')), 'the bonus is given only once per level');
-  await page.evaluate(() => { levelBonus(4); });
+  check(after[0] === base[0] + 1000 && !(await page.$('#level-bonus')), 'the bonus is given only once per level');
+  await page.evaluate(() => { levelBonus(4, 0); });
   await page.waitForSelector('#level-bonus', { timeout: 4000 });
   await page.evaluate(() => history.back());
   await page.waitForFunction(() => !document.getElementById('level-bonus'), { timeout: 4000 });
-  check((await pts())[0] === before[0] + 2000, 'the phone back button closes it too (another level: another 1000)');
+  check((await pts())[0] === base[0] + 2000, 'the phone back button closes it too (another level: another 1000)');
+  // 🔥 10 days in a row: the box says 2000 and gives 2000
+  await page.evaluate(() => { daily = { last: dayStr(), days: 10 }; levelBonusGiven = levelBonusGiven.filter(l => l !== 5); renderPath(); });
+  await page.waitForFunction(() => document.querySelector('#cat-list .cat-prize.open'), { timeout: 10000 });
+  pz = await prize();
+  check(pz.name.includes('2000') && pz.name.includes('🔥'), `on a 🔥 streak the box says "${pz.name}"`);
+  await page.click('#cat-list .cat-prize');
+  await page.waitForSelector('#level-bonus', { timeout: 4000 });
+  await new Promise(r => setTimeout(r, 2300));
+  const fireLb = await page.$eval('#level-bonus', p => [p.querySelector('.lb-n').textContent, p.querySelector('.lb-sub').textContent]);
+  check((await pts())[0] === base[0] + 4000 && fireLb[0] === '2000' && fireLb[1].includes('🔥'), `and gives 2000 (the pop-up counts to +${fireLb[0]}, "${fireLb[1]}")`);
+  await page.click('#level-bonus');
+  await page.evaluate(() => { daily = { last: '', days: 0 }; grandTotal -= 2000; });
   await page.evaluate(() => { levelBonusGiven = []; localStorage.removeItem('englishquiz-level-bonus'); grandTotal -= 2000; localStorage.setItem('englishquiz-total-points', String(grandTotal)); });
   await fireworks();   // clear them (the check below must not see these)
-  await page.click('#change-words-btn');
+  // (already back on the path)
   await page.waitForFunction(() => document.querySelectorAll('#cat-list .cat-learn').length > 0, { timeout: 10000 });
 
   // a quiz from the random tab is not a part's quiz
@@ -1468,6 +1493,16 @@ async function testKeep() {
   const after = await page.evaluate(k => k.map(x => localStorage.getItem(x)), keys);
   check(JSON.stringify(after) === JSON.stringify(before) && before.every(v => v !== null), 'after an update (all files reloaded) the points, shop, learning path and streak are all still there');
   check((await page.$eval('#grand-total', e => e.textContent)).includes('321') && (await page.$eval('#menu-avatar', e => e.textContent)) === '🐶', 'and the app shows them (321 points, the dog)');
+  // old data: the unicorn background shared the id "unicorn" with the unicorn character
+  await page.evaluate(k => localStorage.setItem(k, JSON.stringify({ owned: ['purple', 'unicorn'], avatar: 'unicorn', theme: 'unicorn', boxes: 0, awards: {} })), 'englishquiz-shop');
+  await page.reload({ waitUntil: 'load' });
+  const uni = await page.evaluate(() => ({ s: JSON.parse(localStorage.getItem('englishquiz-shop')), ids: [...SHOP_AVATARS, ...SHOP_THEMES].map(i => i.id) }));
+  check(new Set(uni.ids).size === uni.ids.length, 'every character and background has its own id');
+  check(uni.s.owned.includes('unicorn') && uni.s.owned.includes('unicornland') && uni.s.avatar === 'unicorn' && uni.s.theme === 'unicornland' && uni.s.uniFix === 1,
+    'old "unicorn" data keeps both the unicorn character and the unicorn background (still in use)');
+  await page.evaluate(() => { shop.owned = shop.owned.filter(i => i !== 'unicornland'); saveShop(); });
+  await page.reload({ waitUntil: 'load' });
+  check(!(await page.evaluate(() => shop.owned.includes('unicornland'))), 'the fix runs only once (buying the character later does not give the background)');
   check(page.pageErrors.length === 0, `no page errors${page.pageErrors.length ? ': ' + page.pageErrors.join('; ') : ''}`);
   await ctx.close();
 }
@@ -1481,7 +1516,7 @@ async function testPictures() {
     uniqueAvatarPrices: new Set(SHOP_AVATARS.map(a => a.price)).size === SHOP_AVATARS.length,
     avatars: SHOP_AVATARS.length,
   }));
-  check(info.pics.length >= 12 && info.pics.includes('unicorn') && info.pics.includes('capyspa'), `${info.pics.length} picture backgrounds, with a unicorn one and a capybara one`);
+  check(info.pics.length >= 12 && info.pics.includes('unicornland') && info.pics.includes('capyspa'), `${info.pics.length} picture backgrounds, with a unicorn one and a capybara one`);
   check(info.avatars >= 60 && info.uniqueThemePrices && info.uniqueAvatarPrices, `${info.avatars} characters; every item still has its own price`);
   // every picture background is drawn and used (a picture, not just colors); the card becomes see-through
   const bad = [];

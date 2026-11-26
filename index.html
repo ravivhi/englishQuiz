@@ -304,6 +304,21 @@
         .cat-step .cat-state { flex: none; font-size: 1.3rem; }
         .cat-step.done { background: linear-gradient(135deg, #38a169, #68d391); border-color: #2f855a; color: #fff; }
         .cat-step.done .cat-emoji { background: rgba(255,255,255,0.35); }
+        /* 🎁 the 1000-coin box at the end of each level: grey and locked, then gold and pulsing, then taken */
+        .cat-prize { display: flex; align-items: center; gap: 8px; flex: none; width: 100%; padding: 10px 12px; margin-top: 4px;
+                     border: 2px dashed #a0aec0; border-radius: 18px; background: #edf2f7; color: #718096;
+                     text-align: right; font-family: inherit; cursor: pointer; touch-action: manipulation; }
+        .cat-prize .cat-emoji { flex: none; width: 2.5rem; height: 2.5rem; display: flex; align-items: center; justify-content: center;
+                                font-size: 1.6rem; line-height: 1; background: rgba(255,255,255,0.6); border-radius: 50%; }
+        .cat-prize .cat-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+        .cat-prize .cat-name { font-size: 1.15rem; font-weight: 900; }
+        .cat-prize .cat-meta { font-size: 0.78rem; opacity: 0.9; }
+        .cat-prize .cat-state { flex: none; font-size: 1.3rem; }
+        .cat-prize.open { border: 2px solid #d69e2e; background: linear-gradient(135deg, #f6e05e, #ed8936); color: #744210;
+                          animation: prize-glow 1.2s ease-in-out infinite; }
+        .cat-prize.taken { border: 2px solid #d69e2e; background: linear-gradient(135deg, #fefcbf, #fbd38d); color: #975a16; cursor: default; }
+        @keyframes prize-glow { 0%, 100% { transform: scale(1); box-shadow: 0 0 0 rgba(236,201,75,0); } 50% { transform: scale(1.03); box-shadow: 0 0 18px rgba(236,201,75,0.9); } }
+        @media (prefers-reduced-motion: reduce) { .cat-prize.open { animation: none; } }
         .cat-row { display: flex; gap: 6px; align-items: stretch; }
         .cat-row > .cat-step { flex: 1; min-width: 0; }
         /* the 📖 learn and 📝 quiz buttons next to each part */
@@ -2137,10 +2152,38 @@
                 list.appendChild(row);
             });
             const count = steps.filter((s, i) => passed.has(i)).length;
+            list.appendChild(prizeCard(level, count === steps.length));
             document.getElementById("path-progress").textContent = `⭐ ${count}/${steps.length}`;
             const first = steps.findIndex((s, i) => !passed.has(i));   // the first part not passed yet, in view
             const cur = list.children[first < 0 ? steps.length - 1 : first];
             if (cur) list.scrollTop = Math.max(0, cur.offsetTop - list.offsetTop - list.clientHeight / 3);
+        }
+
+        // 🎁 the last box of every level's path: 1000 coins. Locked until all the level's topics are green, then a tap takes them
+        // (once per level; levels that already gave the bonus show it as taken).
+        function prizeCard(level, open) {
+            const taken = levelBonusGiven.includes(level);
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "cat-prize " + (taken ? "taken" : open ? "open" : "locked");
+            btn.innerHTML = '<span class="cat-emoji"></span><span class="cat-text"><span class="cat-name"></span><span class="cat-meta"></span></span><span class="cat-state"></span>';
+            btn.querySelector(".cat-emoji").textContent = taken ? "💰" : open ? "🎁" : "🔒";
+            const x2 = !taken && pointsDoubled();
+            btn.querySelector(".cat-name").textContent = `${x2 ? LEVEL_BONUS * 2 : LEVEL_BONUS} מטבעות` + (x2 ? " 🔥" : "");
+            btn.querySelector(".cat-meta").textContent = taken ? "קיבלתם את הפרס של הרמה הזאת!" : (open ? "כל הנושאים ירוקים! לחצו לקבל את הפרס" : "נפתח כשכל הנושאים ברמה ירוקים") + (x2 ? " · כפול בזכות הימים ברצף!" : "");
+            btn.querySelector(".cat-state").textContent = taken ? "✅" : open ? "👆" : "🔒";
+            btn.setAttribute("aria-label", btn.querySelector(".cat-name").textContent + " – " + btn.querySelector(".cat-meta").textContent);
+            btn.onclick = () => {
+                if (taken) return;
+                if (!open) {   // locked: a little shake and a hint
+                    btn.animate([{ transform: "translateX(0)" }, { transform: "translateX(-6px)" }, { transform: "translateX(6px)" }, { transform: "translateX(0)" }], { duration: 300 });
+                    document.getElementById("cat-status").textContent = "🔒 השלימו את כל הנושאים ברמה (כולם ירוקים) כדי לפתוח את 1000 המטבעות";
+                    return;
+                }
+                levelBonus(level, 0);
+                renderPath();
+            };
+            return btn;
         }
 
         let learn = null;   // { level, index, steps, step, i }
@@ -2522,12 +2565,12 @@
                 playUnlockSound();   // the step just turned green
             }
             const allPassed = steps.every((s, i) => passedSteps.has(i));
-            if (passed && !wasPassed && allPassed) levelBonus(level);   // 🏆 the last topic of the level just turned green
             res.style.display = "";
             if (passed) {
                 fireworks();   // 🎆 the topic's quiz is done
                 res.style.color = "#2f855a";
-                res.textContent = wasPassed ? "✅ עברתם את הבוחן!" : allPassed ? `🏆 עברתם את כל הנושאים ברמה ${level}!` : "✅ עברתם את הנושא! הוא מסומן עכשיו בירוק";
+                // 🏆 the last topic of the level just turned green: the 🎁 1000-coin box at the end of the path opens
+                res.textContent = wasPassed ? "✅ עברתם את הבוחן!" : allPassed ? `🏆 עברתם את כל הנושאים ברמה ${level}!` + (levelBonusGiven.includes(level) ? "" : ` 🎁 קופסת ${levelPrize()} המטבעות במסלול נפתחה!`) : "✅ עברתם את הנושא! הוא מסומן עכשיו בירוק";
             } else if (wasPassed) res.style.display = "none";   // already green: nothing to add
             else {
                 res.style.color = "#c05621";
@@ -2538,29 +2581,30 @@
             if (next || level < LEVEL_COUNT) { nextBtn.textContent = next ? "▶ לנושא הבא" : `▶ לרמה ${level + 1}`; nextBtn.style.display = ""; }
         }
 
-        // 🏆 A whole level green: a bonus of LEVEL_BONUS points, once per level (saved), added right away (not in the
-        // result screen's box, not doubled), shown with a golden pop-up, coins raining, fireworks and the points counting up.
-        const LEVEL_BONUS = 1000, LEVEL_BONUS_KEY = "englishquiz-level-bonus";   // [levels that already gave it]
+        // 🏆 A whole level green opens the 🎁 box at the end of its path (prizeCard); its tap gives LEVEL_BONUS points (🔥 on a streak: double), once per
+        // level (saved), added right away, shown with a golden pop-up, coins raining, fireworks and the points counting up.
+        const LEVEL_BONUS = 1000, levelPrize = () => LEVEL_BONUS * (pointsDoubled() ? 2 : 1), LEVEL_BONUS_KEY = "englishquiz-level-bonus";   // [levels that already gave it]
         let levelBonusGiven = [];
         try { const v = JSON.parse(localStorage.getItem(LEVEL_BONUS_KEY)); if (Array.isArray(v)) levelBonusGiven = v; } catch (e) {}
-        function levelBonus(level) {
+        function levelBonus(level, delay = 1200) {
             if (levelBonusGiven.includes(level)) return;
             levelBonusGiven.push(level);
             try { localStorage.setItem(LEVEL_BONUS_KEY, JSON.stringify(levelBonusGiven)); } catch (e) {}
-            grandTotal += LEVEL_BONUS;
-            addEarned(LEVEL_BONUS);
+            const prize = levelPrize();
+            grandTotal += prize;
+            addEarned(prize);
             try { localStorage.setItem(TOTAL_KEY, String(grandTotal)); } catch (e) {}
             showGrandTotal();
-            setTimeout(() => showLevelBonus(level), 1200);   // after the topic's own fireworks have started
+            setTimeout(() => showLevelBonus(level, prize), delay);
         }
-        function showLevelBonus(level) {
+        function showLevelBonus(level, prize = LEVEL_BONUS) {
             document.getElementById("level-bonus")?.remove();
             const pop = document.createElement("div");
             pop.id = "level-bonus";
             pop.setAttribute("role", "dialog"); pop.dataset.dialog = "1";   // the phone back button closes it too
             pop.innerHTML = `<div class="lb-rain" aria-hidden="true"></div><div class="lb-card">
                 <div class="lb-trophy">🏆</div><div class="lb-title">כל הנושאים ברמה ${level} ירוקים!</div>
-                <div class="lb-sub">בונוס מיוחד</div><div class="lb-coins">+<span class="lb-n">0</span> 💰</div>
+                <div class="lb-sub">בונוס מיוחד${prize > LEVEL_BONUS ? " · 🔥 כפול בזכות הימים ברצף!" : ""}</div><div class="lb-coins">+<span class="lb-n">0</span> 💰</div>
                 <div class="lb-tap">לחצו להמשך</div></div>`;
             const rain = pop.querySelector(".lb-rain");
             if (!matchMedia("(prefers-reduced-motion: reduce)").matches) for (let k = 0; k < 36; k++) {
@@ -2575,7 +2619,7 @@
             const n = pop.querySelector(".lb-n"), t0 = performance.now(), dur = 2000;
             const count = now => {   // the points count up to the bonus
                 const p = Math.min(1, (now - t0) / dur);
-                n.textContent = Math.round(LEVEL_BONUS * (1 - Math.pow(1 - p, 3)));
+                n.textContent = Math.round(prize * (1 - Math.pow(1 - p, 3)));
                 if (p < 1 && pop.isConnected) requestAnimationFrame(count);
             };
             requestAnimationFrame(count);
@@ -2747,7 +2791,7 @@
             { id: "spooky", name: "ליל הדלעות", price: 1300, icon: "🎃", bg: "linear-gradient(180deg, #1c1917, #7c2d12)", scene: {
                 sky: ["#1c1917", "#431407", "#9a3412"], stars: 40, ground: "#1c1917", groundH: 0.12, scatter: { e: ["🦇", "🍬"], n: 8, s: [0.04, 0.08] },
                 big: [["🕸️", 0.08, 0.05, 0.3, 0], ["🌕", 0.8, 0.1, 0.32, 0], ["🦇", 0.28, 0.13, 0.18, 0], ["🎃", 0.2, 0.88, 0.36, 0], ["👻", 0.82, 0.84, 0.3, 0]] } },
-            { id: "unicorn", name: "חד-קרן", price: 1400, icon: "🦄", bg: "linear-gradient(180deg, #f9a8d4, #c4b5fd)", scene: {
+            { id: "unicornland", name: "חד-קרן", price: 1400, icon: "🦄", bg: "linear-gradient(180deg, #f9a8d4, #c4b5fd)", scene: {
                 sky: ["#fbcfe8", "#e9d5ff", "#bfdbfe"], ground: "#bbf7d0", groundH: 0.16, scatter: { e: ["✨", "⭐", "💖", "🌸"], n: 26, s: [0.05, 0.1] },
                 big: [["🌈", 0.5, 0.1, 0.75, 0], ["☁️", 0.14, 0.2, 0.28, 0], ["☁️", 0.86, 0.16, 0.32, 0], ["🦄", 0.25, 0.87, 0.5, 0], ["🏰", 0.8, 0.86, 0.38, 0]] } },
             { id: "kingdom", name: "ממלכה", price: 1500, icon: "🏰", bg: "linear-gradient(180deg, #4c1d95, #f0abfc)", scene: {
@@ -2768,6 +2812,14 @@
         let shop = { owned: ["purple"], avatar: null, theme: "purple", boxes: 0, awards: {} };
         try { const v = JSON.parse(localStorage.getItem(SHOP_KEY)); if (v && Array.isArray(v.owned)) shop = { ...shop, ...v }; } catch (e) {}
         if (!shop.owned.includes("purple")) shop.owned.push("purple");
+        // The unicorn background used the id "unicorn", the same as the unicorn character, so buying one gave both.
+        // It is now "unicornland". Once per device: whoever had "unicorn" keeps the background too, and a unicorn background in use stays on.
+        if (!shop.uniFix) {
+            if (shop.owned.includes("unicorn") && !shop.owned.includes("unicornland")) shop.owned.push("unicornland");
+            if (shop.theme === "unicorn") shop.theme = "unicornland";
+            shop.uniFix = 1;
+            try { localStorage.setItem(SHOP_KEY, JSON.stringify(shop)); } catch (e) {}
+        }
         // 🏅 all the points ever earned (quizzes + surprise-box coins). Buying in the shop never takes from it, so it shows how much
         // the app was used. First run on an older device: the points it has now + what its shop items cost.
         const EARNED_KEY = "englishquiz-earned-points";
