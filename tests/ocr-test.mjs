@@ -1053,6 +1053,15 @@ async function testShop() {
   const item = (box, id) => `#${box} .shop-item[data-id="${id}"]`;
   const cls = (box, id) => page.$eval(item(box, id), e => e.className);
   const total = () => page.evaluate(() => +localStorage.getItem('englishquiz-total-points') || 0);
+  // ✋ buying = holding the item (the one that asks "buy?") pressed for a second
+  const hold = async (sel, ms = 1150) => {
+    const el = await page.$(sel);
+    await el.evaluate(e => e.scrollIntoView({ block: 'center' }));
+    const b = await el.boundingBox();
+    await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+    await page.mouse.down(); await new Promise(r => setTimeout(r, ms)); await page.mouse.up();
+    await new Promise(r => setTimeout(r, 50));
+  };
 
   check(await vis('shop-btn'), 'the main screen has a shop button');
   await page.click('#shop-btn');
@@ -1070,17 +1079,22 @@ async function testShop() {
   check((await text('shop-balance')).includes('55'), 'the shop shows the points (55)');
   await page.evaluate(() => { window.__sounds = 0; playUnlockSound = () => window.__sounds++; });
   await page.click(item('shop-avatars', 'dog'));
-  check((await cls('shop-avatars', 'dog')).includes('confirm') && (await total()) === 55, 'the first tap asks "buy?" and buys nothing yet');
+  check((await cls('shop-avatars', 'dog')).includes('confirm') && (await total()) === 55 && (await text('shop-msg')).includes('החזיקו'), 'the first tap asks "buy?" (hold to buy) and buys nothing yet');
+  check((await page.$eval(item('shop-avatars', 'dog'), e => e.querySelector('.shop-price').textContent)).includes('✋') && !!(await page.$(item('shop-avatars', 'dog') + ' .hold-fill')), 'the item says to hold it, and has the bar that fills');
   await page.click(item('shop-avatars', 'dog'));
-  check((await total()) === 45 && (await cls('shop-avatars', 'dog')).includes('active') && (await text('shop-balance')).includes('45'), 'the second tap buys the dog: 45 points left, and the dog is in use');
+  check((await total()) === 55 && (await cls('shop-avatars', 'dog')).includes('confirm') && (await text('shop-msg')).includes('שנייה'), 'a quick second tap buys nothing: it says to hold for a second');
+  await hold(item('shop-avatars', 'dog'), 400);
+  check((await total()) === 55 && !(await cls('shop-avatars', 'dog')).includes('holding'), 'letting go after less than a second buys nothing (the bar empties)');
+  await hold(item('shop-avatars', 'dog'));
+  check((await total()) === 45 && (await cls('shop-avatars', 'dog')).includes('active') && (await text('shop-balance')).includes('45'), 'holding it for a second buys the dog: 45 points left, and the dog is in use (letting go does not take it off)');
   check((await page.evaluate(() => window.__sounds)) === 1 && (await text('shop-msg')).includes('קניתם'), 'buying plays the happy sound and says so');
   check((await text('menu-avatar')) === '🐶', 'the dog shows next to the title on the main screen');
   await page.click(item('shop-themes', 'ocean'));
-  await page.click(item('shop-themes', 'ocean'));
+  await hold(item('shop-themes', 'ocean'));
   const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundImage);
   check((await total()) === 20 && bg.includes('0, 82, 212'), `buying the sea background changes the page background (${bg.slice(0, 60)}...)`);
   await page.click(item('shop-avatars', 'cat'));
-  await page.click(item('shop-avatars', 'cat'));
+  await hold(item('shop-avatars', 'cat'));
   await page.click(item('shop-avatars', 'dog'));
   check((await total()) === 0 && (await text('menu-avatar')) === '🐶', 'switching back to a character you own is free');
   await page.click(item('shop-avatars', 'dog'));
@@ -1114,8 +1128,8 @@ async function testShop() {
   await page.click(item('shop-themes', 'forest'));
   check((await bgNow()).includes('19, 78, 94') && (await cls('shop-themes', 'forest')).includes('confirm') && (await text('shop-msg')).includes('👀') && (await total()) === 80,
     'a background you can afford: the first tap shows it and asks "buy?"');
-  await page.click(item('shop-themes', 'forest'));
-  check((await total()) === 5 && (await savedTheme()) === 'forest' && (await cls('shop-themes', 'forest')).includes('active') && !(await cls('shop-themes', 'forest')).includes('preview'), 'the second tap buys it and it stays');
+  await hold(item('shop-themes', 'forest'));
+  check((await total()) === 5 && (await savedTheme()) === 'forest' && (await cls('shop-themes', 'forest')).includes('active') && !(await cls('shop-themes', 'forest')).includes('preview'), 'holding it buys it and it stays');
   await page.click(item('shop-themes', 'ocean'));
   await page.evaluate(() => { grandTotal = 0; localStorage.setItem('englishquiz-total-points', '0'); });
   // the character in the game: it asks the question and hops on a right answer
@@ -1163,7 +1177,7 @@ async function testShop() {
   e = await earned();
   check(e[0] === start0 + 62 && e[1] === e[0], `surprise-box coins add to it too (+50 = ${e[0]})`);
   const lion = await page.evaluate(() => SHOP_AVATARS.find(a => !shop.owned.includes(a.id) && a.price <= grandTotal)?.id);
-  await page.click(item('shop-avatars', lion)); await page.click(item('shop-avatars', lion));
+  await page.click(item('shop-avatars', lion)); await hold(item('shop-avatars', lion));
   e = await earned();
   check((await page.evaluate(id => shop.owned.includes(id), lion)) && e[0] === start0 + 62 && e[1] === e[0] && e[2].includes(String(e[0])), `buying (${lion}) takes from the points but not from it (still ${e[0]})`);
   await page.reload();

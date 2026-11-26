@@ -476,6 +476,12 @@
         .shop-item.poor { opacity: 0.55; }
         .shop-item.confirm { border-color: #dd6b20; background: #fffaf0; }
         .shop-item.confirm .shop-price { background: #dd6b20; color: #fff; }
+        /* ✋ buying = holding the item for 1 second: an orange bar fills it from the bottom, then it is bought */
+        .shop-item { position: relative; overflow: hidden; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+        .shop-item > * { position: relative; }
+        .shop-item .hold-fill { position: absolute; inset: auto 0 0 0; height: 0; background: rgba(237, 137, 54, 0.45); pointer-events: none; }
+        .shop-item.holding .hold-fill { height: 100%; transition: height 1s linear; }
+        .shop-item.holding { transform: scale(0.96); }
         .shop-item.preview { outline: 3px dashed #805ad5; outline-offset: 2px; }   /* 👀 the background shown for a try */
         /* 🏆 a whole level green: the golden bonus pop-up, with coins raining behind it (see showLevelBonus) */
         #level-bonus { position: fixed; inset: 0; z-index: 1400; display: flex; align-items: center; justify-content: center;
@@ -3604,9 +3610,10 @@
                     name.className = "shop-name"; name.textContent = it.name;
                     const price = document.createElement("div");
                     price.className = "shop-price";
-                    price.textContent = active ? "✔ בשימוש" : owned ? "שלי – לבחירה" : shopConfirm === it.id ? "לקנות? ✔" : `⭐ ${it.price}`;
+                    price.textContent = active ? "✔ בשימוש" : owned ? "שלי – לבחירה" : shopConfirm === it.id ? "✋ החזיקו לקנייה" : `⭐ ${it.price}`;
                     b.append(pic, name, price);
                     b.onclick = () => shopTap(it, kind);
+                    if (shopConfirm === it.id) holdToBuy(b, it, kind);
                     box.appendChild(b);
                 }
             };
@@ -3615,6 +3622,7 @@
         }
 
         function shopTap(it, kind) {
+            if (heldId === it.id && Date.now() - heldAt < 800) return;   // the click that ends a finished hold (it lands on the just-bought item)
             const msg = document.getElementById("shop-msg");
             const use = () => { if (kind === "avatar") shop.avatar = shop.avatar === it.id ? null : it.id; else shop.theme = it.id; };
             // 👀 a background not bought yet: show it right away for a try (until another one is tapped or the shop is left)
@@ -3632,18 +3640,53 @@
             } else if (shopConfirm !== it.id) {   // first tap: ask (a background is already shown for a try)
                 shopConfirm = it.id;
                 msg.style.color = "#c05621";
-                msg.textContent = look + `לקנות ${it.name} ב-${it.price} נקודות? לחצו שוב לאישור`;
-            } else {   // second tap: buy and use it
-                shopConfirm = null;
-                if (kind === "theme") themePreview = null;
-                grandTotal -= it.price;
-                try { localStorage.setItem(TOTAL_KEY, String(grandTotal)); } catch (e) {}
-                shop.owned.push(it.id);
-                use(); saveShop(); applyShop(); showGrandTotal();
-                msg.style.color = "#2f855a";
-                msg.textContent = `🎉 קניתם ${it.name}!`;
-                playUnlockSound();
+                msg.textContent = look + `לקנות ${it.name} ב-${it.price} נקודות? החזיקו לחוץ שנייה אחת לאישור ✋`;
+            } else {   // a short second tap: buying needs a 1-second hold (holdToBuy), so a quick double tap never buys
+                msg.style.color = "#c05621";
+                msg.textContent = `✋ כדי לקנות ${it.name} צריך להחזיק לחוץ שנייה אחת`;
+                const b = document.querySelector(`.shop-item.confirm[data-id="${it.id}"]`);
+                b?.animate([{ transform: "translateX(0)" }, { transform: "translateX(-5px)" }, { transform: "translateX(5px)" }, { transform: "translateX(0)" }], { duration: 250 });
+                return;
             }
+            renderShop();
+        }
+
+        // ✋ The item that asks "buy?" is bought by holding it for HOLD_MS: a bar fills it meanwhile; letting go,
+        // moving the finger away or scrolling stops it. (Enter / space held on a keyboard work the same way.)
+        const HOLD_MS = 1000;
+        let heldAt = 0, heldId = null;   // the item just bought by a hold: the click of letting go is ignored (a new press clears it)
+        document.addEventListener("pointerdown", () => { heldId = null; }, true);
+        function holdToBuy(b, it, kind) {
+            const fill = document.createElement("div");
+            fill.className = "hold-fill";
+            b.prepend(fill);
+            let timer = null;
+            const start = e => {
+                if (timer || (e.type === "pointerdown" && e.button !== 0)) return;
+                b.classList.add("holding");
+                timer = setTimeout(() => { timer = null; heldAt = Date.now(); heldId = it.id; buyItem(it, kind); }, HOLD_MS);
+            };
+            const stop = () => { if (!timer) return; clearTimeout(timer); timer = null; b.classList.remove("holding"); };
+            b.addEventListener("pointerdown", start);
+            for (const ev of ["pointerup", "pointerleave", "pointercancel"]) b.addEventListener(ev, stop);
+            b.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); start(e); } });
+            b.addEventListener("keyup", e => { if (e.key === "Enter" || e.key === " ") stop(); });
+            b.addEventListener("contextmenu", e => e.preventDefault());   // no long-press menu on phones
+        }
+
+        function buyItem(it, kind) {
+            const msg = document.getElementById("shop-msg");
+            if (shopConfirm !== it.id || shop.owned.includes(it.id) || grandTotal < it.price) return;
+            shopConfirm = null;
+            if (kind === "theme") themePreview = null;
+            grandTotal -= it.price;
+            try { localStorage.setItem(TOTAL_KEY, String(grandTotal)); } catch (e) {}
+            shop.owned.push(it.id);
+            if (kind === "avatar") shop.avatar = it.id; else shop.theme = it.id;   // bought = in use
+            saveShop(); applyShop(); showGrandTotal();
+            msg.style.color = "#2f855a";
+            msg.textContent = `🎉 קניתם ${it.name}!`;
+            playUnlockSound();
             renderShop();
         }
         applyShop();
