@@ -953,9 +953,31 @@ async function testLearn() {
   check((await page.$eval('#level-select', e => e.value)) === '5', 'changing the level here changes it in the random tab too');
   await page.evaluate(n => { learnProgress = { 1: [0, 1], 5: Array.from({ length: n - 1 }, (_, i) => i) }; localStorage.setItem('englishquiz-learn-progress', JSON.stringify(learnProgress)); renderPath(); }, n5);
   await page.waitForFunction(n => document.querySelectorAll('#cat-list .cat-step.done').length === n - 1, { timeout: 10000 }, n5);
+  const pts = () => page.evaluate(() => [grandTotal, +localStorage.getItem('englishquiz-total-points'), JSON.parse(localStorage.getItem('englishquiz-level-bonus') || '[]')]);
+  const before = await pts();
   await page.click(`${row(n5 - 1)} .cat-learn`);
   await doStep(0);
   check((await text('step-result')).includes('ברמה 5') && !(await vis('next-step-btn')), 'passing the last part of level 5 says all its topics are passed');
+  // 🏆 the whole level green: a 1000-point bonus, once, with a golden pop-up
+  let after = await pts();
+  check(after[0] === before[0] + 1000 && after[1] === after[0] && after[2].includes(5), `a whole level green gives a bonus of 1000 points right away, saved (${before[0]} → ${after[0]}, levels ${JSON.stringify(after[2])})`);
+  await page.waitForSelector('#level-bonus', { timeout: 4000 });
+  await new Promise(r => setTimeout(r, 2300));
+  const lb = await page.evaluate(() => { const p = document.getElementById('level-bonus'), c = p.querySelector('.lb-card').getBoundingClientRect();
+    return { n: p.querySelector('.lb-n').textContent, title: p.querySelector('.lb-title').textContent, rain: p.querySelectorAll('.lb-rain span').length, fw: !!document.getElementById('fireworks'),
+      fits: c.left >= 0 && c.right <= innerWidth && c.top >= 0 && c.bottom <= innerHeight }; });
+  check(lb.n === '1000' && lb.title.includes('5') && lb.rain > 10 && lb.fw && lb.fits, `a golden pop-up: the points count up to +${lb.n}, coins rain (${lb.rain}), fireworks, and it fits the screen ("${lb.title}")`);
+  await page.click('#level-bonus');
+  check(!(await page.$('#level-bonus')), 'a tap closes it');
+  await page.evaluate(() => stepQuizResult(1, true));   // the same level done again (e.g. replaying its last part): no second bonus
+  after = await pts();
+  check(after[0] === before[0] + 1000 && !(await page.$('#level-bonus')), 'the bonus is given only once per level');
+  await page.evaluate(() => { levelBonus(4); });
+  await page.waitForSelector('#level-bonus', { timeout: 4000 });
+  await page.evaluate(() => history.back());
+  await page.waitForFunction(() => !document.getElementById('level-bonus'), { timeout: 4000 });
+  check((await pts())[0] === before[0] + 2000, 'the phone back button closes it too (another level: another 1000)');
+  await page.evaluate(() => { levelBonusGiven = []; localStorage.removeItem('englishquiz-level-bonus'); grandTotal -= 2000; localStorage.setItem('englishquiz-total-points', String(grandTotal)); });
   await fireworks();   // clear them (the check below must not see these)
   await page.click('#change-words-btn');
   await page.waitForFunction(() => document.querySelectorAll('#cat-list .cat-learn').length > 0, { timeout: 10000 });
@@ -1373,15 +1395,25 @@ async function testAvatar() {
   check((await gif()).fits, '320x568: the GIF fits on a small phone');
   await page.click('#gif-pop'); await turnOver();
 
-  // 🐾 the chosen character wanders on the background, several times (over the card on phones, faint, taps go through)
+  // 🐾 the chosen character wanders on the background, one of it (over the card on phones, faint, taps go through),
+  // and not during a quiz or a learning card
   const sky = () => page.evaluate(() => { const s = document.getElementById('avatar-sky'), els = [...s.children];
     return { n: els.length, pics: els.map(e => e.textContent), imgs: s.querySelectorAll('img').length, moving: els.every(e => e.getAnimations().length > 0),
-      z: getComputedStyle(s).zIndex, taps: getComputedStyle(s).pointerEvents, op: els.length ? +getComputedStyle(els[0]).opacity : 0 }; });
+      z: getComputedStyle(s).zIndex, taps: getComputedStyle(s).pointerEvents, op: els.length ? +getComputedStyle(els[0]).opacity : 0, shown: getComputedStyle(s).display !== 'none' }; });
   let k = await sky();
-  check(k.n >= 6 && k.imgs === k.n && k.moving, `the drawn capybara wanders on the background ${k.n} times, all moving`);
+  check(k.n === 1 && k.imgs === 1 && k.moving && k.shown, `the drawn capybara wanders on the main screen, one of it (${k.n})`);
   await setAvatar('fox');
   k = await sky();
-  check(k.n >= 6 && k.pics.every(p => p === '🦊') && k.moving, `choosing another character: ${k.n} of it on the background (${k.pics.join('')})`);
+  check(k.n === 1 && k.pics[0] === '🦊' && k.moving, `choosing another character: it wanders instead (${k.pics.join('')})`);
+  await page.evaluate(() => { document.getElementById('words-input').value = 'cat\tחתול\ndog\tכלב\nsun\tשמש\nmoon\tירח'; renderWords(); startFromInput(); });
+  check(!(await sky()).shown, 'not during a quiz');
+  await page.evaluate(() => { clearTimeout(nextQuestionTimer); showStart(); });
+  check((await sky()).shown, 'back on the main screen it wanders again');
+  await page.evaluate(() => startLearning(1, 0)); await new Promise(r => setTimeout(r, 500));
+  const learning = await page.evaluate(() => getComputedStyle(document.getElementById('learn-screen')).display !== 'none');
+  check(learning && !(await sky()).shown, `not during learning (learn screen shown: ${learning})`);
+  await page.evaluate(() => showStart());
+  k = await sky();
   check(k.z === '2' && k.taps === 'none' && k.op < 0.5, `phone: they wander over the card, faint (${k.op}), and taps go through (z ${k.z}, ${k.taps})`);
   await page.setViewport({ width: 1280, height: 800 });
   k = await sky();

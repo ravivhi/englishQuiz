@@ -442,6 +442,27 @@
         .shop-item.confirm { border-color: #dd6b20; background: #fffaf0; }
         .shop-item.confirm .shop-price { background: #dd6b20; color: #fff; }
         .shop-item.preview { outline: 3px dashed #805ad5; outline-offset: 2px; }   /* 👀 the background shown for a try */
+        /* 🏆 a whole level green: the golden bonus pop-up, with coins raining behind it (see showLevelBonus) */
+        #level-bonus { position: fixed; inset: 0; z-index: 1400; display: flex; align-items: center; justify-content: center;
+            background: radial-gradient(circle, rgba(250, 204, 21, 0.35), rgba(26, 32, 44, 0.75) 70%); cursor: pointer; animation: lbFade 0.4s ease-out; }
+        #level-bonus .lb-rain { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+        #level-bonus .lb-rain span { position: absolute; top: -3rem; line-height: 1; animation: lbFall linear infinite; }
+        #level-bonus .lb-card { position: relative; text-align: center; padding: 22px 30px 16px; margin: 16px; border-radius: 26px; max-width: 340px;
+            background: linear-gradient(160deg, #fffbeb, #fde68a 55%, #f59e0b); border: 4px solid #fff; color: #78350f;
+            box-shadow: 0 0 0 6px rgba(251, 191, 36, 0.5), 0 0 60px rgba(251, 191, 36, 0.9), 0 18px 40px rgba(0, 0, 0, 0.35);
+            animation: lbPop 0.7s cubic-bezier(.2, 1.6, .4, 1) both; }
+        #level-bonus .lb-trophy { font-size: 4.5rem; line-height: 1; animation: lbBounce 1.1s ease-in-out infinite; }
+        #level-bonus .lb-title { font-size: 1.35rem; font-weight: bold; margin-top: 8px; }
+        #level-bonus .lb-sub { font-size: 1rem; opacity: 0.85; margin-top: 4px; }
+        #level-bonus .lb-coins { font-size: 2.6rem; font-weight: 900; color: #b45309; margin: 6px 0 4px; direction: ltr;
+            text-shadow: 0 2px 0 #fff, 0 0 18px rgba(255, 255, 255, 0.9); animation: lbGlow 1.4s ease-in-out infinite; }
+        #level-bonus .lb-tap { font-size: 0.85rem; opacity: 0.7; }
+        @keyframes lbFade { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes lbPop { 0% { transform: scale(0.2) rotate(-12deg); opacity: 0; } 100% { transform: scale(1) rotate(0); opacity: 1; } }
+        @keyframes lbBounce { 0%, 100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-12px) rotate(6deg) scale(1.1); } }
+        @keyframes lbGlow { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+        @keyframes lbFall { from { transform: translateY(0) rotate(0); } to { transform: translateY(110vh) rotate(540deg); } }
+        @media (prefers-reduced-motion: reduce) { #level-bonus .lb-card, #level-bonus .lb-trophy, #level-bonus .lb-coins { animation: none; } }
 
         /* learning cards: the English word (read aloud) and its Hebrew meaning on one card */
         #learn-screen { flex-direction: column; }
@@ -528,8 +549,9 @@
         #kid-sky span:nth-child(7) { bottom: 18%; left: 40%; font-size: 2.4rem; animation-duration: 12s; animation-delay: -6s; }
         @keyframes kidFloat { from { transform: translate(0, 0) rotate(-6deg); } to { transform: translate(18px, -26px) rotate(6deg); } }
         body.pic-theme #kid-sky { display: none; }
-        /* the chosen character, several times, wandering slowly behind the card (on every background; see showAvatarSky) */
+        /* the chosen character wandering slowly behind the card (on every background; see showAvatarSky) - not during a quiz or learning */
         #avatar-sky { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+        body.busy #avatar-sky { display: none; }
         #avatar-sky span { position: absolute; line-height: 1; opacity: 0.8; will-change: transform;
             animation: avatarWander var(--dur, 14s) ease-in-out var(--delay, 0s) infinite alternate; }
         @keyframes avatarWander {
@@ -2456,6 +2478,7 @@
                 playUnlockSound();   // the step just turned green
             }
             const allPassed = steps.every((s, i) => passedSteps.has(i));
+            if (passed && !wasPassed && allPassed) levelBonus(level);   // 🏆 the last topic of the level just turned green
             res.style.display = "";
             if (passed) {
                 fireworks();   // 🎆 the topic's quiz is done
@@ -2469,6 +2492,51 @@
             // nothing is locked: the next topic (or level) is always there
             const next = steps[index + 1];
             if (next || level < LEVEL_COUNT) { nextBtn.textContent = next ? "▶ לנושא הבא" : `▶ לרמה ${level + 1}`; nextBtn.style.display = ""; }
+        }
+
+        // 🏆 A whole level green: a bonus of LEVEL_BONUS points, once per level (saved), added right away (not in the
+        // result screen's box, not doubled), shown with a golden pop-up, coins raining, fireworks and the points counting up.
+        const LEVEL_BONUS = 1000, LEVEL_BONUS_KEY = "englishquiz-level-bonus";   // [levels that already gave it]
+        let levelBonusGiven = [];
+        try { const v = JSON.parse(localStorage.getItem(LEVEL_BONUS_KEY)); if (Array.isArray(v)) levelBonusGiven = v; } catch (e) {}
+        function levelBonus(level) {
+            if (levelBonusGiven.includes(level)) return;
+            levelBonusGiven.push(level);
+            try { localStorage.setItem(LEVEL_BONUS_KEY, JSON.stringify(levelBonusGiven)); } catch (e) {}
+            grandTotal += LEVEL_BONUS;
+            addEarned(LEVEL_BONUS);
+            try { localStorage.setItem(TOTAL_KEY, String(grandTotal)); } catch (e) {}
+            showGrandTotal();
+            setTimeout(() => showLevelBonus(level), 1200);   // after the topic's own fireworks have started
+        }
+        function showLevelBonus(level) {
+            document.getElementById("level-bonus")?.remove();
+            const pop = document.createElement("div");
+            pop.id = "level-bonus";
+            pop.setAttribute("role", "dialog"); pop.dataset.dialog = "1";   // the phone back button closes it too
+            pop.innerHTML = `<div class="lb-rain" aria-hidden="true"></div><div class="lb-card">
+                <div class="lb-trophy">🏆</div><div class="lb-title">כל הנושאים ברמה ${level} ירוקים!</div>
+                <div class="lb-sub">בונוס מיוחד</div><div class="lb-coins">+<span class="lb-n">0</span> 💰</div>
+                <div class="lb-tap">לחצו להמשך</div></div>`;
+            const rain = pop.querySelector(".lb-rain");
+            if (!matchMedia("(prefers-reduced-motion: reduce)").matches) for (let k = 0; k < 36; k++) {
+                const c = document.createElement("span");
+                c.textContent = ["💰", "🪙", "⭐", "✨"][k % 4];
+                c.style.cssText = `left:${Math.random() * 96}%;font-size:${1.2 + Math.random() * 1.6}rem;animation-duration:${2.2 + Math.random() * 2}s;animation-delay:${Math.random() * 2.5}s`;
+                rain.appendChild(c);
+            }
+            document.body.appendChild(pop);
+            playUnlockSound(); setTimeout(playUnlockSound, 700);
+            fireworks(5000);
+            const n = pop.querySelector(".lb-n"), t0 = performance.now(), dur = 2000;
+            const count = now => {   // the points count up to the bonus
+                const p = Math.min(1, (now - t0) / dur);
+                n.textContent = Math.round(LEVEL_BONUS * (1 - Math.pow(1 - p, 3)));
+                if (p < 1 && pop.isConnected) requestAnimationFrame(count);
+            };
+            requestAnimationFrame(count);
+            const opened = Date.now();
+            pop.onclick = e => { if (!e.isTrusted || Date.now() - opened > 800) pop.remove(); };   // not closed by a tap that was already on its way (the back button: at once)
         }
 
         function nextLearnCategory() {
@@ -2779,11 +2847,10 @@
             else el.textContent = a ? a.pic : "";
         }
         const picPrefix = a => a && a.pic ? a.pic + " " : "";   // for texts like "🐶 Woof woof!"
-        // 🐾 the chosen character, several times, wandering behind the card: spread over the screen (around the edges
-        // and the corners, where the card doesn't cover it), each its own size, speed and path. Nothing when no character is chosen.
-        const AVATAR_SKY = [   // [left %, top %, size rem, seconds, path x px, path y px]
-            [4, 6, 2.6, 13, 40, 30], [82, 4, 2.0, 11, -36, 28], [6, 40, 2.2, 15, 30, -40], [86, 34, 3.0, 17, -44, 36],
-            [3, 78, 3.2, 12, 46, -30], [84, 82, 2.4, 14, -38, -34], [44, 2, 1.6, 10, 50, 20], [40, 90, 1.8, 16, -50, -24],
+        // 🐾 the chosen character wandering slowly around the whole screen (one of it). Nothing when no character is chosen,
+        // and hidden during a quiz or a learning card (see body.busy).
+        const AVATAR_SKY = [   // [left %, top %, size rem, seconds, path x, path y] - from the middle, out to the edges and back
+            [45, 40, 3, 22, "36vw", "34vh"],
         ];
         let avatarSkyId;
         function showAvatarSky(a) {
@@ -2796,7 +2863,7 @@
             AVATAR_SKY.forEach(([x, y, s, d, dx, dy], k) => {
                 const el = document.createElement("span");
                 putPic(el, a);
-                el.style.cssText = `left:${x}%;top:${y}%;font-size:${s}rem;--dur:${d}s;--delay:${-k * 1.7}s;--dx:${dx}px;--dy:${dy}px`;
+                el.style.cssText = `left:${x}%;top:${y}%;font-size:${s}rem;--dur:${d}s;--delay:${-k * 1.7}s;--dx:${dx};--dy:${dy}`;
                 sky.appendChild(el);
             });
         }
@@ -3452,6 +3519,11 @@
         trapWatch.observe(document.body, { childList: true });
         for (const id of ["start-screen", "game-screen", "summary-screen", "learn-screen", "learn-done-screen", "shop-screen"])
             trapWatch.observe(document.getElementById(id), { attributes: true, attributeFilter: ["style"] });
+        // 🐾 no wandering character during a quiz or a learning card (body.busy hides it)
+        const markBusy = () => document.body.classList.toggle("busy", shownEl("game-screen") || shownEl("learn-screen"));
+        const busyWatch = new MutationObserver(markBusy);
+        for (const id of ["game-screen", "learn-screen"]) busyWatch.observe(document.getElementById(id), { attributes: true, attributeFilter: ["style"] });
+        markBusy();
         restoreSession().finally(() => { if (pendingCoins && !shownEl("summary-screen")) collectCoins(); });   // a box can only wait on its result screen
     </script>
 </body>
