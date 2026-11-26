@@ -373,8 +373,8 @@
         #avatar-bubble .ab-he { font-size: 1.1rem; margin-top: 2px; }
         /* 🎬 the character's funny "GIF" pop-up (a looping cartoon made in the app) */
         #gif-pop { position: fixed; inset: 0; z-index: 70; display: flex; align-items: center; justify-content: center; background: rgba(26,32,44,0.55); cursor: pointer; animation: cardPop 0.3s ease-out; }
-        #gif-pop .gp-card { background: #fff; border-radius: 24px; padding: 10px 10px 8px; box-shadow: 0 8px 0 rgba(0,0,0,0.15), 0 16px 34px rgba(0,0,0,0.35); text-align: center; max-width: calc(100vw - 24px); }
-        #gif-pop .gp-stage { position: relative; width: 260px; height: 170px; overflow: hidden; border-radius: 16px; }
+        #gif-pop .gp-card { background: #fff; border-radius: 24px; padding: 10px 10px 8px; box-shadow: 0 8px 0 rgba(0,0,0,0.15), 0 16px 34px rgba(0,0,0,0.35); text-align: center; max-width: min(320px, calc(100vw - 24px)); }
+        #gif-pop .gp-stage { position: relative; margin: 0 auto; width: 260px; height: 170px; overflow: hidden; border-radius: 16px; }
         #gif-pop .gp-e { position: absolute; line-height: 1; white-space: nowrap; will-change: transform; }
         #gif-pop .gp-badge { position: absolute; top: 6px; right: 6px; z-index: 5; padding: 1px 6px; border-radius: 6px; background: rgba(0,0,0,0.55); color: #fff; font: bold 0.7rem sans-serif; }
         #gif-pop .gp-say { font-weight: bold; font-size: 1.1rem; color: #553c9a; margin-top: 8px; }
@@ -387,7 +387,7 @@
         #summary-avatar { display: inline-block; font-size: 3rem; line-height: 1; vertical-align: bottom; margin: 0 8px 22px 0; padding: 0;
                           background: none; border: 0; cursor: pointer; font-family: inherit; touch-action: manipulation; }
         /* 🪄 the magic wand in the quiz (won in the result screen's surprise box): shows the right answer */
-        #wand-btn { position: absolute; left: 0; top: 50%; transform: translateY(-50%); z-index: 2; font-size: 1.3rem; line-height: 1; padding: 5px 10px; border: 2px solid #b794f4; border-radius: 999px;
+        #wand-btn { position: absolute; right: 0; top: 50%; transform: translateY(-50%); z-index: 2; font-size: 1.3rem; line-height: 1; padding: 5px 10px; border: 2px solid #b794f4; border-radius: 999px;
                     background: #faf5ff; color: #553c9a; cursor: pointer; font-family: inherit; touch-action: manipulation; white-space: nowrap; }
         #wand-btn #wand-count { font-size: 0.9rem; font-weight: bold; margin-inline-start: 3px; }
         #wand-btn:disabled { opacity: 0.45; cursor: default; }
@@ -404,7 +404,9 @@
         #coin-box:disabled .cb-pic { animation: none; }
         .shop-item .shop-swatch.pic { display: flex; align-items: center; justify-content: center; font-size: 1.5rem; line-height: 1; }
         /* with a picture background the card is slightly see-through, so the picture shows a little everywhere */
-        body.pic-theme .game-container { background: rgba(255, 255, 255, 0.72); }
+        /* picture backgrounds: the card is mostly see-through, so the picture shows faded behind it (the topic rows a bit less, to keep them easy to read) */
+        body.pic-theme .game-container { background: rgba(255, 255, 255, 0.3); }
+        body.pic-theme .cat-step:not(.done) { background: rgba(255, 255, 255, 0.72); }
         .pic-img { width: 1.1em; height: 1.1em; vertical-align: -0.2em; display: inline-block; pointer-events: none; }
         #summary-say .ss-he { font-size: 0.8rem; color: #4a5568; margin-top: 2px; }
         #summary-avatar:empty { display: none; }
@@ -425,6 +427,20 @@
         #shop-title { flex: 1; font-weight: bold; color: #4a5568; font-size: 1.15rem; }
         #shop-balance { font-weight: bold; color: #2b6cb0; white-space: nowrap; }
         #shop-earned { font-weight: bold; color: #276749; background: #f0fff4; border: 2px solid #9ae6b4; border-radius: 14px; padding: 6px 10px; margin: 0 0 6px; font-size: 0.95rem; }
+        /* 🎁 what was in the shop's box: a big, clear pop-up (see showBoxReveal) */
+        #box-reveal { position: fixed; inset: 0; z-index: 55; display: flex; align-items: center; justify-content: center; padding: 16px;
+            background: rgba(26, 32, 44, 0.6); cursor: pointer; animation: lbFade 0.3s ease-out; }
+        #box-reveal .br-card { text-align: center; width: 100%; max-width: 320px; padding: 18px 20px 12px; border-radius: 26px; border: 4px solid #fff;
+            box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.35), 0 0 50px rgba(255, 255, 255, 0.5), 0 18px 40px rgba(0, 0, 0, 0.35); animation: lbPop 0.6s cubic-bezier(.2, 1.6, .4, 1) both; }
+        #box-reveal.coins .br-card { background: linear-gradient(160deg, #fffbeb, #fde68a 60%, #f6ad55); color: #78350f; }
+        #box-reveal.wand .br-card { background: linear-gradient(160deg, #faf5ff, #e9d8fd 60%, #b794f4); color: #44337a; }
+        #box-reveal .br-top { font-size: 1.05rem; font-weight: bold; }
+        #box-reveal .br-pic { font-size: 5rem; line-height: 1.1; margin: 6px 0 2px; animation: lbBounce 1.1s ease-in-out infinite; }
+        #box-reveal .br-big { font-size: 2rem; font-weight: 900; text-shadow: 0 2px 0 #fff; }
+        #box-reveal .br-sub { font-size: 0.95rem; margin-top: 6px; line-height: 1.35; }
+        #box-reveal .br-fire { display: inline-block; margin-top: 8px; padding: 2px 10px; border-radius: 999px; background: #fff5eb; color: #c05621; font-weight: bold; font-size: 0.9rem; }
+        #box-reveal .br-tap { font-size: 0.8rem; opacity: 0.7; margin-top: 8px; }
+        @media (prefers-reduced-motion: reduce) { #box-reveal .br-card, #box-reveal .br-pic { animation: none; } }
         #shop-msg { min-height: 1.3em; font-size: 0.95rem; font-weight: bold; margin: 0 0 4px; }
         .shop-body { flex: 1 1 auto; min-height: 0; overflow: auto; }
         .shop-section { font-weight: bold; color: #553c9a; text-align: start; margin: 6px 2px 6px; }
@@ -817,6 +833,21 @@
         let pendingCoins = 0;
         try { pendingCoins = Math.max(0, parseInt(localStorage.getItem(PENDING_KEY), 10) || 0); } catch (e) {}
         function savePending() { try { localStorage.setItem(PENDING_KEY, String(pendingCoins)); } catch (e) {} }
+        // 🎁 A box bonus: in every 10 quizzes finished with more than half right, one of them (a random one) has
+        // BOX_EXTRA more coins in its box - a surprise until it is opened. Saved: { n: good quizzes so far in this 10, at: the lucky one (1-10) }
+        const BOX_EXTRA = 50, BOX_EXTRA_EVERY = 10, BOX_EXTRA_KEY = "englishquiz-box-extra";
+        const newExtraRound = () => ({ n: 0, at: 1 + Math.floor(Math.random() * BOX_EXTRA_EVERY) });
+        let boxExtra = newExtraRound();
+        try { const v = JSON.parse(localStorage.getItem(BOX_EXTRA_KEY)); if (v && v.at >= 1) boxExtra = v; } catch (e) {}
+        // called once per finished quiz: returns the extra coins for its box (0 or BOX_EXTRA)
+        function boxExtraFor(rate) {
+            if (!(rate > 50)) return 0;
+            boxExtra.n++;
+            const extra = boxExtra.n === boxExtra.at ? BOX_EXTRA : 0;
+            if (boxExtra.n >= Math.max(BOX_EXTRA_EVERY, boxExtra.at)) boxExtra = newExtraRound();   // (the tests set a far-away "at")
+            try { localStorage.setItem(BOX_EXTRA_KEY, JSON.stringify(boxExtra)); } catch (e) {}
+            return extra;
+        }
         // 🔥 Days in a row: the first quiz finished on a day adds a day if the last one was yesterday, otherwise starts again
         // from 1. From 10 days in a row a finished quiz's points are doubled, and the shop box may hold 200 coins.
         const DAILY_KEY = 'englishquiz-daily-streak', DAILY_DOUBLE = 10;
@@ -844,7 +875,7 @@
             const sh = document.getElementById("shop-fire"), info = document.getElementById("fire-info");
             if (sh) sh.textContent = `🔥 × ${n}`;
             if (info) info.textContent = n >= DAILY_DOUBLE
-                ? "נקודות כפולות, ובקופסה אפשר גם 200!"
+                ? "נקודות כפולות, והקופסה בחנות נותנת כפול!"
                 : `בוחן כל יום מוסיף 🔥. עוד ${DAILY_DOUBLE - n} לנקודות כפולות!`;
         }
         // moves the waiting points into the total (returns how many). (Wands come only from the shop's surprise box.)
@@ -975,8 +1006,12 @@
                 } else if (!btn.classList.contains("wrong")) { btn.classList.add("faded"); btn.disabled = true; }
             }
         }
-        function useWand() {
+        // asks first ("are you sure?"), so a wand is not used up by a tap by mistake
+        async function useWand() {
             if (!canAnswer || wandUsed || !(shop.wands > 0) || currentIndex >= wordsData.length) return;
+            const at = currentIndex;
+            if (!(await askConfirm(`🪄 להשתמש בשרביט קסמים? הוא יראה את התשובה הנכונה (יש לכם ${shop.wands})`, "כן, להשתמש", "#805ad5"))) return;
+            if (!canAnswer || wandUsed || !(shop.wands > 0) || currentIndex !== at) return;   // (nothing changed meanwhile)
             shop.wands--;
             saveShop(); showWands();
             wandUsed = true;
@@ -1067,7 +1102,8 @@
             }
             showDaily();
             collectCoins();   // (anything still waiting from before)
-            pendingCoins = totalScore;   // 🎁 the points wait in the surprise box until it is opened
+            // 🎁 the points (and maybe a bonus, 🔥 doubled too from 10 days in a row) wait in the surprise box until it is opened
+            pendingCoins = totalScore + boxExtraFor(successRate) * (pointsDoubled() ? 2 : 1);
             savePending();
 
             document.getElementById("summary-emoji").innerText = emoji;
@@ -1077,7 +1113,7 @@
             // until the box is opened the total is the one from before; opening it counts the quiz's points into it
             scoreEl.innerText = `נקודות בבוחן: ${totalScore} · סה״כ: ${grandTotal}`;
             scoreEl.style.display = "";
-            box.style.display = totalScore ? "" : "none";
+            box.style.display = pendingCoins ? "" : "none";
             box.disabled = false;
             box.querySelector(".cb-pic").textContent = "🎁";
 
@@ -1213,7 +1249,7 @@
         }
 
         // In-app confirm dialog (the browser's confirm() shows the site's address)
-        function askConfirm(text, okText) {
+        function askConfirm(text, okText, okColor = "#e53e3e") {
             return new Promise(resolve => {
                 const bg = document.createElement("div");
                 bg.dataset.dialog = "1";
@@ -1221,11 +1257,12 @@
                 bg.innerHTML = `<div dir="rtl" style="background:#fff;color:#1a202c;border-radius:16px;padding:22px 20px 16px;max-width:320px;width:100%;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.3);">
                     <div data-text style="font-size:1.15rem;font-weight:bold;margin-bottom:18px;"></div>
                     <div style="display:flex;gap:10px;justify-content:center;">
-                        <button data-ok style="flex:1;padding:10px;font-size:1rem;font-weight:bold;border:none;border-radius:10px;background:#e53e3e;color:#fff;cursor:pointer;"></button>
+                        <button data-ok style="flex:1;padding:10px;font-size:1rem;font-weight:bold;border:none;border-radius:10px;color:#fff;cursor:pointer;"></button>
                         <button data-cancel style="flex:1;padding:10px;font-size:1rem;border:none;border-radius:10px;background:#e2e8f0;color:#2d3748;cursor:pointer;">ביטול</button>
                     </div></div>`;
                 bg.querySelector("[data-text]").textContent = text;
                 bg.querySelector("[data-ok]").textContent = okText;
+                bg.querySelector("[data-ok]").style.background = okColor;
                 const done = v => { bg.remove(); resolve(v); };
                 bg.querySelector("[data-ok]").onclick = () => done(true);
                 bg.querySelector("[data-cancel]").onclick = () => done(false);
@@ -2434,12 +2471,13 @@
             const box = document.getElementById("coin-box"), pic = box.querySelector(".cb-pic"), scoreEl = document.getElementById("summary-final-score");
             if (box.disabled) return;
             box.disabled = true;
-            const points = totalScore, before = grandTotal;
+            const before = grandTotal, points = collectCoins();   // saved at once; the rest is the show
+            const extra = Math.max(0, points - totalScore);      // 🎁 the box bonus, if this was the lucky quiz
             coinSound();      // 💰 cha-ching, right on the tap
-            collectCoins();   // saved at once; the rest is the show
             const run = celebrateRun, here = () => run === celebrateRun && shownEl("summary-screen");
             // the quiz's points stay; the total counts up to its new value, popping on every step
-            const show = n => { scoreEl.innerHTML = `נקודות בבוחן: ${points} · סה״כ: <span class="total-up">${before + n}</span>`; return scoreEl.querySelector(".total-up"); };
+            const label = `נקודות בבוחן: ${totalScore}` + (extra ? ` + 🎁 ${extra} בונוס` : "");
+            const show = n => { scoreEl.innerHTML = `${label} · סה״כ: <span class="total-up">${before + n}</span>`; return scoreEl.querySelector(".total-up"); };
             const finish = () => { if (run !== celebrateRun) return;   // a newer result screen is showing: leave it alone
                 box.style.display = "none"; scoreEl.style.display = ""; show(points); if (shownEl("summary-screen")) saveSession("summary"); };
             await pic.animate([0, -16, 16, -20, 20, -24, 24, 0].map(d => ({ transform: `rotate(${d}deg) scale(${1 + Math.abs(d) / 80})` })),
@@ -2448,6 +2486,12 @@
             pic.textContent = "💰";
             pic.animate([{ transform: "scale(0.4)" }, { transform: "scale(1.6)", offset: 0.6 }, { transform: "scale(1)" }], { duration: 450, easing: "ease-out" });
             avatarBurst(["💰", "⭐", "✨"], 16, pic, true);
+            if (extra) {   // 🎉 the lucky box: a bigger burst, a second sound and a note
+                avatarBurst(["💰", "🪙", "🎉", "⭐"], 26, pic, true);
+                setTimeout(playUnlockSound, 250);
+                showToast(`🎉 הפתעה! בקופסה יש עוד ${extra} נקודות בונוס!`, 3500);
+                await new Promise(r => setTimeout(r, 600));
+            }
             await new Promise(r => setTimeout(r, 650));
             if (!here()) return finish();
             box.style.display = "none";
@@ -2616,7 +2660,47 @@
                 <ellipse cx='42' cy='33' rx='3' ry='1.8' fill='#f6a6a6' opacity='.7'/>
                 <circle cx='45' cy='12.5' r='6.5' fill='#f6993f'/><circle cx='43' cy='10.5' r='1.6' fill='#fbd38d'/><path d='M45 6.2 q4 -4.6 8 -1.4 q-4.4 2.4 -8 1.4z' fill='#38a169'/></svg>`),
               name: "קפיברה", price: 1150 },
+            // ⚽ Messi: no emoji either - a drawing (dark hair and beard, the sky-blue and white striped shirt, number 10)
+            { id: "messi", pic: "", img: "data:image/svg+xml," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'>
+                <defs><clipPath id='s'><path d='M8 64 Q8 45 21 40 L43 40 Q56 45 56 64Z'/></clipPath></defs>
+                <g clip-path='url(#s)'><rect x='0' y='38' width='64' height='26' fill='#fff'/><rect x='13' y='38' width='7' height='26' fill='#6cace4'/>
+                <rect x='28.5' y='38' width='7' height='26' fill='#6cace4'/><rect x='44' y='38' width='7' height='26' fill='#6cace4'/></g>
+                <path d='M8 64 Q8 45 21 40 L43 40 Q56 45 56 64' fill='none' stroke='#4b8ac7' stroke-width='1.2'/>
+                <text x='32' y='59' font-size='12' font-family='Arial, sans-serif' font-weight='bold' text-anchor='middle' fill='#1e3a8a'>10</text>
+                <rect x='27' y='33' width='10' height='9' rx='3' fill='#d9a577'/>
+                <ellipse cx='20.5' cy='23' rx='2.4' ry='3.4' fill='#d9a577'/><ellipse cx='43.5' cy='23' rx='2.4' ry='3.4' fill='#d9a577'/>
+                <ellipse cx='32' cy='22' rx='12' ry='13.5' fill='#e8b98a'/>
+                <path d='M19.5 21 Q17.5 6 32 6.5 Q46.5 6 44.5 21 Q43 12.5 34 12 Q30 15 22 13.5 Q20 16 19.5 21Z' fill='#3b2414'/>
+                <path d='M20.5 22 Q21 37 32 37.5 Q43 37 43.5 22 Q42 30.5 37 29.5 Q32 28 27 29.5 Q22 30.5 20.5 22Z' fill='#3b2414'/>
+                <path d='M27.5 18.5 q2.5 -1.6 5 0 M31.5 18.5 q2.5 -1.6 5 0' stroke='#3b2414' stroke-width='1.3' fill='none' transform='translate(-2.5 0)'/>
+                <circle cx='27.3' cy='21.5' r='1.6' fill='#2d1b0e'/><circle cx='36.7' cy='21.5' r='1.6' fill='#2d1b0e'/>
+                <path d='M28 31 Q32 34.5 36 31 Z' fill='#fff'/></svg>`),
+              name: "מסי", price: 2500 },
         ].sort((a, b) => a.price - b.price);   // cheapest first
+        // drawings used in the picture backgrounds (by name in a scene's "big" list) and as their icons in the shop
+        const SCENE_IMGS = {
+            capy: () => SHOP_AVATARS.find(a => a.id === "capybara").img,
+            messi: () => SHOP_AVATARS.find(a => a.id === "messi").img,
+            // a goat wearing Argentina's sky-blue and white striped shirt
+            goat: () => "data:image/svg+xml," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'>
+                <defs><clipPath id='b'><ellipse cx='30' cy='39' rx='18' ry='11'/></clipPath></defs>
+                <rect x='16' y='44' width='5' height='15' rx='2' fill='#d6d3d1'/><rect x='24' y='45' width='5' height='14' rx='2' fill='#d6d3d1'/>
+                <rect x='34' y='45' width='5' height='14' rx='2' fill='#d6d3d1'/><rect x='42' y='44' width='5' height='15' rx='2' fill='#d6d3d1'/>
+                <rect x='16' y='57' width='5' height='3' fill='#57534e'/><rect x='24' y='57' width='5' height='3' fill='#57534e'/>
+                <rect x='34' y='57' width='5' height='3' fill='#57534e'/><rect x='42' y='57' width='5' height='3' fill='#57534e'/>
+                <path d='M12 36 q-5 -4 -3 -9 q3 4 6 5z' fill='#e7e5e4'/>
+                <g clip-path='url(#b)'><rect x='0' y='26' width='64' height='30' fill='#fff'/><rect x='14' y='26' width='6' height='30' fill='#6cace4'/>
+                <rect x='26' y='26' width='6' height='30' fill='#6cace4'/><rect x='38' y='26' width='6' height='30' fill='#6cace4'/></g>
+                <ellipse cx='30' cy='39' rx='18' ry='11' fill='none' stroke='#4b8ac7' stroke-width='1.2'/>
+                <text x='30' y='44' font-size='9' font-family='Arial, sans-serif' font-weight='bold' text-anchor='middle' fill='#1e3a8a'>10</text>
+                <path d='M41 34 Q44 24 48 20 L54 24 Q50 30 47 37Z' fill='#f5f5f4'/>
+                <path d='M47 14 Q42 4 35 8' stroke='#a8a29e' stroke-width='3' fill='none' stroke-linecap='round'/>
+                <path d='M51 13 Q49 3 43 4' stroke='#a8a29e' stroke-width='3' fill='none' stroke-linecap='round'/>
+                <ellipse cx='44' cy='17' rx='4.5' ry='2' fill='#e7e5e4' transform='rotate(-25 44 17)'/>
+                <ellipse cx='52' cy='20' rx='7' ry='6.5' fill='#f5f5f4'/><ellipse cx='57' cy='23' rx='3.5' ry='3' fill='#e7e5e4'/>
+                <circle cx='52.5' cy='18.5' r='1.5' fill='#2d1b0e'/><circle cx='58' cy='22.5' r='0.8' fill='#78716c'/>
+                <path d='M53 26 L55 34 L51 27Z' fill='#d6d3d1'/></svg>`),
+        };
         const SHOP_THEMES = [
             { id: "purple", name: "סגול", price: 0, bg: "linear-gradient(135deg, #4a00e0, #8e2de2)" },
             { id: "ocean", name: "ים", price: 25, bg: "linear-gradient(135deg, #0052d4, #4fc3f7)" },
@@ -2672,6 +2756,11 @@
             { id: "cosmos", name: "חלל רחוק", price: 1600, icon: "🚀", bg: "linear-gradient(180deg, #020617, #312e81)", scene: {
                 sky: ["#020617", "#1e1b4b", "#312e81"], stars: 120, scatter: { e: ["⭐", "✨"], n: 14, s: [0.03, 0.06] },
                 big: [["☄️", 0.5, 0.06, 0.2, 0], ["🌙", 0.15, 0.1, 0.28, 0], ["🪐", 0.8, 0.13, 0.4, -15], ["👽", 0.9, 0.55, 0.16, 0], ["🚀", 0.2, 0.86, 0.36, -30], ["🛸", 0.82, 0.84, 0.3, 10]] } },
+            // ⚽ Messi on the football pitch, next to a goat (the GOAT!) in Argentina's shirt
+            { id: "messigoat", name: "מסי והעז", price: 2000, icon: "messi", bg: "linear-gradient(180deg, #7dd3fc, #16a34a)", scene: {
+                sky: ["#38bdf8", "#7dd3fc", "#e0f2fe"], ground: "#16a34a", groundH: 0.26, scatter: { e: ["⚽", "⭐"], n: 8, s: [0.03, 0.05], y: [0.8, 0.98] },
+                big: [["☀️", 0.86, 0.08, 0.24, 0], ["🏆", 0.15, 0.12, 0.26, 0], ["☁️", 0.5, 0.14, 0.24, 0], ["🥅", 0.5, 0.66, 0.3, 0],
+                      ["messi", 0.29, 0.82, 0.5, 0], ["goat", 0.72, 0.85, 0.44, 0], ["⚽", 0.48, 0.95, 0.1, 0]] } },
             { id: "capyspa", name: "ספא קפיברות", price: 1800, icon: "capy", bg: "linear-gradient(180deg, #fdba74, #5eead4)", scene: {
                 sky: ["#fef3c7", "#fdba74", "#fb923c"], water: { top: 0.76, color: "#2dd4bf" }, scatter: { e: ["🍊", "🌺", "🫧"], n: 12, s: [0.04, 0.07] },
                 big: [["☀️", 0.85, 0.1, 0.26, 0], ["🌴", 0.1, 0.2, 0.34, 0], ["♨️", 0.5, 0.7, 0.2, 0], ["capy", 0.28, 0.85, 0.45, 0], ["capy", 0.76, 0.9, 0.32, 0], ["🍊", 0.3, 0.72, 0.1, 0], ["🍊", 0.9, 0.79, 0.09, 0]] } },
@@ -2715,19 +2804,18 @@
             { id: "bronze", pic: "🥉", name: "מדליית ארד" }, { id: "silver", pic: "🥈", name: "מדליית כסף" },
             { id: "gold", pic: "🥇", name: "מדליית זהב" }, { id: "trophy", pic: "🏆", name: "גביע" }, { id: "crown", pic: "👑", name: "כתר" },
         ];
-        // What's inside: half the boxes hold a magic wand, a third 50 coins, a sixth 100 coins.
+        // What's inside: 20% a magic wand, 40% 50 coins, 40% 100 coins (🔥 from 10 days in a row: doubled - 2 wands / 100 / 200).
         // (Medals / trophies from older boxes stay saved in shop.awards.)
         function openBox() {
             if (!(shop.boxes > 0)) return;
             shop.boxes--;
-            const r = Math.random();
+            const r = Math.random(), x2 = pointsDoubled() ? 2 : 1;   // 🔥 from 10 days in a row everything in the box is doubled
             let it;
-            if (r < 0.5) {
-                shop.wands = (shop.wands || 0) + 1;
-                it = { id: "wand", pic: "🪄", name: "שרביט קסמים", wand: true };
-            } else {
-                // 50 or 100 coins; 🔥 from 10 days in a row the box may hold 200 too (of the wand-less boxes: half 50, a third 100, a sixth 200)
-                const c = (r - 0.5) * 2, coins = !pointsDoubled() ? (c < 2 / 3 ? 50 : 100) : c < 1 / 2 ? 50 : c < 5 / 6 ? 100 : 200;
+            if (r < 0.2) {   // 20%: a magic wand (🔥 two)
+                shop.wands = (shop.wands || 0) + x2;
+                it = { id: "wand", pic: "🪄", name: x2 === 2 ? "2 שרביטי קסמים" : "שרביט קסמים", wand: true };
+            } else {         // 40%: 50 coins, 40%: 100 coins (🔥 100 / 200)
+                const coins = (r < 0.6 ? 50 : 100) * x2;
                 it = { id: "coins", pic: "💰", name: `${coins} נקודות`, coins };
                 grandTotal += coins;
                 addEarned(coins);
@@ -2745,11 +2833,30 @@
                 box.classList.remove("shake");
                 box.textContent = it.pic;
                 msg.style.color = "#2f855a";
-                msg.textContent = `🎉 בקופסה: ${it.pic} ${it.name}!` + (it.wand ? ` (עכשיו יש לכם ${shop.wands})` : it.coins === 200 ? " (🔥 בונוס ימים ברצף)" : "");
-                avatarBurst(it.coins ? ["💰", "⭐", "✨"] : ["🪄", "✨", "⭐"], 14, box, true);
+                msg.textContent = `🎉 בקופסה: ${it.pic} ${it.name}!` + (it.wand ? ` (עכשיו יש לכם ${shop.wands})` : "") + (pointsDoubled() ? " 🔥 כפול על ימים ברצף" : "");
                 playUnlockSound();
                 renderShop();
+                showBoxReveal(it);
             }, 650);
+        }
+        // 🎁 What was in the shop's box, big and clear: a pop-up with the prize, how much, and what it is for. A tap closes it.
+        function showBoxReveal(it) {
+            document.getElementById("box-reveal")?.remove();
+            const x2 = pointsDoubled(), n = it.coins || (x2 ? 2 : 1);
+            const pop = document.createElement("div");
+            pop.id = "box-reveal";
+            pop.className = it.coins ? "coins" : "wand";
+            pop.setAttribute("role", "dialog"); pop.dataset.dialog = "1";   // the phone back button closes it too
+            pop.innerHTML = `<div class="br-card"><div class="br-top">🎉 בקופסה הייתה הפתעה!</div>
+                <div class="br-pic">${it.pic}</div><div class="br-big"></div><div class="br-sub"></div>
+                ${x2 ? '<div class="br-fire">🔥 כפול בזכות הימים ברצף!</div>' : ""}<div class="br-tap">לחצו להמשך</div></div>`;
+            pop.querySelector(".br-big").textContent = it.coins ? `+${it.coins} נקודות` : n === 2 ? "2 שרביטי קסמים!" : "שרביט קסמים!";
+            pop.querySelector(".br-sub").textContent = it.coins ? `עכשיו יש לכם ⭐ ${grandTotal} נקודות לקניות בחנות`
+                : `בבוחן לוחצים על 🪄 והוא מראה את התשובה הנכונה. יש לכם עכשיו ${shop.wands}`;
+            const opened = Date.now();
+            pop.onclick = e => { if (!e.isTrusted || Date.now() - opened > 500) pop.remove(); };
+            document.body.appendChild(pop);
+            avatarBurst(it.coins ? ["💰", "🪙", "⭐", "✨"] : ["🪄", "✨", "⭐", "💫"], 22, pop.querySelector(".br-pic"), true);
         }
 
         // a short note at the top of the screen
@@ -2793,14 +2900,14 @@
                 ctx.beginPath(); ctx.ellipse(W * 0.25, H * 1.04, W * 0.75, H * sc.groundH * 1.2, 0, 0, Math.PI * 2); ctx.fill();
                 ctx.beginPath(); ctx.ellipse(W * 0.85, H * 1.06, W * 0.6, H * sc.groundH, 0, 0, Math.PI * 2); ctx.fill();
             }
-            let capy = null;
-            if (sc.big.some(b => b[0] === "capy")) {
-                capy = new Image(); capy.src = SHOP_AVATARS.find(a => a.id === "capybara").img;
-                try { await capy.decode(); } catch (e) { capy = null; }
+            const imgs = {};   // the drawings this scene uses (see SCENE_IMGS)
+            for (const name of new Set(sc.big.map(b => b[0]).filter(n => SCENE_IMGS[n]))) {
+                const im = new Image(); im.src = SCENE_IMGS[name]();
+                try { await im.decode(); imgs[name] = im; } catch (e) {}
             }
             const put = (e, x, y, size, turn, alpha = 1) => {
                 ctx.save(); ctx.globalAlpha = alpha; ctx.translate(x, y); ctx.rotate(turn * Math.PI / 180);
-                if (e === "capy") { if (capy) ctx.drawImage(capy, -size / 2, -size / 2, size, size); }
+                if (SCENE_IMGS[e]) { if (imgs[e]) ctx.drawImage(imgs[e], -size / 2, -size / 2, size, size); }
                 else { ctx.font = `${Math.round(size)}px ${EMOJI_FONT}`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(e, 0, 0); }
                 ctx.restore();
             };
@@ -2888,6 +2995,15 @@
         // bubble to hear the word again). 5 taps in a row make any character dizzy.
         const AVATAR_FX = {
             capybara: { move: "float", fx: ["🍊", "♨️", "💤"], say: "I'm so chill!" },
+            // ⚽ Messi says one of his football lines each time (says: [English, Hebrew]; see avatarTurn)
+            messi: { move: "bighop", fx: ["⚽", "🏆", "🐐"], say: "I'm the greatest!", says: [
+                ["Goal! I'm the greatest player of all time!", "גול! אני השחקן הכי גדול בכל הזמנים!"],
+                ["Number ten, the best in the world!", "מספר עשר, הכי טוב בעולם!"],
+                ["I'm the GOAT - the greatest of all time!", "אני העז – הגדול מכולם בכל הזמנים!"],
+                ["World champion! Vamos Argentina!", "אלוף העולם! קדימה ארגנטינה!"],
+                ["Nobody dribbles like me!", "אף אחד לא כדרר כמוני!"],
+                ["Eight golden balls! I'm the best!", "שמונה כדורי זהב! אני הכי טוב!"],
+            ] },
             hamster: { move: "hop", fx: ["🌻", "🥜"], say: "Nom nom nom!" },     turtle: { move: "float", fx: ["🌊", "🍃"], say: "Slow and steady!" },
             ladybug: { move: "flutter", fx: ["🍀", "🌼"], say: "I have seven dots!" }, crab: { move: "wiggle", fx: ["🌊", "🐚"], say: "Snip snap!" },
             horse: { move: "bighop", fx: ["🥕", "🌾"], say: "Neigh!" },          hedgehog: { move: "spin", fx: ["🍎", "🍂"], say: "I'm a little spiky!" },
@@ -2923,7 +3039,7 @@
         };
         // the characters' phrases in Hebrew (shown under the English in the GIF)
         const AVATAR_SAY_HE = {
-            capybara: "אני כל כך רגוע!", hamster: "נום נום נום!", turtle: "לאט ובטוח!", ladybug: "יש לי שבע נקודות!", crab: "קליק קלאק!",
+            capybara: "אני כל כך רגוע!", messi: "אני הכי גדול!", hamster: "נום נום נום!", turtle: "לאט ובטוח!", ladybug: "יש לי שבע נקודות!", crab: "קליק קלאק!",
             horse: "היייהההה!", hedgehog: "אני קצת דוקרני!", whale: "שפריץ!", sloth: "כל כך עייף...", otter: "בואו נשחה!", kangaroo: "בוינג בוינג!",
             hippo: "אני אוהב בוץ!", llama: "בלי דרמה, לאמה!", raccoon: "יש משהו לנשנש?", wolf: "אווווו!", swan: "כל כך אלגנטי!",
             peacock: "תראו את הנוצות שלי!", eagle: "אני עף גבוה!", snowman: "אני אוהב חיבוקים חמים!", pumpkin: "ממתק או תעלול!", clown: "חה חה חה!",
@@ -2995,6 +3111,20 @@
         function gifHero(stage, a, x, y, size) { const s = gifEl(stage, "", x, y, size); putPic(s, a); return s; }
         const loop = (el, frames, ms, more = {}) => el.animate(frames, { duration: ms, iterations: Infinity, ...more });
         const GIF_SCENES = {
+            // ⚽ a run-up, a kick... the ball flies into the goal. GOAL!
+            goal: { say: "Goal!", he: "גול!", bg: "linear-gradient(#bee3f8, #c6f6d5 64%, #48bb78 64%)", make(st, a, it) {
+                gifEl(st, "🥅", 188, 58, 62);
+                const h = gifHero(st, a, 14, 96, 52);
+                loop(h, [{ transform: "translateX(0) rotate(0)" }, { transform: "translateX(34px) rotate(-12deg)", offset: 0.28 },
+                         { transform: "translateX(26px) rotate(0)", offset: 0.4 }, { transform: "translateX(0) rotate(0)" }], 2200);
+                const ball = gifEl(st, it[0], 78, 128, 24);
+                loop(ball, [{ transform: "translate(0,0) rotate(0)" }, { transform: "translate(0,0) rotate(0)", offset: 0.28 },
+                            { transform: "translate(136px,-52px) rotate(720deg)", offset: 0.6 }, { transform: "translate(136px,-52px) rotate(720deg)" }], 2200);
+                const txt = gifEl(st, "GOAL!", 70, 8, 34);
+                txt.style.fontWeight = "900"; txt.style.color = "#d69e2e"; txt.style.textShadow = "0 2px 0 #fff";
+                loop(txt, [{ opacity: 0, transform: "scale(0.4)" }, { opacity: 0, transform: "scale(0.4)", offset: 0.58 }, { opacity: 1, transform: "scale(1.2)", offset: 0.68 },
+                           { opacity: 1, transform: "scale(1)", offset: 0.9 }, { opacity: 0, transform: "scale(1)" }], 2200);
+            } },
             // the character runs after its favourite thing, round and round
             chase: { say: "Catch it!", he: "תפוס אותו!", bg: "linear-gradient(#bee3f8, #c6f6d5 70%, #9ae6b4 70%)", make(st, a, it) {
                 const t = gifEl(st, it[0], 0, 118, 30), h = gifHero(st, a, 0, 100, 50);
@@ -3252,6 +3382,7 @@
             monster: ["spooky", "rocket", "chase", "dance"], vampire: ["spooky", "fly", "sleep", "magic"],
             genie: ["magic", "fly", "juggle", "dance"],      ninja: ["hide", "juggle", "skate", "chase"],
             capybara: ["swim", "sleep", "eat", "rain"],
+            messi: ["goal", "juggle", "chase", "dance"],
         };
         const gifNext = {};   // which of its 4 comes next (starts at a random one)
         // opens the pop-up; resolves when it closes (by itself after ms, or tapped)
@@ -3313,6 +3444,13 @@
             const scene = gifs[gifNext[a.id]];
             gifNext[a.id] = (gifNext[a.id] + 1) % gifs.length;
             const say = GIF_SCENES[scene].say;   // the character's own phrase, then the cartoon's own line
+            if (fx.says) {   // a character with many lines (⚽ Messi): a different one each time, never the same twice in a row
+                let k; do k = Math.floor(Math.random() * fx.says.length); while (fx.says.length > 1 && k === fx.lastSay);
+                fx.lastSay = k;
+                const [en, he] = fx.says[k];
+                await Promise.all([moved(move), openGif(a, scene, en, 5000, he), speakTexts([en])]);
+                return;
+            }
             await Promise.all([moved(move), openGif(a, scene, fx.say + " " + say, 5000, (AVATAR_SAY_HE[a.id] ? AVATAR_SAY_HE[a.id] + " " : "") + GIF_SCENES[scene].he), speakTexts([fx.say, say])]);
         }
 
@@ -3362,7 +3500,7 @@
                     if (kind === "avatar") { pic.className = "shop-pic"; putPic(pic, it); }
                     else {
                         pic.className = "shop-swatch"; pic.style.background = it.bg;
-                        if (it.icon) { pic.classList.add("pic"); if (it.icon === "capy") putPic(pic, SHOP_AVATARS.find(a => a.id === "capybara")); else pic.textContent = it.icon; }
+                        if (it.icon) { pic.classList.add("pic"); if (SCENE_IMGS[it.icon]) putPic(pic, { img: SCENE_IMGS[it.icon]() }); else pic.textContent = it.icon; }
                     }
                     const name = document.createElement("div");
                     name.className = "shop-name"; name.textContent = it.name;
