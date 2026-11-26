@@ -1348,9 +1348,25 @@ async function testAvatar() {
   check((await gif()).fits, '320x568: the GIF fits on a small phone');
   await page.click('#gif-pop'); await turnOver();
 
-  // no character chosen: no badge to tap
+  // 🐾 the chosen character wanders on the background, several times (over the card on phones, faint, taps go through)
+  const sky = () => page.evaluate(() => { const s = document.getElementById('avatar-sky'), els = [...s.children];
+    return { n: els.length, pics: els.map(e => e.textContent), imgs: s.querySelectorAll('img').length, moving: els.every(e => e.getAnimations().length > 0),
+      z: getComputedStyle(s).zIndex, taps: getComputedStyle(s).pointerEvents, op: els.length ? +getComputedStyle(els[0]).opacity : 0 }; });
+  let k = await sky();
+  check(k.n >= 6 && k.imgs === k.n && k.moving, `the drawn capybara wanders on the background ${k.n} times, all moving`);
+  await setAvatar('fox');
+  k = await sky();
+  check(k.n >= 6 && k.pics.every(p => p === '🦊') && k.moving, `choosing another character: ${k.n} of it on the background (${k.pics.join('')})`);
+  check(k.z === '2' && k.taps === 'none' && k.op < 0.5, `phone: they wander over the card, faint (${k.op}), and taps go through (z ${k.z}, ${k.taps})`);
+  await page.setViewport({ width: 1280, height: 800 });
+  k = await sky();
+  check(k.z === '0', `wide screen: they stay behind the card (z ${k.z})`);
+  await page.setViewport({ width: 320, height: 568 });
+
+  // no character chosen: no badge to tap, and nobody on the background
   await page.evaluate(() => { shop.avatar = null; applyShop(); });
   check(!(await page.$eval('#menu-avatar', e => e.getBoundingClientRect().width > 0)), 'without a character there is nothing to tap');
+  check((await sky()).n === 0, 'without a character the background has none');
   check(page.pageErrors.length === 0, `no page errors${page.pageErrors.length ? ': ' + page.pageErrors.join('; ') : ''}`);
   await page.close();
 }

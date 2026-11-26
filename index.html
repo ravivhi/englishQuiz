@@ -527,8 +527,24 @@
         #kid-sky span:nth-child(7) { bottom: 18%; left: 40%; font-size: 2.4rem; animation-duration: 12s; animation-delay: -6s; }
         @keyframes kidFloat { from { transform: translate(0, 0) rotate(-6deg); } to { transform: translate(18px, -26px) rotate(6deg); } }
         body.pic-theme #kid-sky { display: none; }
+        /* the chosen character, several times, wandering slowly behind the card (on every background; see showAvatarSky) */
+        #avatar-sky { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+        #avatar-sky span { position: absolute; line-height: 1; opacity: 0.8; will-change: transform;
+            animation: avatarWander var(--dur, 14s) ease-in-out var(--delay, 0s) infinite alternate; }
+        @keyframes avatarWander {
+            0%   { transform: translate(0, 0) rotate(-8deg); }
+            25%  { transform: translate(var(--dx), calc(var(--dy) * -0.6)) rotate(6deg); }
+            50%  { transform: translate(calc(var(--dx) * 0.3), var(--dy)) rotate(-4deg) scale(1.08); }
+            75%  { transform: translate(calc(var(--dx) * -0.7), calc(var(--dy) * 0.4)) rotate(8deg); }
+            100% { transform: translate(calc(var(--dx) * -0.2), calc(var(--dy) * -0.9)) rotate(-6deg); }
+        }
+        /* phones: the card covers almost the whole screen, so the characters wander over it instead - faint, and taps go through them */
+        @media (max-width: 600px) {
+            #avatar-sky { z-index: 2; }
+            #avatar-sky span { opacity: 0.3; }
+        }
         @media (prefers-reduced-motion: reduce) {
-            #kid-sky span, #start-btn:not(:disabled), .btn-answer.correct, .btn-answer.wrong { animation: none !important; }
+            #avatar-sky span,#kid-sky span,#start-btn:not(:disabled), .btn-answer.correct, .btn-answer.wrong { animation: none !important; }
         }
 
         /* Small screens. Keep these LAST: they must come after the base rules above to override them. */
@@ -566,6 +582,7 @@
 <body>
 
     <div id="kid-sky" aria-hidden="true"><span>☁️</span><span>⭐</span><span>🎈</span><span>☁️</span><span>✨</span><span>⭐</span><span>🌈</span></div>
+    <div id="avatar-sky" aria-hidden="true"></div>
     <div class="game-container">
         <div id="start-screen">
             <button type="button" id="shop-btn" onclick="openShop()" aria-label="חנות" title="חנות">🏪</button>
@@ -2759,6 +2776,27 @@
             else el.textContent = a ? a.pic : "";
         }
         const picPrefix = a => a && a.pic ? a.pic + " " : "";   // for texts like "🐶 Woof woof!"
+        // 🐾 the chosen character, several times, wandering behind the card: spread over the screen (around the edges
+        // and the corners, where the card doesn't cover it), each its own size, speed and path. Nothing when no character is chosen.
+        const AVATAR_SKY = [   // [left %, top %, size rem, seconds, path x px, path y px]
+            [4, 6, 2.6, 13, 40, 30], [82, 4, 2.0, 11, -36, 28], [6, 40, 2.2, 15, 30, -40], [86, 34, 3.0, 17, -44, 36],
+            [3, 78, 3.2, 12, 46, -30], [84, 82, 2.4, 14, -38, -34], [44, 2, 1.6, 10, 50, 20], [40, 90, 1.8, 16, -50, -24],
+        ];
+        let avatarSkyId;
+        function showAvatarSky(a) {
+            const id = a ? a.id : null;
+            if (id === avatarSkyId) return;   // the same one: leave it moving
+            avatarSkyId = id;
+            const sky = document.getElementById("avatar-sky");
+            sky.textContent = "";
+            if (!a) return;
+            AVATAR_SKY.forEach(([x, y, s, d, dx, dy], k) => {
+                const el = document.createElement("span");
+                putPic(el, a);
+                el.style.cssText = `left:${x}%;top:${y}%;font-size:${s}rem;--dur:${d}s;--delay:${-k * 1.7}s;--dx:${dx}px;--dy:${dy}px`;
+                sky.appendChild(el);
+            });
+        }
         function saveShop() { try { localStorage.setItem(SHOP_KEY, JSON.stringify(shop)); } catch (e) {} }
         function applyShop() {
             const a = SHOP_AVATARS.find(x => x.id === shop.avatar), t = SHOP_THEMES.find(x => x.id === shop.theme) || SHOP_THEMES[0];
@@ -2766,6 +2804,7 @@
             const sb = document.getElementById("shop-btn");   // a red count on the shop button while boxes wait to be opened
             if (shop.boxes > 0) sb.dataset.boxes = shop.boxes; else delete sb.dataset.boxes;
             putPic(document.getElementById("game-avatar"), a);
+            showAvatarSky(a);
             showWands();
             document.body.style.setProperty("--bg", t.bg);   // (a picture background starts as its colors, the picture comes a moment later)
             document.body.classList.toggle("pic-theme", !!t.scene);
