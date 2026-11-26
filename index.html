@@ -916,15 +916,15 @@
         let currentAnswers = [], wrongPicks = [];   // the open question's answer buttons (in order) and the wrong ones tapped
 
         // A big emoji appears behind the quiz after 5 answers in a row that were right on the first try, and a
-        // happier one every 5 more for the first 10 emojis, every 10 for emojis 11-20, every 15 for 21-30 (30 emojis
-        // = a streak of 300). One wrong first try lowers the streak by 1.
+        // happier one every 5 more for the first 15 emojis and every 10 for emojis 16-30 (30 emojis
+        // = a streak of 225). One wrong first try lowers the streak by 1.
         // The streak carries on into the next round and through the menu; only a wrong first try lowers it.
         // 30 emojis that look clearly different from each other (no near-twins like 😀 / 😃): faces from a slight
-        // smile up to 😻 at 75, then 🤗 😉 😸 🤑 💯 and celebration symbols up to 👑 at a streak of 300.
+        // smile up to 😻 at 75, then 🤗 😉 😸 🤑 💯 and celebration symbols up to 👑 at a streak of 225.
         const STREAK_EMOJIS = ["🙂", "😊", "😄", "😆", "😎", "😍", "🥰", "🤩", "😂", "😋", "🥳", "🤪", "🤠", "😇", "😻",
                                "🤗", "😉", "😸", "🤑", "💯", "🔥", "🌈", "🦄", "🌟", "🚀", "🦸", "💎", "🏆", "🐲", "👑"];
-        // Emojis 1-10 come every 5 right answers (5..50), 11-20 every 10 (60..150), 21-30 every 15 (165..300).
-        function streakThreshold(n) { return n <= 10 ? 5 * n : n <= 20 ? 50 + 10 * (n - 10) : 150 + 15 * (n - 20); }
+        // Half and half: emojis 1-15 come every 5 right answers (5..75), 16-30 every 10 (85..225).
+        function streakThreshold(n) { return n <= 15 ? 5 * n : 75 + 10 * (n - 15); }
         function streakStage(s) {
             let stage = 0;
             while (stage < STREAK_EMOJIS.length && streakThreshold(stage + 1) <= s) stage++;
@@ -933,7 +933,7 @@
         // The streak is saved on the device, so it survives a reload (e.g. the phone dropping the page in the background).
         const STREAK_KEY = "englishQuizStreak";
         let streak = 0, shownStage = 0;
-        // Reaching the last emoji (a streak of 300) earns a 🎁 mystery box for the shop (with a trophy or a medal
+        // Reaching the last emoji (a streak of 225) earns a 🎁 mystery box for the shop (with a trophy or a medal
         // inside), and the streak starts again from 0 - the faces start over.
         const BOX_GOAL = streakThreshold(STREAK_EMOJIS.length);
         try { streak = Math.max(0, parseInt(localStorage.getItem(STREAK_KEY), 10) || 0); } catch (e) {}
