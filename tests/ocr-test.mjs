@@ -1283,7 +1283,7 @@ async function testBox() {
   check((await saved()).wands === 2 && (await text('shop-msg')).includes('2'), 'another wand: now 2');
   await page.reload();
   check(await vis('shop-screen') && (await page.evaluate(() => shop.wands)) === 2, 'after a reload the app reopens in the shop and the wands are kept');
-  for (const [r, coins] of [[0.3, 50], [0.95, 100]]) {
+  for (const [r, coins] of [[0.3, 50], [0.8, 100]]) {
     const before = await page.evaluate(r => { Math.random = () => r; shop.boxes = 1; saveShop(); renderShop(); return { total: grandTotal, wands: shop.wands }; }, r);
     await page.click('#box-open');
     await new Promise(res => setTimeout(res, 900));
@@ -1294,11 +1294,11 @@ async function testBox() {
     check(rv && rv.cls === 'coins' && rv.big === `+${coins} נקודות` && rv.sub.includes(String(after.total)) && !rv.fire, `the pop-up: ${rv && rv.pic} "${rv && rv.big}" - ${rv && rv.sub}`);
     await new Promise(r => setTimeout(r, 600)); await page.click('#box-reveal');   // (taps in its first half second are ignored: a quick double tap doesn't close it unseen)
   }
-  const odds = await page.evaluate(() => { const out = { wand: 0, 50: 0, 100: 0 }; const real = Math.random;
-    for (let k = 0; k < 600; k++) { const r = k / 600; Math.random = () => r; shop.boxes = 1; const t = grandTotal, w = shop.wands; openBox();
-      if (grandTotal - t === 50) out[50]++; else if (grandTotal - t === 100) out[100]++; else if (shop.wands === w + 1) out.wand++; }
+  const odds = await page.evaluate(() => { const out = { wand: 0, 50: 0, 100: 0, ice: 0 }; const real = Math.random;
+    for (let k = 0; k < 600; k++) { const r = k / 600; Math.random = () => r; shop.boxes = 1; const t = grandTotal, w = shop.wands, i = shop.ice || 0; openBox();
+      if (grandTotal - t === 50) out[50]++; else if (grandTotal - t === 100) out[100]++; else if (shop.wands === w + 1) out.wand++; else if (shop.ice === i + 1) out.ice++; }
     Math.random = real; return out; });
-  check(odds.wand === 120 && odds[50] === 240 && odds[100] === 240, `20% of the boxes give a wand, 40% 50 coins, 40% 100 coins (${JSON.stringify(odds)})`);
+  check(odds.wand === 120 && odds[50] === 210 && odds[100] === 210 && odds.ice === 60, `20% of the boxes give a wand, 35% 50 coins, 35% 100 coins, 10% an ice cube (${JSON.stringify(odds)})`);
 
   for (const [w, h] of [[320, 568], [390, 844]]) {
     await page.setViewport({ width: w, height: h });
@@ -1919,11 +1919,12 @@ async function testFire() {
   const fr = await page.evaluate(() => { const p = document.getElementById('box-reveal'); return p && { big: p.querySelector('.br-big').textContent, fire: (p.querySelector('.br-fire') || {}).textContent }; });
   check(fr && fr.big === '+100 נקודות' && (fr.fire || '').includes('כפול'), `the box pop-up says it was doubled thanks to the days in a row (${fr && fr.big}, ${fr && fr.fire})`);
   await page.evaluate(() => document.getElementById('box-reveal')?.remove());
-  const odds = await page.evaluate(() => { const out = { wand: 0, 50: 0, 100: 0, 200: 0 };
-    for (let k = 0; k < 600; k++) { const r = k / 600; Math.random = () => r; shop.boxes = 1; const t = grandTotal, w = shop.wands || 0; openBox();
-      if ((shop.wands || 0) === w + 2) out.wand++; else out[grandTotal - t] = (out[grandTotal - t] || 0) + 1; }
+  const odds = await page.evaluate(() => { const out = { wand: 0, ice: 0, 50: 0, 100: 0, 200: 0 };
+    for (let k = 0; k < 600; k++) { const r = k / 600; Math.random = () => r; shop.boxes = 1; const t = grandTotal, w = shop.wands || 0, i = shop.ice || 0; openBox();
+      if ((shop.wands || 0) === w + 2) out.wand++; else if ((shop.ice || 0) === i + 2) out.ice++; else out[grandTotal - t] = (out[grandTotal - t] || 0) + 1; }
+    shop.ice = 0; saveShop();   // (no ice left: the missed day below must break the 🔥 days)
     return out; });
-  check(odds.wand === 120 && odds[50] === 0 && odds[100] === 240 && odds[200] === 240, `🔥 in a streak everything in the shop box is doubled: 20% 2 wands, 40% 100, 40% 200, never 50 (${JSON.stringify(odds)})`);
+  check(odds.wand === 120 && odds.ice === 60 && odds[50] === 0 && odds[100] === 210 && odds[200] === 210, `🔥 in a streak everything in the shop box is doubled: 20% 2 wands, 10% 2 ice cubes, 35% 100, 35% 200, never 50 (${JSON.stringify(odds)})`);
   // a missed day: back to 0 on the main screen, and the next quiz starts again from 1, points no longer doubled
   await setDay(11);
   check((await fire()) === '🔥 1', 'a day missed: back to 🔥 1');
@@ -2135,7 +2136,7 @@ async function testGames() {
   check(await page.$$eval('.mem-card', bs => bs.every(b => b.classList.contains('done'))), 'matching pairs stay open (green)');
   await page.waitForSelector('.game-end', { timeout: 3000 });
   let [t1, e1] = await money();
-  check(t1 === t0 + 6 && e1 === e0 + 6 && (await page.$eval('.g-end-points', e => e.textContent)) === '+6 ⭐', `all pairs found: +6 ⭐ (in the total and the earned points) (${t0} -> ${t1})`);
+  check(t1 === t0 + 6 && e1 === e0 + 6 && (await page.$eval('.g-end-points', e => e.textContent)) === '+6 ⭐', `all pairs found in 7 tries: +6 ⭐ (in the total and the earned points) (${t0} -> ${t1})`);
 
   // 🔤 spelling: 5 words; a wrong letter shakes and is not placed; a word with no mistakes is 2 ⭐, with one 1 ⭐
   await page.click('#game-again');   // "again" = the same game; go to the list and take the next one
@@ -2156,7 +2157,7 @@ async function testGames() {
   }
   await page.waitForSelector('.game-end', { timeout: 3000 });
   [t1, e1] = await money();
-  check(t1 === t0 + 9 && e1 === e0 + 9, `5 words, one with a mistake: +9 ⭐ (${t1 - t0})`);
+  check(t1 === t0 + 5 && e1 === e0 + 5, `5 words, one with a mistake: +5 ⭐ (${t1 - t0})`);
 
   // 👂 listening: 8 words; a wrong pick turns red, the right one green; only first tries count
   await page.click('#game-menu');
@@ -2174,7 +2175,7 @@ async function testGames() {
   }
   await page.waitForSelector('.game-end', { timeout: 3000 });
   [t1] = await money();
-  check(t1 === t0 + 7, `8 words, the first after a mistake: +7 ⭐ (${t1 - t0})`);
+  check(t1 === t0 + 5, `8 words, the first after a mistake: +5 ⭐ (${t1 - t0})`);
 
   // ⚡ true or false: 10 words, no timer; the 🔊 above the word says it
   await page.click('#game-menu');
@@ -2188,11 +2189,33 @@ async function testGames() {
   await page.click('#tf-speak');
   check((await page.evaluate(() => window.__said)).join() === tfWord, `the 🔊 button says the word (${tfWord})`);
   for (let n = 0; n < 9; n++) await page.evaluate(() => document.querySelector(document.querySelector('.tf-box').dataset.ok === '1' ? '.tf-yes' : '.tf-no').click());
-  check((await page.$eval('.tf-score', e => e.textContent)) === '⭐ 9' && (await page.$eval('.tf-count', e => e.textContent)) === '10/10', '9 right answers: ⭐ 9, on the 10th word');
+  check((await page.$eval('.tf-score', e => e.textContent)) === '✔ 9' && (await page.$eval('.tf-count', e => e.textContent)) === '10/10', '9 right answers: ✔ 9, on the 10th word');
   await page.evaluate(() => document.querySelector(document.querySelector('.tf-box').dataset.ok === '1' ? '.tf-no' : '.tf-yes').click());   // the last one wrong
   await page.waitForSelector('.game-end', { timeout: 3000 });
   [t1] = await money();
-  check(t1 === t0 + 9 && (await page.$eval('.g-end-text', e => e.textContent)).includes('9 מתוך 10'), `after 10 words it ends: +9 ⭐ (${t1 - t0})`);
+  check(t1 === t0 + 3 && (await page.$eval('.g-end-text', e => e.textContent)).includes('9 מתוך 10'), `after 10 words it ends: 9/10 right = +3 ⭐ (true or false gives 1-3) (${t1 - t0})`);
+  // the range: a very good game 6 ⭐, a very bad one 1 ⭐, in between by how good
+  check(await page.evaluate(() => [gameStars(1), gameStars(0), gameStars(0.5), gameStars(-1), gameStars(2), gameStars(1, TF_MAX), gameStars(0, TF_MAX), gameStars(0.5, TF_MAX)].join()) === '6,1,4,1,6,3,1,2', 'games give 6 ⭐ for a very good game, 1 ⭐ for a very bad one, the rest in between');
+  // 🎁 every 10 games with 4 ⭐ or more: +10 bonus coins. So far: memory 6, spell 5, listen 5, true/false 6 = 4 good games
+  check((await page.evaluate(() => goodGames)) === 3 && (await page.$eval('.game-end .g-good', e => e.textContent)).includes('3/10'), 'games with 4 ⭐ or more count toward the bonus (3/10: true or false with 3 ⭐ does not)');
+  await page.evaluate(() => { goodGames = 9; });
+  [t0] = await money();
+  await page.click('#game-menu');
+  check((await page.$eval('#games-body .g-good', e => e.textContent)).includes('9/10'), 'the games page shows how far to the bonus (9/10)');
+  await play('memory');
+  await page.evaluate(() => gameOver(gameToken, GAMES[0], 6, 'test'));   // a 6 ⭐ game
+  await page.waitForSelector('.game-end', { timeout: 3000 });
+  [t1] = await money();
+  check(t1 === t0 + 16 && (await page.$eval('.g-end-bonus', e => e.textContent)).includes('+10') && (await page.$eval('.g-end-points', e => e.textContent)) === '+6 ⭐', `the 10th good game: +6 ⭐ and a 🎁 +10 bonus (${t1 - t0})`);
+  check((await page.evaluate(() => localStorage.getItem('englishquiz-good-games'))) === '10', 'the count is saved on the device');
+  await page.evaluate(() => { goodGames = 0; });
+  await page.click('#game-menu');
+  [t0] = await money();
+  await play('truefalse');
+  for (let n = 0; n < 10; n++) await page.evaluate(() => document.querySelector(document.querySelector('.tf-box').dataset.ok === '1' ? '.tf-no' : '.tf-yes').click());
+  await page.waitForSelector('.game-end', { timeout: 3000 });
+  [t1] = await money();
+  check(t1 === t0 + 1 && (await page.evaluate(() => goodGames)) === 0 && !(await page.$('.g-end-bonus')), `a very bad game: +1 ⭐ and does not count (${t1 - t0})`);
 
   // leaving: the phone back button from a game goes to the list; a left game stops (its timer gives nothing)
   await page.click('#game-menu');
@@ -2269,7 +2292,54 @@ async function testShapes() {
   await page.close();
 }
 
-const TESTS = { fire: testFire, wordbank: testWordbank, random: testRandom, layout: testLayout, back: testBack, tabs: testTabs, streak: testStreak, pairs: () => eachFixture('pairs', testPairs), list: () => eachFixture('list', testList), translation: testTranslationRetry, practice: testPractice, chooser: testChooser, header: testHeader, persist: testPersist, learn: testLearn, shop: testShop, box: testBox, phoneback: testPhoneBack, avatar: testAvatar, celebrate: testCelebrate, boxextra: testBoxExtra, keep: testKeep, wand: testWand, pictures: testPictures, name: testName, top: testTop, listlearn: testListLearn, games: testGames, shapes: testShapes };
+// 🧊 ice cubes (from the shop box): a day with no quiz uses one instead of losing the 🔥 days
+async function testIce() {
+  console.log('\n[ice] a missed day uses a 🧊 and keeps the 🔥 days');
+  const page = await openPage();
+  const daysAgo = n => page.evaluate(n => { const d = new Date(); d.setDate(d.getDate() - n); return dayStr(d); }, n);
+  const setup = async (ice, last, days) => {
+    await page.evaluate((ice, last, days) => {
+      const sh = JSON.parse(localStorage.getItem(SHOP_KEY) || '{}'); sh.ice = ice; localStorage.setItem(SHOP_KEY, JSON.stringify(sh));
+      localStorage.setItem(DAILY_KEY, JSON.stringify({ last, days }));
+    }, ice, last, days);
+    await page.reload({ waitUntil: 'load' });
+    await new Promise(r => setTimeout(r, 500));
+    return page.evaluate(() => ({ ice: shop.ice, saved: JSON.parse(localStorage.getItem(SHOP_KEY)).ice, daily, fire: document.getElementById('menu-fire').textContent,
+      menuIce: document.getElementById('menu-ice').textContent, toast: document.getElementById('box-toast').textContent }));
+  };
+  // no ice: nothing shows on the main screen
+  let r = await setup(0, await daysAgo(1), 4);
+  check(r.menuIce === '' && r.fire === '🔥 4', `no 🧊: none shown, 🔥 4 (${r.fire})`);
+  // one day missed (last quiz 2 days ago) with 2 ice cubes: one is used, the 🔥 days stay
+  r = await setup(2, await daysAgo(2), 5);
+  check(r.ice === 1 && r.saved === 1 && r.daily.last === (await daysAgo(1)) && r.daily.days === 5, `one missed day uses one 🧊 (2 -> ${r.ice}), the 🔥 days stay (${r.daily.days})`);
+  check(r.fire === '🔥 5' && r.menuIce === '🧊 1' && r.toast.includes('🧊'), `the main screen: ${r.fire} ${r.menuIce}, and a note says the ice was used`);
+  // the next quiz today adds a day
+  const added = await page.evaluate(() => { countDailyPlay(); return daily.days; });
+  check(added === 6, `a quiz today goes on: 🔥 6 (${added})`);
+  // two days missed with 2 ice cubes: both are used
+  r = await setup(2, await daysAgo(3), 7);
+  check(r.ice === 0 && r.fire === '🔥 7' && r.menuIce === '', `two missed days use two 🧊 (left ${r.ice}), 🔥 7 stays`);
+  // three days missed with only 1 ice cube: the 🔥 days start again and the ice is kept
+  r = await setup(1, await daysAgo(4), 8);
+  check(r.ice === 1 && r.fire === '🔥 1', `not enough 🧊 for the missed days: 🔥 starts again (${r.fire}), the 🧊 is kept (${r.ice})`);
+  // played yesterday or today: no ice used
+  r = await setup(1, await daysAgo(1), 3);
+  check(r.ice === 1 && r.fire === '🔥 3', 'no day missed: no 🧊 used');
+  // the shop shows them, and the box can give one
+  await page.evaluate(() => { Math.random = () => 0.95; shop.boxes = 1; saveShop(); openShop(); });
+  check((await page.$eval('#shop-ice', e => e.textContent)) === '🧊 × 1', 'the shop shows the ice cubes (🧊 × 1)');
+  await page.click('#box-open');
+  await page.waitForSelector('#box-reveal', { timeout: 3000 });
+  const rv = await page.evaluate(() => ({ cls: document.getElementById('box-reveal').className, big: document.querySelector('#box-reveal .br-big').textContent, ice: shop.ice, shopIce: document.getElementById('shop-ice').textContent }));
+  check(rv.cls === 'ice' && rv.big === 'קוביית קרח!' && rv.ice === 2 && rv.shopIce === '🧊 × 2', `the box can give an ice cube: "${rv.big}" (now ${rv.ice})`);
+  const chance = await page.$eval('#box-reveal .br-chance', e => e.textContent);
+  check(chance.includes('10%'), `the pop-up says how likely it was (${chance})`);
+  check(page.pageErrors.length === 0, `no page errors${page.pageErrors.length ? ': ' + page.pageErrors.join('; ') : ''}`);
+  await page.close();
+}
+
+const TESTS = { fire: testFire, wordbank: testWordbank, random: testRandom, layout: testLayout, back: testBack, tabs: testTabs, streak: testStreak, pairs: () => eachFixture('pairs', testPairs), list: () => eachFixture('list', testList), translation: testTranslationRetry, practice: testPractice, chooser: testChooser, header: testHeader, persist: testPersist, learn: testLearn, shop: testShop, box: testBox, phoneback: testPhoneBack, avatar: testAvatar, celebrate: testCelebrate, boxextra: testBoxExtra, keep: testKeep, wand: testWand, pictures: testPictures, name: testName, top: testTop, listlearn: testListLearn, games: testGames, shapes: testShapes, ice: testIce };
 try {
   let ran = 0;
   for (const [name, run] of Object.entries(TESTS)) {

@@ -394,6 +394,8 @@
         .game-end .g-end-pic { font-size: 3.5rem; }
         .game-end .g-end-title { font-size: 1.5rem; font-weight: bold; color: #553c9a; }
         .game-end .g-end-text { font-size: 1.1rem; margin: 6px 0; }
+        .game-end .g-end-bonus { font-size: 1.15rem; font-weight: bold; color: #2f855a; background: #f0fff4; border: 2px solid #9ae6b4; border-radius: 12px; padding: 8px 10px; margin: -6px 0 14px; }
+        .games-note.g-good { margin-top: 12px; font-weight: bold; color: #805ad5; }
         .game-end .g-end-points { font-size: 1.6rem; font-weight: bold; color: #d69e2e; margin: 6px 0 14px; }
         /* 🏆 the top 10 players: a round button under the character, in the top-right corner */
         #top-btn { position: absolute; top: 46px; right: -8px; width: 46px; height: 46px; padding: 0; border: none; border-radius: 50%;
@@ -440,6 +442,9 @@
         .fire-area .wand-info { color: #9c4221; }
         #shop-fire { font-size: 1.6rem; font-weight: bold; color: #c05621; white-space: nowrap; }
         .wand-info { font-size: 0.85rem; color: #553c9a; text-align: start; }
+        .ice-area { background: #ebf8ff; border-color: #90cdf4; }
+        .ice-area .wand-info { color: #2c5282; }
+        #shop-ice { font-size: 1.6rem; font-weight: bold; color: #2b6cb0; white-space: nowrap; }
         #box-toast { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 50; padding: 10px 16px; border-radius: 16px;
                      background: #fffaf0; border: 3px solid #f6ad55; color: #744210; font-weight: bold; box-shadow: 0 6px 16px rgba(0,0,0,0.2);
                      width: max-content; max-width: calc(100% - 28px); box-sizing: border-box; text-align: center; pointer-events: none; display: none; }
@@ -526,12 +531,15 @@
         #box-reveal .br-card { text-align: center; width: 100%; max-width: 320px; padding: 18px 20px 12px; border-radius: 26px; border: 4px solid #fff;
             box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.35), 0 0 50px rgba(255, 255, 255, 0.5), 0 18px 40px rgba(0, 0, 0, 0.35); animation: lbPop 0.6s cubic-bezier(.2, 1.6, .4, 1) both; }
         #box-reveal.coins .br-card { background: linear-gradient(160deg, #fffbeb, #fde68a 60%, #f6ad55); color: #78350f; }
+        #box-reveal.ice .br-card { background: linear-gradient(160deg, #ebf8ff, #bee3f8 60%, #63b3ed); color: #1a365d; }
         #box-reveal.wand .br-card { background: linear-gradient(160deg, #faf5ff, #e9d8fd 60%, #b794f4); color: #44337a; }
         #box-reveal .br-top { font-size: 1.05rem; font-weight: bold; }
         #box-reveal .br-pic { font-size: 5rem; line-height: 1.1; margin: 6px 0 2px; animation: lbBounce 1.1s ease-in-out infinite; }
         #box-reveal .br-big { font-size: 2rem; font-weight: 900; text-shadow: 0 2px 0 #fff; }
         #box-reveal .br-sub { font-size: 0.95rem; margin-top: 6px; line-height: 1.35; }
         #box-reveal .br-fire { display: inline-block; margin-top: 8px; padding: 2px 10px; border-radius: 999px; background: #fff5eb; color: #c05621; font-weight: bold; font-size: 0.9rem; }
+        #box-reveal .br-chance { font-size: 0.85rem; font-weight: bold; margin-top: 6px; opacity: 0.85; }
+        #box-reveal .br-chance:empty { display: none; }
         #box-reveal .br-tap { font-size: 0.8rem; opacity: 0.7; margin-top: 8px; }
         @media (prefers-reduced-motion: reduce) { #box-reveal .br-card, #box-reveal .br-pic { animation: none; } }
         #shop-msg { min-height: 1.3em; font-size: 0.95rem; font-weight: bold; margin: 0 0 4px; }
@@ -741,6 +749,7 @@
                 <div id="grand-total" style="font-weight:bold;color:#2b6cb0;"></div>
                 <div id="menu-topics" title="נושאים שהושלמו (ירוקים) בכל הרמות" style="font-weight:bold;color:#2f855a;white-space:nowrap;"></div>
                 <div id="menu-fire" title="ימים ברצף: כל יום שמשחקים (מסיימים בוחן) מוסיף 🔥. מ-10 ימים ברצף הנקודות בסוף כל בוחן כפולות!" style="font-weight:bold;color:#dd6b20;white-space:nowrap;"></div>
+                <div id="menu-ice" title="קוביות קרח: יום בלי בוחן משתמש בקוביה אחת, והימים ברצף 🔥 נשמרים" style="font-weight:bold;color:#2b6cb0;white-space:nowrap;"></div>
                 <div id="menu-wands" title="שרביטי קסמים: בבוחן הם מראים את התשובה הנכונה" style="font-weight:bold;color:#6b46c1;white-space:nowrap;"></div>
                 <div id="menu-streak" aria-hidden="true" style="font-size:1.6rem;line-height:1.2;"></div>
             </div>
@@ -859,6 +868,11 @@
                 <div class="wand-area fire-area">
                     <div id="shop-fire"></div>
                     <div class="wand-info" id="fire-info"></div>
+                </div>
+                <div class="shop-section">🧊 קוביות קרח</div>
+                <div class="wand-area ice-area">
+                    <div id="shop-ice"></div>
+                    <div class="wand-info">מקבלים 🧊 בקופסת ההפתעה. יום בלי בוחן משתמש בקוביה אחת – והימים ברצף 🔥 נשמרים!</div>
                 </div>
                 <div class="shop-section">🧸 דמויות</div>
                 <div class="shop-grid" id="shop-avatars"></div>
@@ -989,8 +1003,27 @@
         // the days in a row right now (0 once a day was missed; the saved count is only reset when playing again)
         const dailyDays = () => daily.last === dayStr() || daily.last === yesterdayStr() ? daily.days : 0;
         const pointsDoubled = () => dailyDays() >= DAILY_DOUBLE;
+        // 🧊 Ice (from the shop's surprise box, kept in shop.ice): every day missed uses one 🧊 instead of losing the 🔥 days.
+        // It is used by itself when the app sees the missed days (open / back to the app / a finished quiz). Not enough 🧊
+        // for all the missed days: the 🔥 days start again as before, and the 🧊 are kept. Returns how many were used.
+        function useIce() {
+            let ice = 0;
+            try { ice = shop.ice || 0; } catch (e) { return 0; }   // (the shop is not loaded yet)
+            const y = yesterdayStr();
+            if (!daily.days || !daily.last || daily.last >= y) return 0;
+            const missed = Math.round((Date.parse(y) - Date.parse(daily.last)) / 864e5);
+            if (!(missed >= 1) || ice < missed) return 0;
+            shop.ice = ice - missed;
+            saveShop();
+            daily.last = y;   // as if played yesterday: today's quiz goes on with the 🔥 days
+            try { localStorage.setItem(DAILY_KEY, JSON.stringify(daily)); } catch (e) {}
+            showWands();
+            showToast(missed === 1 ? `🧊 יום בלי בוחן: השתמשנו בקוביית קרח, ו-🔥 ${daily.days} ימים ברצף נשמרו!` : `🧊 ${missed} ימים בלי בוחן: השתמשנו ב-${missed} קוביות קרח, ו-🔥 ${daily.days} ימים ברצף נשמרו!`, 4500);
+            return missed;
+        }
         // called when a quiz is finished: returns true if today was just added
         function countDailyPlay() {
+            useIce();
             const today = dayStr();
             if (daily.last === today) return false;
             daily = { last: today, days: daily.last === yesterdayStr() ? daily.days + 1 : 1 };
@@ -999,6 +1032,7 @@
         }
         document.addEventListener("visibilitychange", () => { if (!document.hidden) showDaily(); });
         function showDaily() {
+            useIce();
             // today always counts as a day: a new (or broken) streak shows 1, not 0
             const el = document.getElementById("menu-fire"), n = Math.max(1, dailyDays());
             if (el) el.textContent = `🔥 ${n}${n >= DAILY_DOUBLE ? " ×2" : ""}`;
@@ -1120,6 +1154,9 @@
             const n = shop.wands || 0, menu = document.getElementById("menu-wands"), sh = document.getElementById("shop-wands");
             if (menu) menu.textContent = n ? `🪄 ${n}` : "";
             if (sh) sh.textContent = `🪄 × ${n}`;
+            const ice = shop.ice || 0, mi = document.getElementById("menu-ice"), si = document.getElementById("shop-ice");   // 🧊 the same way
+            if (mi) mi.textContent = ice ? `🧊 ${ice}` : "";
+            if (si) si.textContent = `🧊 × ${ice}`;
         }
         function updateWandBtn() {
             const b = document.getElementById("wand-btn"), n = shop.wands || 0;
@@ -1419,8 +1456,10 @@
         }
         // 🎮 Games: 4 short games on the words of the tab the games were opened from: the learning tab - its level's
         // words; the random words / picture tabs - the words in their list.
-        // Each one gives a few ⭐ points at its end (they count in the total and in the 🏆 list, like a quiz's).
+        // Each one gives 1-6 ⭐ points at its end by how well it went: 6 for a very good game, 1 for a very bad one
+        // (they count in the total and in the 🏆 list, like a quiz's).
         let curGame = null, gameToken = 0;   // the game being played (its id); a new token stops the old game's timers
+        const TF_MAX = 3;                    // "true or false" gives 1-3 ⭐ (the other games 1-6)
         const TF_ROUNDS = 10;                // how many words the "true or false" game has
         const GAMES = [
             { id: "memory", pic: "🃏", name: "זיכרון", desc: "מוצאים זוגות של אותה מילה", color: "#9f7aea, #805ad5",
@@ -1458,6 +1497,8 @@
         // the games' back button: from a game to the list of games, from the list to the main screen
         function gamesBack() { if (curGame) gamesMenu(); else showStart(); }
 
+        // how far to the next 🎁: a game with 4 ⭐ or more counts
+        const goodText = () => `🎁 ${goodLeft()}/${GOOD_GAMES} משחקים עם ${GOOD_MIN} ⭐ ומעלה – ובונוס של ${GOOD_BONUS} מטבעות`;
         function gamesMenu() {
             stopGame();
             document.getElementById("games-title").textContent = "🎮 משחקים";
@@ -1472,7 +1513,7 @@
                 b.onclick = () => startGame(g);
                 grid.append(b);
             }
-            body.append(grid);
+            body.append(grid, gEl("p", "games-note g-good", goodText()));
         }
 
         async function startGame(g) {
@@ -1504,8 +1545,22 @@
         }
 
         // the end of a game: the points, a celebration, "again" / "games"
+        const GAME_MAX = 6;
+        // 🎁 every GOOD_GAMES games that end with more than GOOD_MIN - 1 ⭐ (4-6) give GOOD_BONUS bonus coins
+        const GOOD_KEY = "englishquiz-good-games", GOOD_MIN = 4, GOOD_GAMES = 10, GOOD_BONUS = 10;
+        let goodGames = 0;
+        try { goodGames = Math.max(0, parseInt(localStorage.getItem(GOOD_KEY)) || 0); } catch (e) {}
+        const goodLeft = () => goodGames % GOOD_GAMES;
+        const gameStars = (q, max = GAME_MAX) => 1 + Math.round((max - 1) * Math.max(0, Math.min(1, q)));   // how good (0..1) -> 1..max ⭐
         function gameOver(token, g, points, text) {
             if (token !== gameToken) return;
+            let bonus = 0;
+            if (points >= GOOD_MIN) {   // a good game: one more toward the 🎁 bonus
+                goodGames++;
+                try { localStorage.setItem(GOOD_KEY, String(goodGames)); } catch (e) {}
+                if (goodGames % GOOD_GAMES === 0) bonus = GOOD_BONUS;
+            }
+            points += bonus;
             if (points > 0) {
                 grandTotal += points;
                 addEarned(points);
@@ -1517,7 +1572,9 @@
             confetti();
             const end = gEl("div", "game-end");
             end.append(gEl("div", "g-end-pic", "🎉"), gEl("div", "g-end-title", praise("כל הכבוד")), gEl("p", "g-end-text", text));
-            end.append(gEl("div", "g-end-points", points > 0 ? `+${points} ⭐` : "בפעם הבאה יהיו נקודות 💪"));
+            end.append(gEl("div", "g-end-points", points > 0 ? `+${points - bonus} ⭐` : "בפעם הבאה יהיו נקודות 💪"));
+            if (bonus) end.append(gEl("div", "g-end-bonus", `🎁 בונוס! ${GOOD_GAMES} משחקים טובים: +${bonus} מטבעות`));
+            else end.append(gEl("p", "games-note g-good", goodText()));
             const again = gEl("button", "btn-restart", "🔁 עוד פעם"), menu = gEl("button", "btn-restart", "🎮 משחקים");
             again.type = menu.type = "button"; again.id = "game-again"; menu.id = "game-menu";
             menu.style.cssText = "margin-top:10px;background:#805ad5;";
@@ -1529,7 +1586,7 @@
         const gShake = el => el.animate([{ transform: "translateX(0)" }, { transform: "translateX(-6px)" }, { transform: "translateX(6px)" }, { transform: "translateX(0)" }], { duration: 250 });
 
         // 🃏 Memory: 6 words, each on two cards (the English word with its meaning under it), face down; turning
-        // the two cards of the same word keeps them open. 1 ⭐ for each pair.
+        // the two cards of the same word keeps them open. Every pair found on its first try: 6 ⭐; 3 tries a pair or more: 1 ⭐.
         function playMemory(pool, token, g) {
             const words = pool.slice(0, 6), PAIRS = words.length;
             const cards = shuffle(words.flatMap((w, k) => [{ k, w }, { k, w }]));
@@ -1550,7 +1607,7 @@
                     const [a, d] = open;
                     if (a.dataset.k === d.dataset.k) {
                         a.classList.add("done"); d.classList.add("done"); open = [];
-                        if (++found === PAIRS) setTimeout(() => gameOver(token, g, PAIRS, `מצאתם את כל ${PAIRS} הזוגות ב-${tries} ניסיונות`), 500);
+                        if (++found === PAIRS) setTimeout(() => gameOver(token, g, gameStars((3 * PAIRS - tries) / (2 * PAIRS)), `מצאתם את כל ${PAIRS} הזוגות ב-${tries} ניסיונות`), 500);
                     } else setTimeout(() => {
                         if (token !== gameToken) return;
                         for (const x of open) { x.classList.remove("open"); x.textContent = "❓"; }
@@ -1563,13 +1620,13 @@
         }
 
         // 🔤 Spelling: the meaning (and a picture, if the word has one); its letters mixed up; tap them in order.
-        // 5 words: 2 ⭐ for a word with no mistakes, 1 ⭐ with mistakes.
+        // 5 words: ⭐ by how many were spelled with no mistakes (all: 6 ⭐, none: 1 ⭐).
         function playSpell(pool, token, g) {
             const ROUNDS = 5, words = pool.slice(0, ROUNDS);
             let round = 0, points = 0;
             const next = () => {
                 if (token !== gameToken) return;
-                if (round === words.length) return gameOver(token, g, points, `איייתם ${words.length} מילים באנגלית`);
+                if (round === words.length) return gameOver(token, g, gameStars(points / words.length), `איייתם ${words.length} מילים באנגלית, ${points} מהן בלי טעויות`);
                 const w = words[round], word = w.en.toLowerCase();
                 let pos = 0, mistakes = 0;
                 const box = gEl("div", "spell-box");
@@ -1587,7 +1644,7 @@
                         slots.children[pos++].textContent = ch;
                         b.disabled = true;
                         if (pos < word.length) return;
-                        points += mistakes ? 1 : 2;
+                        if (!mistakes) points++;   // a word with no mistakes
                         slots.classList.add("spell-done");
                         speakText(word);
                         round++;
@@ -1601,13 +1658,13 @@
             next();
         }
 
-        // 👂 Listening: an English word is said out loud; pick it from 4 written words. 8 words, 1 ⭐ for each right on the first try.
+        // 👂 Listening: an English word is said out loud; pick it from 4 written words. 8 words, ⭐ by how many were right on the first try (all: 6 ⭐, none: 1 ⭐).
         function playListen(pool, token, g) {
             const ROUNDS = 8, words = pool.slice(0, ROUNDS);
             let round = 0, points = 0;
             const next = () => {
                 if (token !== gameToken) return;
-                if (round === words.length) return gameOver(token, g, points, `זיהיתם ${points} מתוך ${words.length} מילים בשמיעה`);
+                if (round === words.length) return gameOver(token, g, gameStars(points / words.length), `זיהיתם ${points} מתוך ${words.length} מילים בשמיעה`);
                 const w = words[round];
                 let first = true;
                 const others = shuffle(pool.filter(x => x !== w)).slice(0, 3);
@@ -1635,7 +1692,7 @@
             next();
         }
 
-        // ⚡ True or false: a word (🔊 above it) and a meaning; is it its meaning? TF_ROUNDS words, 1 ⭐ for each right answer.
+        // ⚡ True or false: a word (🔊 above it) and a meaning; is it its meaning? TF_ROUNDS words, ⭐ by how many were right - a smaller prize (all: TF_MAX ⭐, none: 1 ⭐).
         function playTrueFalse(pool, token, g) {
             let score = 0, n = 0;
             const words = shuffle(Array.from({ length: TF_ROUNDS }, (_, k) => pool[k % pool.length]));   // a short list: its words again
@@ -1652,7 +1709,7 @@
             box.append(bar, say, word, he, btns);
             gBody().replaceChildren(box);
             const show = () => {
-                countEl.textContent = `${n + 1}/${TF_ROUNDS}`; scoreEl.textContent = `⭐ ${score}`;
+                countEl.textContent = `${n + 1}/${TF_ROUNDS}`; scoreEl.textContent = `✔ ${score}`;
                 const w = words[n], right = Math.random() < 0.5;
                 const others = pool.filter(x => x !== w && x.he !== w.he), wrongHe = others[Math.floor(Math.random() * others.length)];
                 word.textContent = w.en;
@@ -1666,8 +1723,8 @@
                 box.classList.remove("tf-good", "tf-bad"); void box.offsetWidth;
                 box.classList.add(good ? "tf-good" : "tf-bad");
                 if (++n < TF_ROUNDS) return show();
-                scoreEl.textContent = `⭐ ${score}`;
-                setTimeout(() => gameOver(token, g, score, `ענו נכון על ${score} מתוך ${TF_ROUNDS} מילים`), 400);
+                scoreEl.textContent = `✔ ${score}`;
+                setTimeout(() => gameOver(token, g, gameStars(score / TF_ROUNDS, TF_MAX), `ענו נכון על ${score} מתוך ${TF_ROUNDS} מילים`), 400);
             };
             yes.onclick = () => answer(true);
             no.onclick = () => answer(false);
@@ -3379,7 +3436,8 @@
             { id: "bronze", pic: "🥉", name: "מדליית ארד" }, { id: "silver", pic: "🥈", name: "מדליית כסף" },
             { id: "gold", pic: "🥇", name: "מדליית זהב" }, { id: "trophy", pic: "🏆", name: "גביע" }, { id: "crown", pic: "👑", name: "כתר" },
         ];
-        // What's inside: 20% a magic wand, 40% 50 coins, 40% 100 coins (🔥 from 10 days in a row: doubled - 2 wands / 100 / 200).
+        // What's inside: 20% a magic wand, 35% 50 coins, 35% 100 coins, 10% an ice cube 🧊
+        // (🔥 from 10 days in a row: doubled - 2 wands / 100 / 200 / 2 ice cubes).
         // (Medals / trophies from older boxes stay saved in shop.awards.)
         function openBox() {
             if (!(shop.boxes > 0)) return;
@@ -3388,10 +3446,13 @@
             let it;
             if (r < 0.2) {   // 20%: a magic wand (🔥 two)
                 shop.wands = (shop.wands || 0) + x2;
-                it = { id: "wand", pic: "🪄", name: x2 === 2 ? "2 שרביטי קסמים" : "שרביט קסמים", wand: true };
-            } else {         // 40%: 50 coins, 40%: 100 coins (🔥 100 / 200)
-                const coins = (r < 0.6 ? 50 : 100) * x2;
-                it = { id: "coins", pic: "💰", name: `${coins} נקודות`, coins };
+                it = { id: "wand", pic: "🪄", name: x2 === 2 ? "2 שרביטי קסמים" : "שרביט קסמים", wand: true, chance: 20 };
+            } else if (r >= 0.9) {   // 10%: an ice cube (🔥 two)
+                shop.ice = (shop.ice || 0) + x2;
+                it = { id: "ice", pic: "🧊", name: x2 === 2 ? "2 קוביות קרח" : "קוביית קרח", ice: true, chance: 10 };
+            } else {         // 35%: 50 coins, 35%: 100 coins (🔥 100 / 200)
+                const coins = (r < 0.55 ? 50 : 100) * x2;
+                it = { id: "coins", pic: "💰", name: `${coins} נקודות`, coins, chance: 35 };
                 grandTotal += coins;
                 addEarned(coins);
                 try { localStorage.setItem(TOTAL_KEY, String(grandTotal)); } catch (e) {} window.cloud && cloud.sync();
@@ -3408,7 +3469,7 @@
                 box.classList.remove("shake");
                 box.textContent = it.pic;
                 msg.style.color = "#2f855a";
-                msg.textContent = `🎉 בקופסה: ${it.pic} ${it.name}!` + (it.wand ? ` (עכשיו יש לכם ${shop.wands})` : "") + (pointsDoubled() ? " 🔥 כפול על ימים ברצף" : "");
+                msg.textContent = `🎉 בקופסה: ${it.pic} ${it.name}!` + (it.wand ? ` (עכשיו יש לכם ${shop.wands})` : it.ice ? ` (עכשיו יש לכם ${shop.ice})` : "") + (pointsDoubled() ? " 🔥 כפול על ימים ברצף" : "");
                 playUnlockSound();
                 renderShop();
                 showBoxReveal(it);
@@ -3420,18 +3481,21 @@
             const x2 = pointsDoubled(), n = it.coins || (x2 ? 2 : 1);
             const pop = document.createElement("div");
             pop.id = "box-reveal";
-            pop.className = it.coins ? "coins" : "wand";
+            pop.className = it.coins ? "coins" : it.ice ? "ice" : "wand";
             pop.setAttribute("role", "dialog"); pop.dataset.dialog = "1";   // the phone back button closes it too
             pop.innerHTML = `<div class="br-card"><div class="br-top">🎉 בקופסה הייתה הפתעה!</div>
-                <div class="br-pic">${it.pic}</div><div class="br-big"></div><div class="br-sub"></div>
+                <div class="br-pic">${it.pic}</div><div class="br-big"></div><div class="br-sub"></div><div class="br-chance"></div>
                 ${x2 ? '<div class="br-fire">🔥 כפול בזכות הימים ברצף!</div>' : ""}<div class="br-tap">לחצו להמשך</div></div>`;
-            pop.querySelector(".br-big").textContent = it.coins ? `+${it.coins} נקודות` : n === 2 ? "2 שרביטי קסמים!" : "שרביט קסמים!";
+            pop.querySelector(".br-big").textContent = it.coins ? `+${it.coins} נקודות` : it.ice ? (n === 2 ? "2 קוביות קרח!" : "קוביית קרח!") : n === 2 ? "2 שרביטי קסמים!" : "שרביט קסמים!";
             pop.querySelector(".br-sub").textContent = it.coins ? `עכשיו יש לכם ⭐ ${grandTotal} נקודות לקניות בחנות`
+                : it.ice ? `יום בלי בוחן משתמש בקוביה אחת, והימים ברצף 🔥 נשמרים. יש לכם עכשיו ${shop.ice}`
                 : `בבוחן לוחצים על 🪄 והוא מראה את התשובה הנכונה. יש לכם עכשיו ${shop.wands}`;
+            // 🎲 how likely this prize was
+            if (it.chance) pop.querySelector(".br-chance").textContent = `🎲 הסיכוי לקבל את זה: ${it.chance}%`;
             const opened = Date.now();
             pop.onclick = e => { if (!e.isTrusted || Date.now() - opened > 500) pop.remove(); };
             document.body.appendChild(pop);
-            avatarBurst(it.coins ? ["💰", "🪙", "⭐", "✨"] : ["🪄", "✨", "⭐", "💫"], 22, pop.querySelector(".br-pic"), true);
+            avatarBurst(it.coins ? ["💰", "🪙", "⭐", "✨"] : it.ice ? ["🧊", "❄️", "✨", "💎"] : ["🪄", "✨", "⭐", "💫"], 22, pop.querySelector(".br-pic"), true);
         }
 
         // a short note at the top of the screen
