@@ -867,7 +867,7 @@ async function testLearn() {
   check(want.every(w => w.n >= 4 && w.n <= 15), 'every part has 4-15 words');
   check(st.every(s => s.learn && s.quiz && !s.done && s.state === ''), 'nothing is locked: every part has a 📖 learn and a 📝 quiz button, none is green yet');
   check(!(await page.$$eval('#cat-list .cat-row', rs => rs.some(r => r.textContent.includes('🔒')))), 'no topic is locked (only the 🎁 prize box at the end)');
-  check((await text('path-progress')) === `⭐ 0/${want.length}`, 'the path counts 0 passed parts');
+  check((await text('path-progress')) === `✅ 0/${want.length}`, 'the path counts 0 passed parts');
   check(!(await vis('words-count')) && !(await vis('start-btn')), 'the word list and the start button are hidden in the learning tab');
   check((await page.$eval('#cat-level-select', e => e.value)) === '1', 'the learning tab uses the chosen level');
 
@@ -928,7 +928,7 @@ async function testLearn() {
   await page.click('#change-words-btn');
   await page.waitForFunction(() => document.querySelectorAll('#cat-list .cat-step.done').length === 2, { timeout: 10000 });
   st = await steps();
-  check(st[0].done && !st[1].done && !st[2].done && st[3].done && (await text('path-progress')) === `⭐ 2/${want.length}`, 'the path: parts 1 and 4 green, 2 and 3 white, ⭐ 2');
+  check(st[0].done && !st[1].done && !st[2].done && st[3].done && (await text('path-progress')) === `✅ 2/${want.length}`, 'the path: parts 1 and 4 green, 2 and 3 white, ✅ 2');
 
   // a passed part can be learned and quizzed again: it stays green, fireworks again, nothing new saved
   await page.click(`${row(0)} .cat-learn`);

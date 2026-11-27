@@ -282,8 +282,7 @@
         #start-screen > #panel-category { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
         #start-screen.cat-mode .list-only { display: none !important; }
         .path-head { display: flex; gap: 10px; align-items: center; justify-content: center; margin: 2px 0 8px; }
-        .path-title { font-weight: bold; color: #553c9a; font-size: 1.05rem; }
-        #path-progress { font-weight: bold; color: #2b6cb0; font-size: 0.95rem; white-space: nowrap; }
+        #path-progress { font-weight: bold; color: #2f855a; font-size: 0.95rem; white-space: nowrap; }
         #cat-list { flex: 1 1 auto; min-height: 96px; overflow: auto; display: flex; flex-direction: column; gap: 10px; padding: 4px 8px 12px; }
         /* a part of the learning path: white until its quiz is passed, then green with ✅ */
         .cat-step {
@@ -709,7 +708,6 @@
             </div>
             <div id="panel-category" role="tabpanel" style="display:none;">
                 <div class="path-head">
-                    <span class="path-title">🗺️ המסלול שלי</span>
                     <select id="cat-level-select" aria-label="רמה" onchange="saveLevel(this)" style="padding:7px 6px;font-size:0.95rem;border:1px solid #cbd5e0;border-radius:8px;background:#fff;color:#2d3748;"></select>
                     <span id="path-progress"></span>
                 </div>
@@ -2303,7 +2301,7 @@
             });
             const count = steps.filter((s, i) => passed.has(i)).length;
             list.appendChild(prizeCard(level, count === steps.length));
-            document.getElementById("path-progress").textContent = `⭐ ${count}/${steps.length}`;
+            document.getElementById("path-progress").textContent = `✅ ${count}/${steps.length}`;
             const first = steps.findIndex((s, i) => !passed.has(i));   // the first part not passed yet, in view
             const cur = list.children[first < 0 ? steps.length - 1 : first];
             if (cur) list.scrollTop = Math.max(0, cur.offsetTop - list.offsetTop - list.clientHeight / 3);
