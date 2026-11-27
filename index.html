@@ -675,6 +675,7 @@
             <button type="button" id="player-name" onclick="askName()"></button>
             <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin:-4px 0 6px;">
                 <div id="grand-total" style="font-weight:bold;color:#2b6cb0;"></div>
+                <div id="menu-topics" title="נושאים שהושלמו (ירוקים) בכל הרמות" style="font-weight:bold;color:#2f855a;white-space:nowrap;"></div>
                 <div id="menu-fire" title="ימים ברצף: כל יום שמשחקים (מסיימים בוחן) מוסיף 🔥. מ-10 ימים ברצף הנקודות בסוף כל בוחן כפולות!" style="font-weight:bold;color:#dd6b20;white-space:nowrap;"></div>
                 <div id="menu-wands" title="שרביטי קסמים: בבוחן הם מראים את התשובה הנכונה" style="font-weight:bold;color:#6b46c1;white-space:nowrap;"></div>
                 <div id="menu-streak" aria-hidden="true" style="font-size:1.6rem;line-height:1.2;"></div>
@@ -1219,6 +1220,10 @@
         function showGrandTotal() {
             const el = document.getElementById("grand-total");
             if (el) el.innerText = grandTotal ? `⭐ סה״כ נקודות: ${grandTotal}` : "";
+            // ✅ how many topics are green, in all the levels (before the progress is read at startup: nothing yet)
+            let n = 0; try { n = topicsDone(); } catch (e) {}
+            const tp = document.getElementById("menu-topics");
+            if (tp) { tp.textContent = n ? `✅ ${n}` : ""; tp.setAttribute("aria-label", `${n} נושאים הושלמו`); }
             showDaily();
         }
 
@@ -2210,6 +2215,7 @@
         }
         // ✅ how many topics are green, in all the levels together (shown in the 🏆 list)
         const topicsDone = () => Object.keys(learnProgress).reduce((n, lv) => n + passedSet(lv).size, 0);
+        showGrandTotal();   // now the ✅ count on the main screen can be shown
         const CAT_EMOJIS = [
             [/מקצועות לימוד|בית ספר|בית הספר|חינוך|למידה|קריאה וכתיבה/, "🏫"], [/ברכות/, "👋"], [/מספרים/, "🔢"],
             [/צבעים/, "🎨"], [/משפחה/, "👨‍👩‍👧"], [/חיות מחמד/, "🐶"], [/חיות בר/, "🦁"], [/צמחים/, "🌱"], [/בעלי חיים/, "🐾"],
@@ -2698,7 +2704,7 @@
                 passedSteps.add(index);
                 learnProgress[level] = [...passedSteps].sort((a, b) => a - b);
                 try { localStorage.setItem(LEARN_KEY, JSON.stringify(learnProgress)); } catch (e) {}
-                window.cloud && cloud.sync();
+                window.cloud && cloud.sync(); showGrandTotal();
                 playUnlockSound();   // the step just turned green
             }
             const allPassed = steps.every((s, i) => passedSteps.has(i));

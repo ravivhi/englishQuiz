@@ -2005,6 +2005,7 @@ async function testTop() {
   check(rows.length === 10, `it lists 10 players (${rows.length})`);
   check(rows[0].text.includes('🥇') && rows[0].text.includes('שחקן1') && rows[0].text.includes('1000') && rows[2].text.includes('🥉') && rows[9].text.includes('10.'), 'in order: 🥇🥈🥉, then numbers, with the points');
   check(rows[0].text.includes('✅ 20') && rows[9].text.includes('✅ 11'), 'each line shows how many topics the player finished');
+  check(await page.$eval('#menu-topics', e => e.textContent) === '', 'no green topics yet: the main screen shows no ✅ count');
   check(await page.evaluate(() => { const keep = learnProgress; learnProgress = { 1: [0, 2, 5], 3: 4 }; const n = topicsDone(); learnProgress = keep; return n; }) === 7, 'the count of finished topics adds up all the levels (old saves too)');
   check(rows[3].me && rows.filter(x => x.me).length === 1, "this player's own line is marked");
   // the page is kept when the app is opened again
@@ -2018,6 +2019,9 @@ async function testTop() {
   await page.click('#top-btn');
   await page.waitForFunction(() => document.getElementById('top-msg')?.textContent.includes('עדיין אין'), { timeout: 3000 });
   check(true, 'an empty list says there are no players yet');
+  await page.evaluate(() => { localStorage.setItem('englishquiz-learn-progress', JSON.stringify({ 1: [0, 1, 2], 2: [4] })); });
+  await page.reload({ waitUntil: 'load' });
+  check(await page.$eval('#menu-topics', e => e.textContent) === '✅ 4', 'the main screen shows how many topics are green in all the levels (✅ 4)');
   check(page.pageErrors.length === 0, `no page errors${page.pageErrors.length ? ': ' + page.pageErrors.join('; ') : ''}`);
   await page.close();
 }
