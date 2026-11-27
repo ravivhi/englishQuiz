@@ -381,7 +381,7 @@
                       font-size: 1.5rem; font-weight: bold; font-family: inherit; color: #744210; cursor: pointer; touch-action: manipulation; }
         .spell-tile:disabled { visibility: hidden; }
         .listen-answers { display: grid; gap: 8px; }
-        .tf-bar { display: flex; justify-content: space-between; font-weight: bold; font-size: 1.1rem; color: #4a5568; margin-bottom: 14px; }
+        .tf-bar { display: flex; justify-content: space-between; font-weight: bold; font-size: 1.1rem; color: #4a5568; margin-bottom: 4px; }
         .tf-word { font-size: 2.1rem; font-weight: bold; color: #2b6cb0; }
         .tf-he { font-size: 1.6rem; font-weight: bold; color: #2d3748; margin: 2px 0 20px; }
         .tf-btns { display: flex; gap: 12px; }
@@ -1421,7 +1421,7 @@
         // words; the random words / picture tabs - the words in their list.
         // Each one gives a few ⭐ points at its end (they count in the total and in the 🏆 list, like a quiz's).
         let curGame = null, gameToken = 0;   // the game being played (its id); a new token stops the old game's timers
-        let TF_SECONDS = 30;                 // how long the "true or false" round is
+        const TF_ROUNDS = 10;                // how many words the "true or false" game has
         const GAMES = [
             { id: "memory", pic: "🃏", name: "זיכרון", desc: "מוצאים זוגות של אותה מילה", color: "#9f7aea, #805ad5",
               ok: w => w.en.length <= 9 && w.he.length <= 14, min: 2, run: playMemory },
@@ -1429,7 +1429,7 @@
               ok: w => /^[a-z]{3,7}$/i.test(w.en), min: 1, run: playSpell },
             { id: "listen", pic: "👂", name: "שמיעה", desc: "שומעים מילה ובוחרים אותה", color: "#63b3ed, #3182ce",
               ok: w => /^[a-z][a-z' -]{1,14}$/i.test(w.en), min: 4, run: playListen },
-            { id: "truefalse", pic: "⚡", name: "נכון או לא?", desc: `${TF_SECONDS} שניות: הפירוש נכון?`, color: "#68d391, #38a169",
+            { id: "truefalse", pic: "⚡", name: "נכון או לא?", desc: `${TF_ROUNDS} מילים: הפירוש נכון?`, color: "#68d391, #38a169",
               ok: w => w.he.length <= 22, min: 2, run: playTrueFalse },
         ];
         const gBody = () => document.getElementById("games-body");
@@ -1635,12 +1635,13 @@
             next();
         }
 
-        // ⚡ True or false: a word and a meaning; is it its meaning? As many as you can in TF_SECONDS. 1 ⭐ for each right answer.
+        // ⚡ True or false: a word (🔊 above it) and a meaning; is it its meaning? TF_ROUNDS words, 1 ⭐ for each right answer.
         function playTrueFalse(pool, token, g) {
-            let score = 0, left = TF_SECONDS, i = 0;
+            let score = 0, n = 0;
+            const words = shuffle(Array.from({ length: TF_ROUNDS }, (_, k) => pool[k % pool.length]));   // a short list: its words again
             const box = gEl("div", "tf-box");
-            const bar = gEl("div", "tf-bar"), timeEl = gEl("span", "tf-time"), scoreEl = gEl("span", "tf-score");
-            bar.append(timeEl, scoreEl);
+            const bar = gEl("div", "tf-bar"), countEl = gEl("span", "g-progress tf-count"), scoreEl = gEl("span", "tf-score");
+            bar.append(countEl, scoreEl);
             const word = gEl("div", "tf-word"), he = gEl("div", "tf-he");
             word.dir = "ltr";
             const yes = gEl("button", "tf-btn tf-yes", "✔ נכון"), no = gEl("button", "tf-btn tf-no", "✖ לא נכון");
@@ -1648,34 +1649,29 @@
             const btns = gEl("div", "tf-btns"); btns.append(yes, no);
             const say = gEl("button", "g-speak", "🔊"); say.type = "button"; say.id = "tf-speak"; say.setAttribute("aria-label", "השמעת המילה");
             say.onclick = () => speakText(word.textContent);   // 🔊 hear the English word
-            box.append(bar, word, say, he, btns);
+            box.append(bar, say, word, he, btns);
             gBody().replaceChildren(box);
             const show = () => {
-                timeEl.textContent = `⏱️ ${left}`; scoreEl.textContent = `⭐ ${score}`;
-                const w = pool[i++ % pool.length], right = Math.random() < 0.5;
-                const wrongHe = pool.find(x => x !== w && x.he !== w.he && Math.random() < 0.3) || pool.find(x => x !== w && x.he !== w.he);
+                countEl.textContent = `${n + 1}/${TF_ROUNDS}`; scoreEl.textContent = `⭐ ${score}`;
+                const w = words[n], right = Math.random() < 0.5;
+                const others = pool.filter(x => x !== w && x.he !== w.he), wrongHe = others[Math.floor(Math.random() * others.length)];
                 word.textContent = w.en;
                 he.textContent = right || !wrongHe ? w.he : wrongHe.he;
                 box.dataset.ok = right || !wrongHe ? "1" : "0";
             };
             const answer = says => {
-                if (token !== gameToken || left <= 0) return;
+                if (token !== gameToken || n >= TF_ROUNDS) return;
                 const good = (box.dataset.ok === "1") === says;
                 if (good) score++;
                 box.classList.remove("tf-good", "tf-bad"); void box.offsetWidth;
                 box.classList.add(good ? "tf-good" : "tf-bad");
-                show();
+                if (++n < TF_ROUNDS) return show();
+                scoreEl.textContent = `⭐ ${score}`;
+                setTimeout(() => gameOver(token, g, score, `ענו נכון על ${score} מתוך ${TF_ROUNDS} מילים`), 400);
             };
             yes.onclick = () => answer(true);
             no.onclick = () => answer(false);
             show();
-            const timer = setInterval(() => {
-                if (token !== gameToken) return clearInterval(timer);
-                timeEl.textContent = `⏱️ ${--left}`;
-                if (left > 0) return;
-                clearInterval(timer);
-                gameOver(token, g, score, `ענו נכון על ${score} מילים ב-${TF_SECONDS} שניות`);
-            }, 1000);
         }
 
         // 🏆 The top 10 players (from the cloud), on a page of its own with two tabs: by all the points ever earned

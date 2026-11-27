@@ -2176,21 +2176,23 @@ async function testGames() {
   [t1] = await money();
   check(t1 === t0 + 7, `8 words, the first after a mistake: +7 ⭐ (${t1 - t0})`);
 
-  // ⚡ true or false: right answers count until the time is up
+  // ⚡ true or false: 10 words, no timer; the 🔊 above the word says it
   await page.click('#game-menu');
-  await page.evaluate(() => { TF_SECONDS = 3; });
   [t0] = await money();
   await play('truefalse');
+  check(!(await page.$('.tf-time')) && (await page.$eval('.tf-count', e => e.textContent)) === '1/10', 'no timer: it counts the words (1/10)');
+  const pos = await page.evaluate(() => ({ say: document.getElementById('tf-speak').getBoundingClientRect().bottom, word: document.querySelector('.tf-word').getBoundingClientRect().top }));
+  check(pos.say <= pos.word + 1, 'the 🔊 button is above the English word');
   await page.evaluate(() => { window.__said = []; const orig = speakText; speakText = w => { window.__said.push(w); orig(w); }; });
   const tfWord = await page.$eval('.tf-word', e => e.textContent);
   await page.click('#tf-speak');
   check((await page.evaluate(() => window.__said)).join() === tfWord, `the 🔊 button says the word (${tfWord})`);
-  for (let n = 0; n < 4; n++) await page.evaluate(() => document.querySelector(document.querySelector('.tf-box').dataset.ok === '1' ? '.tf-yes' : '.tf-no').click());
-  await page.evaluate(() => document.querySelector(document.querySelector('.tf-box').dataset.ok === '1' ? '.tf-no' : '.tf-yes').click());   // one wrong
-  check((await page.$eval('.tf-score', e => e.textContent)) === '⭐ 4', 'right answers add to the score, a wrong one does not');
-  await page.waitForSelector('.game-end', { timeout: 6000 });
+  for (let n = 0; n < 9; n++) await page.evaluate(() => document.querySelector(document.querySelector('.tf-box').dataset.ok === '1' ? '.tf-yes' : '.tf-no').click());
+  check((await page.$eval('.tf-score', e => e.textContent)) === '⭐ 9' && (await page.$eval('.tf-count', e => e.textContent)) === '10/10', '9 right answers: ⭐ 9, on the 10th word');
+  await page.evaluate(() => document.querySelector(document.querySelector('.tf-box').dataset.ok === '1' ? '.tf-no' : '.tf-yes').click());   // the last one wrong
+  await page.waitForSelector('.game-end', { timeout: 3000 });
   [t1] = await money();
-  check(t1 === t0 + 4, `time is up: +4 ⭐ (${t1 - t0})`);
+  check(t1 === t0 + 9 && (await page.$eval('.g-end-text', e => e.textContent)).includes('9 מתוך 10'), `after 10 words it ends: +9 ⭐ (${t1 - t0})`);
 
   // leaving: the phone back button from a game goes to the list; a left game stops (its timer gives nothing)
   await page.click('#game-menu');
@@ -2199,7 +2201,7 @@ async function testGames() {
   await page.waitForFunction(() => !curGame && document.querySelector('#games-body .game-card'), { timeout: 3000 });
   check(await shown('games-screen'), 'the phone back button in a game goes back to the list of games');
   [t0] = await money();
-  await wait(3500);
+  await wait(1200);
   check((await money())[0] === t0 && !(await page.$('.game-end')), 'a game that was left stops (no end screen, no points)');
   // from the random words / picture tabs: the words of their list
   await page.evaluate(() => { showStart(); setMode('random'); document.getElementById('words-input').value = 'apple\tתפוח\ndog\tכלב\ncat\tחתול\nsun\tשמש\nbook (n)\tספר'; renderWords(); });
