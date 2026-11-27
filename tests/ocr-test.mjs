@@ -2101,7 +2101,110 @@ async function testListLearn() {
   await page.close();
 }
 
-const TESTS = { fire: testFire, wordbank: testWordbank, random: testRandom, layout: testLayout, back: testBack, tabs: testTabs, streak: testStreak, pairs: () => eachFixture('pairs', testPairs), list: () => eachFixture('list', testList), translation: testTranslationRetry, practice: testPractice, chooser: testChooser, header: testHeader, persist: testPersist, learn: testLearn, shop: testShop, box: testBox, phoneback: testPhoneBack, avatar: testAvatar, celebrate: testCelebrate, boxextra: testBoxExtra, keep: testKeep, wand: testWand, pictures: testPictures, name: testName, top: testTop, listlearn: testListLearn };
+// 🎮 Games: a button under the shop opens a page with 4 games on the chosen level's words; each pays ⭐ at its end
+async function testGames() {
+  console.log('\n[games] the 🎮 button: memory, spelling, listening, true or false');
+  const page = await openPage();
+  const shown = id => page.$eval('#' + id, e => getComputedStyle(e).display !== 'none');
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  const money = () => page.evaluate(() => [grandTotal, earnedTotal]);
+  const r = await page.$eval('#games-btn', b => b.getBoundingClientRect().toJSON());
+  const shopR = await page.$eval('#shop-btn', b => b.getBoundingClientRect().toJSON());
+  check(r.width > 0 && r.top >= shopR.bottom - 1 && Math.abs(r.left - shopR.left) < 4, 'the main screen has a 🎮 button right under the store');
+  await page.click('#games-btn');
+  check((await shown('games-screen')) && !(await shown('start-screen')), 'it opens the games page');
+  const cards = await page.$$eval('#games-body .game-card', bs => bs.map(b => b.dataset.game));
+  check(cards.join() === 'memory,spell,listen,truefalse', `4 games: ${cards.join(', ')}`);
+  check((await page.$eval('#games-body', e => e.textContent)).includes('רמה 1'), 'it says which level the words come from');
+  const play = async id => { await page.click(`.game-card[data-game="${id}"]`); await page.waitForFunction(id => curGame === id && !document.querySelector('#games-body').textContent.includes('טוען'), { timeout: 5000 }, id); };
+
+  // 🃏 memory: 12 cards (6 words + 6 meanings); a wrong pair closes again, the right pairs stay open
+  let [t0, e0] = await money();
+  await play('memory');
+  const ks = await page.$$eval('.mem-card', bs => bs.map(b => b.dataset.k));
+  check(ks.length === 12 && new Set(ks).size === 6 && (await page.$$eval('.mem-card', bs => bs.every(b => b.textContent === '❓'))), '12 cards face down, 6 pairs');
+  const idx = k => ks.map((x, i) => x === k ? i : -1).filter(i => i >= 0);
+  const [a0] = idx('0'), [b0] = idx('1');
+  await page.evaluate((a, b) => { const c = document.querySelectorAll('.mem-card'); c[a].click(); c[b].click(); }, a0, b0);
+  await wait(1100);
+  check(await page.$$eval('.mem-card', bs => bs.every(b => !b.classList.contains('open'))), 'two cards that do not belong together turn back');
+  for (let k = 0; k < 6; k++) { const [x, y] = idx(String(k)); await page.evaluate((x, y) => { const c = document.querySelectorAll('.mem-card'); c[x].click(); c[y].click(); }, x, y); }
+  check(await page.$$eval('.mem-card', bs => bs.every(b => b.classList.contains('done'))), 'matching pairs stay open (green)');
+  await page.waitForSelector('.game-end', { timeout: 3000 });
+  let [t1, e1] = await money();
+  check(t1 === t0 + 6 && e1 === e0 + 6 && (await page.$eval('.g-end-points', e => e.textContent)) === '+6 ⭐', `all pairs found: +6 ⭐ (in the total and the earned points) (${t0} -> ${t1})`);
+
+  // 🔤 spelling: 5 words; a wrong letter shakes and is not placed; a word with no mistakes is 2 ⭐, with one 1 ⭐
+  await page.click('#game-again');   // "again" = the same game; go to the list and take the next one
+  await page.click('#games-back');
+  check(await page.$('#games-body .game-card'), 'the back button in a game goes back to the list of games');
+  [t0, e0] = await money();
+  await play('spell');
+  for (let n = 0; n < 5; n++) {
+    await page.waitForSelector('.spell-box', { timeout: 3000 });
+    const word = await page.$eval('.spell-box', e => e.dataset.word);
+    if (n === 0) {   // one wrong letter first
+      const wrong = await page.evaluate(w => { const t = [...document.querySelectorAll('.spell-tile')].find(b => b.textContent !== w[0]); if (t) t.click(); return !!t; }, word);
+      if (wrong) check((await page.$$eval('.spell-slot', s => s[0].textContent)) === '', 'a wrong letter is not placed');
+    }
+    await page.evaluate(w => { for (const ch of w) [...document.querySelectorAll('.spell-tile')].find(b => !b.disabled && b.textContent === ch).click(); }, word);
+    if (n === 0) check((await page.$$eval('.spell-slot', s => s.map(x => x.textContent).join(''))) === word, `the letters spell "${word}"`);
+    await wait(1100);
+  }
+  await page.waitForSelector('.game-end', { timeout: 3000 });
+  [t1, e1] = await money();
+  check(t1 === t0 + 9 && e1 === e0 + 9, `5 words, one with a mistake: +9 ⭐ (${t1 - t0})`);
+
+  // 👂 listening: 8 words; a wrong pick turns red, the right one green; only first tries count
+  await page.click('#game-menu');
+  [t0] = await money();
+  await play('listen');
+  for (let n = 0; n < 8; n++) {
+    await page.waitForSelector('.listen-box', { timeout: 3000 });
+    const word = await page.$eval('.listen-box', e => e.dataset.word);
+    if (n === 0) {
+      await page.evaluate(w => [...document.querySelectorAll('.listen-answers button')].find(b => b.textContent !== w).click(), word);
+      check((await page.$$eval('.listen-answers .wrong', b => b.length)) === 1, 'a wrong word turns red');
+    }
+    await page.evaluate(w => [...document.querySelectorAll('.listen-answers button')].find(b => b.textContent === w).click(), word);
+    await wait(900);
+  }
+  await page.waitForSelector('.game-end', { timeout: 3000 });
+  [t1] = await money();
+  check(t1 === t0 + 7, `8 words, the first after a mistake: +7 ⭐ (${t1 - t0})`);
+
+  // ⚡ true or false: right answers count until the time is up
+  await page.click('#game-menu');
+  await page.evaluate(() => { TF_SECONDS = 3; });
+  [t0] = await money();
+  await play('truefalse');
+  for (let n = 0; n < 4; n++) await page.evaluate(() => document.querySelector(document.querySelector('.tf-box').dataset.ok === '1' ? '.tf-yes' : '.tf-no').click());
+  await page.evaluate(() => document.querySelector(document.querySelector('.tf-box').dataset.ok === '1' ? '.tf-no' : '.tf-yes').click());   // one wrong
+  check((await page.$eval('.tf-score', e => e.textContent)) === '⭐ 4', 'right answers add to the score, a wrong one does not');
+  await page.waitForSelector('.game-end', { timeout: 6000 });
+  [t1] = await money();
+  check(t1 === t0 + 4, `time is up: +4 ⭐ (${t1 - t0})`);
+
+  // leaving: the phone back button from a game goes to the list; a left game stops (its timer gives nothing)
+  await page.click('#game-menu');
+  await play('truefalse');
+  await page.evaluate(() => history.back());
+  await page.waitForFunction(() => !curGame && document.querySelector('#games-body .game-card'), { timeout: 3000 });
+  check(await shown('games-screen'), 'the phone back button in a game goes back to the list of games');
+  [t0] = await money();
+  await wait(3500);
+  check((await money())[0] === t0 && !(await page.$('.game-end')), 'a game that was left stops (no end screen, no points)');
+  // reopening the app comes back to the games page; back from the list goes to the main screen
+  await page.reload({ waitUntil: 'load' });
+  await page.waitForFunction(() => getComputedStyle(document.getElementById('games-screen')).display !== 'none', { timeout: 3000 });
+  check(true, 'closing and opening the app comes back to the games page');
+  await page.click('#games-back');
+  check((await shown('start-screen')) && !(await shown('games-screen')), 'back from the list of games goes to the main screen');
+  check(page.pageErrors.length === 0, `no page errors${page.pageErrors.length ? ': ' + page.pageErrors.join('; ') : ''}`);
+  await page.close();
+}
+
+const TESTS = { fire: testFire, wordbank: testWordbank, random: testRandom, layout: testLayout, back: testBack, tabs: testTabs, streak: testStreak, pairs: () => eachFixture('pairs', testPairs), list: () => eachFixture('list', testList), translation: testTranslationRetry, practice: testPractice, chooser: testChooser, header: testHeader, persist: testPersist, learn: testLearn, shop: testShop, box: testBox, phoneback: testPhoneBack, avatar: testAvatar, celebrate: testCelebrate, boxextra: testBoxExtra, keep: testKeep, wand: testWand, pictures: testPictures, name: testName, top: testTop, listlearn: testListLearn, games: testGames };
 try {
   let ran = 0;
   for (const [name, run] of Object.entries(TESTS)) {

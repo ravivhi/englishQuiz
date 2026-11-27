@@ -343,6 +343,55 @@
         #shop-btn[data-boxes]::after { content: attr(data-boxes); position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px;
                     padding: 0 4px; box-sizing: border-box; border-radius: 9px; background: #e53e3e; color: #fff; font-size: 0.7rem;
                     font-weight: bold; line-height: 18px; font-family: sans-serif; }
+        /* 🎮 games: a round button under the shop button, and a page with 4 games */
+        #games-btn { position: absolute; top: 46px; left: -8px; width: 46px; height: 46px; padding: 0; border: none; border-radius: 50%;
+                     font-size: 1.5rem; line-height: 46px; cursor: pointer; background: linear-gradient(135deg, #90cdf4, #4299e1);
+                     box-shadow: 0 3px 0 rgba(0,0,0,0.18); }
+        #games-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.18); }
+        #games-screen { flex-direction: column; flex: 1 1 auto; min-height: 0; }
+        #games-title { flex: 1; font-weight: bold; color: #4a5568; font-size: 1.15rem; }
+        #games-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; text-align: center; }
+        .games-note { color: #718096; font-size: 0.9rem; margin: 4px 0 10px; }
+        .games-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .game-card { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 8px; border: none; border-radius: 16px;
+                     color: #fff; font-family: inherit; cursor: pointer; box-shadow: 0 4px 0 rgba(0,0,0,0.15); }
+        .game-card:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,0.15); }
+        .game-card .g-pic { font-size: 2.3rem; line-height: 1.2; }
+        .game-card .g-name { font-weight: bold; font-size: 1.15rem; }
+        .game-card .g-desc { font-size: 0.8rem; opacity: 0.95; }
+        .g-progress { color: #805ad5; font-weight: bold; margin-bottom: 4px; }
+        .g-speak { border: none; background: #ebf8ff; border-radius: 50%; width: 46px; height: 46px; font-size: 1.4rem; cursor: pointer; margin: 6px 0; }
+        .g-speak.big { width: 72px; height: 72px; font-size: 2.2rem; margin: 6px 0 14px; box-shadow: 0 3px 0 #90cdf4; }
+        .mem-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .mem-card { min-height: 66px; padding: 6px; border: 2px solid transparent; border-radius: 12px; background: linear-gradient(135deg, #9f7aea, #805ad5);
+                    color: #fff; font-size: 1.05rem; font-weight: bold; font-family: inherit; cursor: pointer; word-break: break-word; touch-action: manipulation; }
+        .mem-card.open { background: #fff; color: #2d3748; border-color: #b794f4; }
+        .mem-card.done { background: #c6f6d5; color: #276749; border-color: #68d391; cursor: default; }
+        .spell-pic { font-size: 2.8rem; line-height: 1.2; min-height: 0; }
+        .spell-pic:empty { display: none; }
+        .spell-he { font-size: 1.4rem; font-weight: bold; color: #2d3748; }
+        .spell-slots { display: flex; gap: 6px; justify-content: center; direction: ltr; margin: 10px 0 16px; }
+        .spell-slot { width: 34px; height: 44px; border-bottom: 3px solid #805ad5; font-size: 1.6rem; font-weight: bold; line-height: 44px; color: #2d3748; }
+        .spell-slots.spell-done .spell-slot { color: #2f855a; border-color: #48bb78; }
+        .spell-tiles { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; direction: ltr; }
+        .spell-tile { width: 46px; height: 50px; border: none; border-radius: 10px; background: #fefcbf; box-shadow: 0 3px 0 #d69e2e;
+                      font-size: 1.5rem; font-weight: bold; font-family: inherit; color: #744210; cursor: pointer; touch-action: manipulation; }
+        .spell-tile:disabled { visibility: hidden; }
+        .listen-answers { display: grid; gap: 8px; }
+        .tf-bar { display: flex; justify-content: space-between; font-weight: bold; font-size: 1.1rem; color: #4a5568; margin-bottom: 14px; }
+        .tf-word { font-size: 2.1rem; font-weight: bold; color: #2b6cb0; }
+        .tf-he { font-size: 1.6rem; font-weight: bold; color: #2d3748; margin: 6px 0 20px; }
+        .tf-btns { display: flex; gap: 12px; }
+        .tf-btn { flex: 1; padding: 18px 8px; border: none; border-radius: 14px; color: #fff; font-size: 1.3rem; font-weight: bold;
+                  font-family: inherit; cursor: pointer; touch-action: manipulation; box-shadow: 0 4px 0 rgba(0,0,0,0.15); }
+        .tf-yes { background: #48bb78; } .tf-no { background: #f56565; }
+        .tf-box { border-radius: 16px; padding: 6px; }
+        .tf-box.tf-good { animation: tfGood 0.35s; } .tf-box.tf-bad { animation: tfBad 0.35s; }
+        @keyframes tfGood { 50% { background: #c6f6d5; } } @keyframes tfBad { 50% { background: #fed7d7; } }
+        .game-end .g-end-pic { font-size: 3.5rem; }
+        .game-end .g-end-title { font-size: 1.5rem; font-weight: bold; color: #553c9a; }
+        .game-end .g-end-text { font-size: 1.1rem; margin: 6px 0; }
+        .game-end .g-end-points { font-size: 1.6rem; font-weight: bold; color: #d69e2e; margin: 6px 0 14px; }
         /* 🏆 the top 10 players: a round button under the character, in the top-right corner */
         #top-btn { position: absolute; top: 46px; right: -8px; width: 46px; height: 46px; padding: 0; border: none; border-radius: 50%;
                    font-size: 1.5rem; line-height: 46px; cursor: pointer; background: linear-gradient(135deg, #faf089, #ecc94b);
@@ -603,7 +652,7 @@
         .words-box { border-color: #bee3f8 !important; border-radius: 14px !important; }
         #level-select, #cat-level-select { border: 2px solid #d6bcfa !important; border-radius: 12px !important; color: #553c9a !important; }
         /* every screen pops in */
-        #start-screen, #game-screen, #summary-screen, #shop-screen, #top-screen, #learn-screen, #learn-done-screen { animation: screenIn 0.35s ease-out; }
+        #start-screen, #game-screen, #summary-screen, #shop-screen, #top-screen, #games-screen, #learn-screen, #learn-done-screen { animation: screenIn 0.35s ease-out; }
         @keyframes screenIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         /* clouds, stars and balloons drift slowly behind the card (not on picture backgrounds, they have their own) */
         #kid-sky { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
@@ -642,6 +691,7 @@
         @media (max-width: 360px) {
             #shop-btn { width: 36px; height: 36px; line-height: 36px; font-size: 1.2rem; top: -10px; left: -10px; }
             #top-btn { width: 36px; height: 36px; line-height: 36px; font-size: 1.15rem; top: 32px; right: -10px; }
+            #games-btn { width: 36px; height: 36px; line-height: 36px; font-size: 1.15rem; top: 32px; left: -10px; }
             #menu-avatar { width: 36px; height: 36px; line-height: 30px; font-size: 1.2rem; top: -10px; right: -10px; }
             .game-container { padding: 14px; }
             /* narrow phones: slightly smaller buttons (all of them, so they keep one look) so the longer
@@ -678,6 +728,7 @@
     <div class="game-container">
         <div id="start-screen">
             <button type="button" id="shop-btn" onclick="openShop()" aria-label="חנות" title="חנות">🏪</button>
+            <button type="button" id="games-btn" onclick="openGames()" aria-label="משחקים" title="משחקים">🎮</button>
             <button type="button" id="top-btn" onclick="showTop()" aria-label="10 השחקנים המובילים" title="10 השחקנים המובילים">🏆</button>
             <button type="button" id="menu-avatar" onclick="avatarTap()" aria-label="הדמות שלי – לחצו עליה" title="לחצו על הדמות!"></button>
             <div id="avatar-bubble" role="status" onclick="avatarBubbleTap()"></div>
@@ -757,6 +808,14 @@
                 <button type="button" id="wand-btn" onclick="useWand()" aria-label="שרביט קסמים: מראה את התשובה הנכונה" title="שרביט קסמים: מראה את התשובה הנכונה" disabled>🪄<span id="wand-count"></span></button>
             </div>
             <div class="answers-grid" id="answers-container"></div>
+        </div>
+
+        <div id="games-screen" style="display:none;">
+            <div class="learn-head">
+                <button type="button" id="games-back" class="action-btn" onclick="gamesBack()" aria-label="חזרה" style="padding:5px 10px;font-size:0.9rem;">→ חזרה</button>
+                <div id="games-title">🎮 משחקים</div>
+            </div>
+            <div id="games-body"></div>
         </div>
 
         <div id="top-screen" style="display:none;">
@@ -1355,6 +1414,248 @@
             showPlayerName();
             window.cloud && cloud.sync();
         }
+        // 🎮 Games: 4 short games on the words of the chosen level (the level picker of the random / learning tabs).
+        // Each one gives a few ⭐ points at its end (they count in the total and in the 🏆 list, like a quiz's).
+        let curGame = null, gameToken = 0;   // the game being played (its id); a new token stops the old game's timers
+        let TF_SECONDS = 30;                 // how long the "true or false" round is
+        const GAMES = [
+            { id: "memory", pic: "🃏", name: "זיכרון", desc: "מוצאים זוגות: מילה ופירוש", color: "#9f7aea, #805ad5",
+              ok: w => w.en.length <= 12 && w.he.length <= 14, run: playMemory },
+            { id: "spell", pic: "🔤", name: "איות", desc: "מסדרים את האותיות למילה", color: "#f6ad55, #dd6b20",
+              ok: w => /^[a-z]{3,7}$/i.test(w.en), run: playSpell },
+            { id: "listen", pic: "👂", name: "שמיעה", desc: "שומעים מילה ובוחרים אותה", color: "#63b3ed, #3182ce",
+              ok: w => /^[a-z][a-z' -]{1,14}$/i.test(w.en), run: playListen },
+            { id: "truefalse", pic: "⚡", name: "נכון או לא?", desc: `${TF_SECONDS} שניות: הפירוש נכון?`, color: "#68d391, #38a169",
+              ok: w => w.he.length <= 22, run: playTrueFalse },
+        ];
+        const gBody = () => document.getElementById("games-body");
+        const gameLevel = () => +document.getElementById("level-select").value || 1;
+        const gEl = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+
+        function openGames() {
+            document.getElementById("start-screen").style.display = "none";
+            document.getElementById("games-screen").style.display = "flex";
+            saveSession("games");
+            gamesMenu();
+        }
+        function stopGame() {
+            gameToken++;
+            curGame = null;
+            try { speechSynthesis.cancel(); } catch (e) {}
+        }
+        // the games' back button: from a game to the list of games, from the list to the main screen
+        function gamesBack() { if (curGame) gamesMenu(); else showStart(); }
+
+        function gamesMenu() {
+            stopGame();
+            document.getElementById("games-title").textContent = "🎮 משחקים";
+            const body = gBody();
+            body.replaceChildren(gEl("p", "games-note", `המילים מרמה ${gameLevel()} (אפשר להחליף רמה במסך הראשי)`));
+            const grid = gEl("div", "games-menu");
+            for (const g of GAMES) {
+                const b = gEl("button", "game-card");
+                b.type = "button"; b.dataset.game = g.id;
+                b.style.background = `linear-gradient(135deg, ${g.color})`;
+                b.append(gEl("span", "g-pic", g.pic), gEl("span", "g-name", g.name), gEl("span", "g-desc", g.desc));
+                b.onclick = () => startGame(g);
+                grid.append(b);
+            }
+            body.append(grid);
+        }
+
+        async function startGame(g) {
+            stopGame();
+            const token = gameToken;
+            curGame = g.id;
+            document.getElementById("games-title").textContent = `${g.pic} ${g.name}`;
+            gBody().replaceChildren(gEl("p", "games-note", "⏳ טוען..."));
+            let words;
+            try { words = await loadLevel(gameLevel()); } catch (e) {
+                if (token === gameToken) gBody().replaceChildren(gEl("p", "games-note", "אין חיבור לאינטרנט, נסו שוב אחר כך"));
+                return;
+            }
+            if (token !== gameToken) return;
+            const seenEn = new Set(), seenHe = new Set();
+            const pool = shuffle(words.filter(g.ok).filter(w => {   // each word and each meaning once
+                const en = w.en.toLowerCase();
+                if (seenEn.has(en) || seenHe.has(w.he)) return false;
+                seenEn.add(en); seenHe.add(w.he); return true;
+            }));
+            g.run(pool, token, g);
+        }
+
+        // the end of a game: the points, a celebration, "again" / "games"
+        function gameOver(token, g, points, text) {
+            if (token !== gameToken) return;
+            if (points > 0) {
+                grandTotal += points;
+                addEarned(points);
+                try { localStorage.setItem(TOTAL_KEY, String(grandTotal)); } catch (e) {}
+                window.cloud && cloud.sync();
+                showGrandTotal();
+                coinSound();
+            }
+            confetti();
+            const end = gEl("div", "game-end");
+            end.append(gEl("div", "g-end-pic", "🎉"), gEl("div", "g-end-title", praise("כל הכבוד")), gEl("p", "g-end-text", text));
+            end.append(gEl("div", "g-end-points", points > 0 ? `+${points} ⭐` : "בפעם הבאה יהיו נקודות 💪"));
+            const again = gEl("button", "btn-restart", "🔁 עוד פעם"), menu = gEl("button", "btn-restart", "🎮 משחקים");
+            again.type = menu.type = "button"; again.id = "game-again"; menu.id = "game-menu";
+            menu.style.cssText = "margin-top:10px;background:#805ad5;";
+            again.onclick = () => startGame(g);
+            menu.onclick = () => gamesMenu();
+            end.append(again, menu);
+            gBody().replaceChildren(end);
+        }
+        const gShake = el => el.animate([{ transform: "translateX(0)" }, { transform: "translateX(-6px)" }, { transform: "translateX(6px)" }, { transform: "translateX(0)" }], { duration: 250 });
+
+        // 🃏 Memory: 6 English words and their 6 meanings face down; turning two that belong together keeps them open.
+        // 1 ⭐ for each pair.
+        function playMemory(pool, token, g) {
+            const PAIRS = 6, words = pool.slice(0, PAIRS);
+            const cards = shuffle(words.flatMap((w, k) => [{ k, text: w.en, en: true }, { k, text: w.he, en: false }]));
+            const grid = gEl("div", "mem-grid");
+            let open = [], found = 0, tries = 0;
+            for (const c of cards) {
+                const b = gEl("button", "mem-card", "❓");
+                b.type = "button"; b.dataset.k = c.k;
+                if (c.en) b.dir = "ltr";
+                b.onclick = () => {
+                    if (token !== gameToken || open.length === 2 || b.classList.contains("open") || b.classList.contains("done")) return;
+                    b.classList.add("open"); b.textContent = c.text;
+                    if (c.en) speakText(c.text);
+                    open.push(b);
+                    if (open.length < 2) return;
+                    tries++;
+                    const [a, d] = open;
+                    if (a.dataset.k === d.dataset.k) {
+                        a.classList.add("done"); d.classList.add("done"); open = [];
+                        if (++found === PAIRS) setTimeout(() => gameOver(token, g, PAIRS, `מצאתם את כל ${PAIRS} הזוגות ב-${tries} ניסיונות`), 500);
+                    } else setTimeout(() => {
+                        if (token !== gameToken) return;
+                        for (const x of open) { x.classList.remove("open"); x.textContent = "❓"; }
+                        open = [];
+                    }, 900);
+                };
+                grid.append(b);
+            }
+            gBody().replaceChildren(gEl("p", "games-note", "הופכים שני קלפים: מילה באנגלית והפירוש שלה"), grid);
+        }
+
+        // 🔤 Spelling: the meaning (and a picture, if the word has one); its letters mixed up; tap them in order.
+        // 5 words: 2 ⭐ for a word with no mistakes, 1 ⭐ with mistakes.
+        function playSpell(pool, token, g) {
+            const ROUNDS = 5, words = pool.slice(0, ROUNDS);
+            let round = 0, points = 0;
+            const next = () => {
+                if (token !== gameToken) return;
+                if (round === words.length) return gameOver(token, g, points, `איייתם ${words.length} מילים באנגלית`);
+                const w = words[round], word = w.en.toLowerCase();
+                let pos = 0, mistakes = 0;
+                const box = gEl("div", "spell-box");
+                box.dataset.word = word;
+                const say = gEl("button", "g-speak", "🔊"); say.type = "button"; say.setAttribute("aria-label", "השמעת המילה"); say.onclick = () => speakText(word);
+                const slots = gEl("div", "spell-slots"), tiles = gEl("div", "spell-tiles");
+                for (let i = 0; i < word.length; i++) slots.append(gEl("span", "spell-slot", ""));
+                let letters = shuffle([...word]);
+                for (let t = 0; t < 5 && letters.join("") === word; t++) letters = shuffle(letters);   // never already in order
+                for (const ch of letters) {
+                    const b = gEl("button", "spell-tile", ch); b.type = "button";
+                    b.onclick = () => {
+                        if (token !== gameToken || pos >= word.length) return;
+                        if (ch !== word[pos]) { mistakes++; gShake(b); return; }
+                        slots.children[pos++].textContent = ch;
+                        b.disabled = true;
+                        if (pos < word.length) return;
+                        points += mistakes ? 1 : 2;
+                        slots.classList.add("spell-done");
+                        speakText(word);
+                        round++;
+                        setTimeout(next, 1000);
+                    };
+                    tiles.append(b);
+                }
+                box.append(gEl("div", "g-progress", `${round + 1}/${words.length}`), gEl("div", "spell-pic", w.pic || ""), gEl("div", "spell-he", w.he), say, slots, tiles);
+                gBody().replaceChildren(box);
+            };
+            next();
+        }
+
+        // 👂 Listening: an English word is said out loud; pick it from 4 written words. 8 words, 1 ⭐ for each right on the first try.
+        function playListen(pool, token, g) {
+            const ROUNDS = 8, words = pool.slice(0, ROUNDS);
+            let round = 0, points = 0;
+            const next = () => {
+                if (token !== gameToken) return;
+                if (round === words.length) return gameOver(token, g, points, `זיהיתם ${points} מתוך ${words.length} מילים בשמיעה`);
+                const w = words[round];
+                let first = true;
+                const others = shuffle(pool.filter(x => x !== w)).slice(0, 3);
+                const box = gEl("div", "listen-box");
+                box.dataset.word = w.en;
+                const say = gEl("button", "g-speak big", "🔊"); say.type = "button"; say.setAttribute("aria-label", "השמעה שוב"); say.onclick = () => speakText(w.en);
+                const answers = gEl("div", "listen-answers");
+                for (const x of shuffle([w, ...others])) {
+                    const b = gEl("button", "btn-answer", x.en); b.type = "button"; b.dir = "ltr";
+                    b.onclick = () => {
+                        if (token !== gameToken || b.disabled) return;
+                        if (x !== w) { first = false; b.classList.add("wrong"); b.disabled = true; return; }
+                        b.classList.add("correct");
+                        answers.querySelectorAll("button").forEach(y => y.disabled = true);
+                        if (first) points++;
+                        round++;
+                        setTimeout(next, 800);
+                    };
+                    answers.append(b);
+                }
+                box.append(gEl("div", "g-progress", `${round + 1}/${words.length}`), gEl("p", "games-note", "הקשיבו ובחרו את המילה ששמעתם"), say, answers);
+                gBody().replaceChildren(box);
+                speakText(w.en);
+            };
+            next();
+        }
+
+        // ⚡ True or false: a word and a meaning; is it its meaning? As many as you can in TF_SECONDS. 1 ⭐ for each right answer.
+        function playTrueFalse(pool, token, g) {
+            let score = 0, left = TF_SECONDS, i = 0;
+            const box = gEl("div", "tf-box");
+            const bar = gEl("div", "tf-bar"), timeEl = gEl("span", "tf-time"), scoreEl = gEl("span", "tf-score");
+            bar.append(timeEl, scoreEl);
+            const word = gEl("div", "tf-word"), he = gEl("div", "tf-he");
+            word.dir = "ltr";
+            const yes = gEl("button", "tf-btn tf-yes", "✔ נכון"), no = gEl("button", "tf-btn tf-no", "✖ לא נכון");
+            yes.type = no.type = "button";
+            const btns = gEl("div", "tf-btns"); btns.append(yes, no);
+            box.append(bar, word, he, btns);
+            gBody().replaceChildren(box);
+            const show = () => {
+                timeEl.textContent = `⏱️ ${left}`; scoreEl.textContent = `⭐ ${score}`;
+                const w = pool[i++ % pool.length], right = Math.random() < 0.5;
+                const wrongHe = pool.find(x => x !== w && x.he !== w.he && Math.random() < 0.3) || pool.find(x => x !== w && x.he !== w.he);
+                word.textContent = w.en;
+                he.textContent = right || !wrongHe ? w.he : wrongHe.he;
+                box.dataset.ok = right || !wrongHe ? "1" : "0";
+            };
+            const answer = says => {
+                if (token !== gameToken || left <= 0) return;
+                const good = (box.dataset.ok === "1") === says;
+                if (good) score++;
+                box.classList.remove("tf-good", "tf-bad"); void box.offsetWidth;
+                box.classList.add(good ? "tf-good" : "tf-bad");
+                show();
+            };
+            yes.onclick = () => answer(true);
+            no.onclick = () => answer(false);
+            show();
+            const timer = setInterval(() => {
+                if (token !== gameToken) return clearInterval(timer);
+                timeEl.textContent = `⏱️ ${--left}`;
+                if (left > 0) return;
+                clearInterval(timer);
+                gameOver(token, g, score, `ענו נכון על ${score} מילים ב-${TF_SECONDS} שניות`);
+            }, 1000);
+        }
+
         // 🏆 The top 10 players (from the cloud), on a page of its own with two tabs: by all the points ever earned
         // (the default) or by how many topics they finished; this player's line is marked
         let topToken = 0;
@@ -1609,7 +1910,8 @@
             stepQuiz = null;
             if (themePreview) { themePreview = null; applyShop(); }   // out of the shop: back to the background that was bought
             showDaily();   // (a day may have passed while the app was open)
-            for (const id of ["summary-screen", "game-screen", "learn-screen", "learn-done-screen", "shop-screen", "top-screen"]) document.getElementById(id).style.display = "none";
+            for (const id of ["summary-screen", "game-screen", "learn-screen", "learn-done-screen", "shop-screen", "top-screen", "games-screen"]) document.getElementById(id).style.display = "none";
+            if (curGame) stopGame();   // 🎮 leaving a game stops its timers
             document.getElementById("start-screen").style.display = "flex";
             if (mode === "category") renderPath();
             saveSession("start");
@@ -3859,6 +4161,7 @@
             try {
                 if (s.screen === "shop") return openShop();
                 if (s.screen === "top") return showTop();
+                if (s.screen === "games") return openGames();
                 const lv = (s.step || s.learn || {}).level;
                 const steps = lv ? learnSteps(await loadLevel(lv)) : null;   // the learning path's steps (needs the word bank)
                 if (getComputedStyle(document.getElementById("start-screen")).display === "none") return;   // the user already moved on
@@ -3934,18 +4237,19 @@
             const dialog = [...document.querySelectorAll("[data-dialog]")].pop();
             if (dialog) dialog.click();              // a click on the dark background cancels it
             else if (shownEl("game-screen")) leaveGame();
+            else if (shownEl("games-screen") && curGame) gamesMenu();   // 🎮 from a game: back to the list of games
             else if (!shownEl("start-screen")) showStart();
             updateBackTrap();                        // still needed (e.g. the "leave the quiz?" pop-up): set it again
         });
         // any screen change or pop-up updates the trap
         const trapWatch = new MutationObserver(updateBackTrap);
         trapWatch.observe(document.body, { childList: true });
-        for (const id of ["start-screen", "game-screen", "summary-screen", "learn-screen", "learn-done-screen", "shop-screen", "top-screen"])
+        for (const id of ["start-screen", "game-screen", "summary-screen", "learn-screen", "learn-done-screen", "shop-screen", "top-screen", "games-screen"])
             trapWatch.observe(document.getElementById(id), { attributes: true, attributeFilter: ["style"] });
         // 🐾 no wandering character during a quiz or a learning card (body.busy hides it)
-        const markBusy = () => document.body.classList.toggle("busy", shownEl("game-screen") || shownEl("learn-screen"));
+        const markBusy = () => document.body.classList.toggle("busy", shownEl("game-screen") || shownEl("learn-screen") || shownEl("games-screen"));
         const busyWatch = new MutationObserver(markBusy);
-        for (const id of ["game-screen", "learn-screen"]) busyWatch.observe(document.getElementById(id), { attributes: true, attributeFilter: ["style"] });
+        for (const id of ["game-screen", "learn-screen", "games-screen"]) busyWatch.observe(document.getElementById(id), { attributes: true, attributeFilter: ["style"] });
         markBusy();
         restoreSession().finally(() => { if (pendingCoins && !shownEl("summary-screen")) collectCoins(); });   // a box can only wait on its result screen
     </script>
