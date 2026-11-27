@@ -912,7 +912,7 @@
             grandTotal += n;
             addEarned(n);
             pendingCoins = 0;
-            try { localStorage.setItem(TOTAL_KEY, String(grandTotal)); } catch (e) {}
+            try { localStorage.setItem(TOTAL_KEY, String(grandTotal)); } catch (e) {} window.cloud && cloud.sync();
             savePending();
             showGrandTotal();
             return n;
@@ -1287,12 +1287,15 @@
             b.classList.toggle("empty", !playerName);
             b.setAttribute("aria-label", playerName ? `שלום, ${playerName}! לחצו כדי לשנות את השם` : "איך קוראים לך? לחצו כדי לכתוב את השם");
         }
+        const cleanName = v => (v || "").replace(/\s+/g, " ").trim().slice(0, NAME_MAX);
         function setPlayerName(v) {
-            playerName = (v || "").replace(/\s+/g, " ").trim().slice(0, NAME_MAX);
+            playerName = cleanName(v);
             try { if (playerName) localStorage.setItem(NAME_KEY, playerName); else localStorage.removeItem(NAME_KEY); } catch (e) {}
             showPlayerName();
+            window.cloud && cloud.sync();
         }
-        function askName() {
+        // taken: the saved name belongs to another player (names are unique across all players)
+        function askName(taken) {
             document.getElementById("name-dialog")?.remove();
             const bg = document.createElement("div");
             bg.id = "name-dialog"; bg.dataset.dialog = "1";
@@ -1301,13 +1304,28 @@
                 <div style="font-size:1.25rem;font-weight:bold;margin-bottom:12px;">👋 איך קוראים לך?</div>
                 <input data-name type="text" maxlength="${NAME_MAX}" autocomplete="off" placeholder="השם שלך" aria-label="השם שלך"
                     style="width:100%;box-sizing:border-box;padding:10px;font-size:1.2rem;font-family:inherit;text-align:center;border:2px solid #b794f4;border-radius:10px;margin-bottom:14px;">
+                <div data-taken style="color:#e53e3e;font-weight:bold;margin:-6px 0 12px;"></div>
                 <div style="display:flex;gap:10px;justify-content:center;">
                     <button type="submit" style="flex:1;padding:10px;font-size:1rem;font-weight:bold;border:none;border-radius:10px;background:#805ad5;color:#fff;cursor:pointer;">שמירה</button>
                     <button type="button" data-cancel style="flex:1;padding:10px;font-size:1rem;border:none;border-radius:10px;background:#e2e8f0;color:#2d3748;cursor:pointer;">ביטול</button>
                 </div></form>`;
             const input = bg.querySelector("[data-name]");
             input.value = playerName;
-            bg.querySelector("form").onsubmit = e => { e.preventDefault(); setPlayerName(input.value); bg.remove(); };
+            const takenMsg = bg.querySelector("[data-taken]"), save = bg.querySelector("[type=submit]");
+            const TAKEN = "השם הזה כבר תפוס, נסו שם אחר";
+            takenMsg.textContent = taken ? TAKEN : "";
+            bg.querySelector("form").onsubmit = async e => {
+                e.preventDefault();
+                const v = cleanName(input.value);
+                // a new name is taken in the cloud first; without a network it is kept and taken later
+                if (v && window.cloud && (taken || v !== playerName)) {
+                    save.disabled = true;
+                    const r = await cloud.claim(v);
+                    save.disabled = false;
+                    if (r === "taken") { takenMsg.textContent = TAKEN; input.focus(); return; }
+                }
+                setPlayerName(v); bg.remove();
+            };
             bg.querySelector("[data-cancel]").onclick = () => bg.remove();
             bg.onclick = e => { if (e.target === bg) bg.remove(); };
             document.body.appendChild(bg);
@@ -2652,7 +2670,7 @@
             const prize = levelPrize();
             grandTotal += prize;
             addEarned(prize);
-            try { localStorage.setItem(TOTAL_KEY, String(grandTotal)); } catch (e) {}
+            try { localStorage.setItem(TOTAL_KEY, String(grandTotal)); } catch (e) {} window.cloud && cloud.sync();
             showGrandTotal();
             setTimeout(() => showLevelBonus(level, prize), delay);
         }
@@ -2931,7 +2949,7 @@
                 it = { id: "coins", pic: "💰", name: `${coins} נקודות`, coins };
                 grandTotal += coins;
                 addEarned(coins);
-                try { localStorage.setItem(TOTAL_KEY, String(grandTotal)); } catch (e) {}
+                try { localStorage.setItem(TOTAL_KEY, String(grandTotal)); } catch (e) {} window.cloud && cloud.sync();
                 showGrandTotal();
             }
             saveShop(); applyShop(); showWands();
@@ -3688,7 +3706,7 @@
             shopConfirm = null;
             if (kind === "theme") themePreview = null;
             grandTotal -= it.price;
-            try { localStorage.setItem(TOTAL_KEY, String(grandTotal)); } catch (e) {}
+            try { localStorage.setItem(TOTAL_KEY, String(grandTotal)); } catch (e) {} window.cloud && cloud.sync();
             shop.owned.push(it.id);
             if (kind === "avatar") shop.avatar = it.id; else shop.theme = it.id;   // bought = in use
             saveShop(); applyShop(); showGrandTotal();
@@ -3812,6 +3830,60 @@
         for (const id of ["game-screen", "learn-screen"]) busyWatch.observe(document.getElementById(id), { attributes: true, attributeFilter: ["style"] });
         markBusy();
         restoreSession().finally(() => { if (pendingCoins && !shownEl("summary-screen")) collectCoins(); });   // a box can only wait on its result screen
+    </script>
+    <script type="module">
+        // ☁️ The player's name and points, saved in Firebase (project ravivh-apps, shared by all of Raviv's apps).
+        // One document per player in "players": its id is the name (lower-cased), so a name is unique across all
+        // the apps, and only the device that took it first (its anonymous sign-in) may change it. Each app keeps
+        // its own points under apps.<app name>. Without a network the game works as before.
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+        const APP = "englishQuiz";
+        const app = initializeApp({
+            apiKey: "AIzaSyCGMszu_Wg7ttVZNehGT5wTyVnKQFRQopo",
+            authDomain: "ravivh-apps.firebaseapp.com",
+            projectId: "ravivh-apps",
+            storageBucket: "ravivh-apps.firebasestorage.app",
+            messagingSenderId: "174119918654",
+            appId: "1:174119918654:web:2afb2e003b44de5cf3c56f"
+        });
+        const auth = getAuth(app), db = getFirestore(app);
+        const CLAIMED_KEY = "englishquiz-cloud-name";
+        const ref = name => doc(db, "players", encodeURIComponent(name.toLowerCase()));
+        let ready = null;
+        const user = () => ready || (ready = (auth.authStateReady().then(() => auth.currentUser || signInAnonymously(auth).then(c => c.user))).catch(e => { ready = null; throw e; }));
+        const claimed = () => { try { return localStorage.getItem(CLAIMED_KEY) || ""; } catch (e) { return ""; } };
+        // writes the name with this app's points (merged: the other apps' points stay as they are)
+        const write = (u, name, apps = {}) => setDoc(ref(name), {
+            name, uid: u.uid, updatedAt: serverTimestamp(),
+            apps: { ...apps, [APP]: { points: Math.max(0, Math.floor(grandTotal) || 0), updatedAt: serverTimestamp() } }
+        }, { merge: true });
+        // takes the name: "ok", "taken" (another player has it) or "offline" (try again later)
+        async function claim(name) {
+            try {
+                const u = await user(), old = claimed();
+                const moving = old && ref(old).id !== ref(name).id;
+                // a new name takes the old name's points of all the apps with it
+                const oldApps = moving ? ((await getDoc(ref(old)).catch(() => null))?.data()?.apps || {}) : {};
+                await write(u, name, oldApps);
+                if (moving) deleteDoc(ref(old)).catch(() => {});
+                try { localStorage.setItem(CLAIMED_KEY, name); } catch (e) {}
+                return "ok";
+            } catch (e) { return e && e.code === "permission-denied" ? "taken" : "offline"; }
+        }
+        // saves the points under the name (a few seconds after the last change)
+        let timer = 0;
+        function sync() {
+            clearTimeout(timer);
+            timer = setTimeout(async () => {
+                if (!playerName) return;
+                if (claimed() !== playerName) { if (await claim(playerName) === "taken") askName(true); return; }
+                try { await write(await user(), playerName); } catch (e) {}
+            }, 2000);
+        }
+        window.cloud = { claim, sync };
+        sync();   // on start: take the name typed before this version, and send the points
     </script>
 </body>
 </html>

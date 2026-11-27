@@ -1,0 +1,22 @@
+rules_version = '2';
+// Rules of the shared Firebase project ravivh-apps (paste into Firestore → Rules).
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // One document per player, shared by all the apps: its id is the name (lower-cased), so names are unique.
+    // apps.<app name> holds each app's points. Only the device that took the name (its anonymous sign-in)
+    // can read, change or remove it.
+    match /players/{nameKey} {
+      function ok() {
+        return request.auth != null
+          && request.resource.data.keys().hasOnly(['name', 'uid', 'apps', 'updatedAt'])
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 20
+          && request.resource.data.apps is map;
+      }
+      allow create: if ok();
+      allow update: if ok() && resource.data.uid == request.auth.uid;
+      allow read, delete: if request.auth != null && resource.data.uid == request.auth.uid;
+    }
+  }
+}

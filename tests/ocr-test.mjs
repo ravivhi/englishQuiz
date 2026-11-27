@@ -152,6 +152,9 @@ async function openPage(mode = () => 'ok', { fresh = false } = {}) {
     const u = req.url();
     // the built-in word bank files: counted, and can be made to fail with mode(0, 'bank', url)
     if (u.includes('/wordbank/')) { page.tr.bank++; return mode(0, 'bank', u) === 'fail' ? req.abort('failed') : req.continue(); }
+    // ☁️ never reach the real Firebase from the tests (it would take test names like "נועה" in the real players list):
+    // the cloud script then doesn't load, and the game works as it does without a network
+    if (/gstatic\.com\/firebasejs|firestore\.googleapis\.com|identitytoolkit\.googleapis\.com|securetoken\.googleapis\.com/.test(u)) return req.abort('failed');
     // the OCR library and its language files come from a CDN; keep a local copy so a slow CDN can't stall the tests
     if (/^https:\/\/(cdn\.jsdelivr\.net|cdnjs\.cloudflare\.com)\//.test(u)) {
       const f = path.join(cdnCache, encodeURIComponent(u));
