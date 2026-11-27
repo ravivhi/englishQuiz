@@ -365,6 +365,9 @@
         .mem-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
         .mem-card { min-height: 66px; padding: 6px; border: 2px solid transparent; border-radius: 12px; background: linear-gradient(135deg, #9f7aea, #805ad5);
                     color: #fff; font-size: 1.05rem; font-weight: bold; font-family: inherit; cursor: pointer; word-break: break-word; touch-action: manipulation; }
+        .mem-card .mem-en { display: block; color: #2b6cb0; font-size: 1.05rem; white-space: nowrap; }   /* words of up to 9 letters: one line */
+        .mem-card .mem-he { display: block; font-size: 0.9rem; font-weight: 600; }
+        .mem-card.done .mem-en { color: #276749; }
         .mem-card.open { background: #fff; color: #2d3748; border-color: #b794f4; }
         .mem-card.done { background: #c6f6d5; color: #276749; border-color: #68d391; cursor: default; }
         .spell-pic { font-size: 2.8rem; line-height: 1.2; min-height: 0; }
@@ -380,7 +383,7 @@
         .listen-answers { display: grid; gap: 8px; }
         .tf-bar { display: flex; justify-content: space-between; font-weight: bold; font-size: 1.1rem; color: #4a5568; margin-bottom: 14px; }
         .tf-word { font-size: 2.1rem; font-weight: bold; color: #2b6cb0; }
-        .tf-he { font-size: 1.6rem; font-weight: bold; color: #2d3748; margin: 6px 0 20px; }
+        .tf-he { font-size: 1.6rem; font-weight: bold; color: #2d3748; margin: 2px 0 20px; }
         .tf-btns { display: flex; gap: 12px; }
         .tf-btn { flex: 1; padding: 18px 8px; border: none; border-radius: 14px; color: #fff; font-size: 1.3rem; font-weight: bold;
                   font-family: inherit; cursor: pointer; touch-action: manipulation; box-shadow: 0 4px 0 rgba(0,0,0,0.15); }
@@ -1414,22 +1417,31 @@
             showPlayerName();
             window.cloud && cloud.sync();
         }
-        // 🎮 Games: 4 short games on the words of the chosen level (the level picker of the random / learning tabs).
+        // 🎮 Games: 4 short games on the words of the tab the games were opened from: the learning tab - its level's
+        // words; the random words / picture tabs - the words in their list.
         // Each one gives a few ⭐ points at its end (they count in the total and in the 🏆 list, like a quiz's).
         let curGame = null, gameToken = 0;   // the game being played (its id); a new token stops the old game's timers
         let TF_SECONDS = 30;                 // how long the "true or false" round is
         const GAMES = [
-            { id: "memory", pic: "🃏", name: "זיכרון", desc: "מוצאים זוגות: מילה ופירוש", color: "#9f7aea, #805ad5",
-              ok: w => w.en.length <= 12 && w.he.length <= 14, run: playMemory },
+            { id: "memory", pic: "🃏", name: "זיכרון", desc: "מוצאים זוגות של אותה מילה", color: "#9f7aea, #805ad5",
+              ok: w => w.en.length <= 9 && w.he.length <= 14, min: 2, run: playMemory },
             { id: "spell", pic: "🔤", name: "איות", desc: "מסדרים את האותיות למילה", color: "#f6ad55, #dd6b20",
-              ok: w => /^[a-z]{3,7}$/i.test(w.en), run: playSpell },
+              ok: w => /^[a-z]{3,7}$/i.test(w.en), min: 1, run: playSpell },
             { id: "listen", pic: "👂", name: "שמיעה", desc: "שומעים מילה ובוחרים אותה", color: "#63b3ed, #3182ce",
-              ok: w => /^[a-z][a-z' -]{1,14}$/i.test(w.en), run: playListen },
+              ok: w => /^[a-z][a-z' -]{1,14}$/i.test(w.en), min: 4, run: playListen },
             { id: "truefalse", pic: "⚡", name: "נכון או לא?", desc: `${TF_SECONDS} שניות: הפירוש נכון?`, color: "#68d391, #38a169",
-              ok: w => w.he.length <= 22, run: playTrueFalse },
+              ok: w => w.he.length <= 22, min: 2, run: playTrueFalse },
         ];
         const gBody = () => document.getElementById("games-body");
         const gameLevel = () => +document.getElementById("level-select").value || 1;
+        // where the words come from: the learning tab - the level; the other tabs - their word list
+        const gameFromList = () => mode !== "category";
+        const gameSourceText = () => !gameFromList() ? `המילים מרמה ${gameLevel()}` : `המילים מהרשימה של ${mode === "picture" ? "📷 מתמונה" : "🎲 אקראי"}`;
+        async function gameWords() {
+            if (!gameFromList()) return loadLevel(gameLevel());
+            const clean = t => t.replace(/\s*[\(\[（][^)\]）]*[\)\]）]/g, "").trim();
+            return rows.map(r => ({ en: clean(r.en), he: clean(r.he), pic: "" })).filter(w => w.en && w.he);
+        }
         const gEl = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 
         function openGames() {
@@ -1450,7 +1462,7 @@
             stopGame();
             document.getElementById("games-title").textContent = "🎮 משחקים";
             const body = gBody();
-            body.replaceChildren(gEl("p", "games-note", `המילים מרמה ${gameLevel()} (אפשר להחליף רמה במסך הראשי)`));
+            body.replaceChildren(gEl("p", "games-note", gameSourceText() + (gameFromList() ? ` (${rows.filter(r => r.en.trim() && r.he.trim()).length} מילים)` : " (אפשר להחליף רמה במסך הראשי)")));
             const grid = gEl("div", "games-menu");
             for (const g of GAMES) {
                 const b = gEl("button", "game-card");
@@ -1470,7 +1482,7 @@
             document.getElementById("games-title").textContent = `${g.pic} ${g.name}`;
             gBody().replaceChildren(gEl("p", "games-note", "⏳ טוען..."));
             let words;
-            try { words = await loadLevel(gameLevel()); } catch (e) {
+            try { words = await gameWords(); } catch (e) {
                 if (token === gameToken) gBody().replaceChildren(gEl("p", "games-note", "אין חיבור לאינטרנט, נסו שוב אחר כך"));
                 return;
             }
@@ -1481,6 +1493,13 @@
                 if (seenEn.has(en) || seenHe.has(w.he)) return false;
                 seenEn.add(en); seenHe.add(w.he); return true;
             }));
+            if (pool.length < g.min) {   // a short list: say how many words this game needs
+                const msg = gEl("p", "games-note", `למשחק הזה צריך לפחות ${g.min} ${g.min === 1 ? "מילה מתאימה" : "מילים מתאימות"} ברשימה${g.id === "spell" ? " (מילה של 3–7 אותיות)" : ""}. אפשר להוסיף מילים ברשימה במסך הראשי.`);
+                msg.id = "game-few";
+                const back = gEl("button", "btn-restart", "🎮 משחקים"); back.type = "button"; back.onclick = () => gamesMenu();
+                gBody().replaceChildren(msg, back);
+                return;
+            }
             g.run(pool, token, g);
         }
 
@@ -1509,21 +1528,22 @@
         }
         const gShake = el => el.animate([{ transform: "translateX(0)" }, { transform: "translateX(-6px)" }, { transform: "translateX(6px)" }, { transform: "translateX(0)" }], { duration: 250 });
 
-        // 🃏 Memory: 6 English words and their 6 meanings face down; turning two that belong together keeps them open.
-        // 1 ⭐ for each pair.
+        // 🃏 Memory: 6 words, each on two cards (the English word with its meaning under it), face down; turning
+        // the two cards of the same word keeps them open. 1 ⭐ for each pair.
         function playMemory(pool, token, g) {
-            const PAIRS = 6, words = pool.slice(0, PAIRS);
-            const cards = shuffle(words.flatMap((w, k) => [{ k, text: w.en, en: true }, { k, text: w.he, en: false }]));
+            const words = pool.slice(0, 6), PAIRS = words.length;
+            const cards = shuffle(words.flatMap((w, k) => [{ k, w }, { k, w }]));
             const grid = gEl("div", "mem-grid");
             let open = [], found = 0, tries = 0;
             for (const c of cards) {
                 const b = gEl("button", "mem-card", "❓");
                 b.type = "button"; b.dataset.k = c.k;
-                if (c.en) b.dir = "ltr";
                 b.onclick = () => {
                     if (token !== gameToken || open.length === 2 || b.classList.contains("open") || b.classList.contains("done")) return;
-                    b.classList.add("open"); b.textContent = c.text;
-                    if (c.en) speakText(c.text);
+                    b.classList.add("open");
+                    const en = gEl("span", "mem-en", c.w.en); en.dir = "ltr";
+                    b.replaceChildren(en, gEl("span", "mem-he", c.w.he));
+                    speakText(c.w.en);
                     open.push(b);
                     if (open.length < 2) return;
                     tries++;
@@ -1539,7 +1559,7 @@
                 };
                 grid.append(b);
             }
-            gBody().replaceChildren(gEl("p", "games-note", "הופכים שני קלפים: מילה באנגלית והפירוש שלה"), grid);
+            gBody().replaceChildren(gEl("p", "games-note", "הופכים שני קלפים ומחפשים שניים של אותה מילה"), grid);
         }
 
         // 🔤 Spelling: the meaning (and a picture, if the word has one); its letters mixed up; tap them in order.
@@ -1626,7 +1646,9 @@
             const yes = gEl("button", "tf-btn tf-yes", "✔ נכון"), no = gEl("button", "tf-btn tf-no", "✖ לא נכון");
             yes.type = no.type = "button";
             const btns = gEl("div", "tf-btns"); btns.append(yes, no);
-            box.append(bar, word, he, btns);
+            const say = gEl("button", "g-speak", "🔊"); say.type = "button"; say.id = "tf-speak"; say.setAttribute("aria-label", "השמעת המילה");
+            say.onclick = () => speakText(word.textContent);   // 🔊 hear the English word
+            box.append(bar, word, say, he, btns);
             gBody().replaceChildren(box);
             const show = () => {
                 timeEl.textContent = `⏱️ ${left}`; scoreEl.textContent = `⭐ ${score}`;

@@ -2111,6 +2111,7 @@ async function testGames() {
   const r = await page.$eval('#games-btn', b => b.getBoundingClientRect().toJSON());
   const shopR = await page.$eval('#shop-btn', b => b.getBoundingClientRect().toJSON());
   check(r.width > 0 && r.top >= shopR.bottom - 1 && Math.abs(r.left - shopR.left) < 4, 'the main screen has a 🎮 button right under the store');
+  await page.evaluate(() => setMode('category'));   // from the learning tab: the level's words
   await page.click('#games-btn');
   check((await shown('games-screen')) && !(await shown('start-screen')), 'it opens the games page');
   const cards = await page.$$eval('#games-body .game-card', bs => bs.map(b => b.dataset.game));
@@ -2118,7 +2119,7 @@ async function testGames() {
   check((await page.$eval('#games-body', e => e.textContent)).includes('רמה 1'), 'it says which level the words come from');
   const play = async id => { await page.click(`.game-card[data-game="${id}"]`); await page.waitForFunction(id => curGame === id && !document.querySelector('#games-body').textContent.includes('טוען'), { timeout: 5000 }, id); };
 
-  // 🃏 memory: 12 cards (6 words + 6 meanings); a wrong pair closes again, the right pairs stay open
+  // 🃏 memory: 12 cards, each word twice (English with its meaning under it); a wrong pair closes again, the right pairs stay open
   let [t0, e0] = await money();
   await play('memory');
   const ks = await page.$$eval('.mem-card', bs => bs.map(b => b.dataset.k));
@@ -2126,6 +2127,8 @@ async function testGames() {
   const idx = k => ks.map((x, i) => x === k ? i : -1).filter(i => i >= 0);
   const [a0] = idx('0'), [b0] = idx('1');
   await page.evaluate((a, b) => { const c = document.querySelectorAll('.mem-card'); c[a].click(); c[b].click(); }, a0, b0);
+  const opened = await page.$$eval('.mem-card.open', bs => bs.map(b => ({ en: b.querySelector('.mem-en')?.textContent, he: b.querySelector('.mem-he')?.textContent })));
+  check(opened.length === 2 && opened.every(o => /[a-z]/i.test(o.en || '') && /[֐-׿]/.test(o.he || '')), `an open card shows the English word and its meaning together (${JSON.stringify(opened)})`);
   await wait(1100);
   check(await page.$$eval('.mem-card', bs => bs.every(b => !b.classList.contains('open'))), 'two cards that do not belong together turn back');
   for (let k = 0; k < 6; k++) { const [x, y] = idx(String(k)); await page.evaluate((x, y) => { const c = document.querySelectorAll('.mem-card'); c[x].click(); c[y].click(); }, x, y); }
@@ -2178,6 +2181,10 @@ async function testGames() {
   await page.evaluate(() => { TF_SECONDS = 3; });
   [t0] = await money();
   await play('truefalse');
+  await page.evaluate(() => { window.__said = []; const orig = speakText; speakText = w => { window.__said.push(w); orig(w); }; });
+  const tfWord = await page.$eval('.tf-word', e => e.textContent);
+  await page.click('#tf-speak');
+  check((await page.evaluate(() => window.__said)).join() === tfWord, `the 🔊 button says the word (${tfWord})`);
   for (let n = 0; n < 4; n++) await page.evaluate(() => document.querySelector(document.querySelector('.tf-box').dataset.ok === '1' ? '.tf-yes' : '.tf-no').click());
   await page.evaluate(() => document.querySelector(document.querySelector('.tf-box').dataset.ok === '1' ? '.tf-no' : '.tf-yes').click());   // one wrong
   check((await page.$eval('.tf-score', e => e.textContent)) === '⭐ 4', 'right answers add to the score, a wrong one does not');
@@ -2194,6 +2201,33 @@ async function testGames() {
   [t0] = await money();
   await wait(3500);
   check((await money())[0] === t0 && !(await page.$('.game-end')), 'a game that was left stops (no end screen, no points)');
+  // from the random words / picture tabs: the words of their list
+  await page.evaluate(() => { showStart(); setMode('random'); document.getElementById('words-input').value = 'apple\tתפוח\ndog\tכלב\ncat\tחתול\nsun\tשמש\nbook (n)\tספר'; renderWords(); });
+  await page.click('#games-btn');
+  const note = await page.$eval('#games-body .games-note', e => e.textContent);
+  check(note.includes('אקראי') && note.includes('5 מילים'), `from the random tab: its list's words (${note})`);
+  await play('memory');
+  const memWords = await page.evaluate(async () => { const c = [...document.querySelectorAll('.mem-card')]; return c.length; });
+  check(memWords === 10, `memory on a list of 5 words: 5 pairs (${memWords} cards)`);
+  await page.click('#games-back');
+  await play('listen');
+  const lw = new Set();
+  for (let n = 0; n < 5; n++) {
+    await page.waitForSelector('.listen-box', { timeout: 3000 });
+    const word = await page.$eval('.listen-box', e => e.dataset.word);
+    lw.add(word);
+    await page.evaluate(w => [...document.querySelectorAll('.listen-answers button')].find(b => b.textContent === w).click(), word);
+    await wait(900);
+  }
+  check([...lw].every(w => ['apple', 'dog', 'cat', 'sun', 'book'].includes(w)) && lw.size === 5, `listening uses only the list's words (${[...lw].join(', ')})`);
+  await page.waitForSelector('.game-end', { timeout: 3000 });
+  await page.evaluate(() => { showStart(); setMode('picture'); document.getElementById('words-input').value = 'apple\tתפוח\ndog\tכלב'; renderWords(); });
+  await page.click('#games-btn');
+  check((await page.$eval('#games-body .games-note', e => e.textContent)).includes('מתמונה'), 'from the picture tab: its own list');
+  await play('listen');
+  check((await page.$eval('#game-few', e => e.textContent)).includes('4'), 'a list too short for a game (listening needs 4 words) says so');
+  await page.evaluate(() => { showStart(); setMode('category'); });
+  await page.click('#games-btn');
   // reopening the app comes back to the games page; back from the list goes to the main screen
   await page.reload({ waitUntil: 'load' });
   await page.waitForFunction(() => getComputedStyle(document.getElementById('games-screen')).display !== 'none', { timeout: 3000 });
