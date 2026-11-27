@@ -868,7 +868,7 @@ async function testLearn() {
   check(st.every(s => s.learn && s.quiz && !s.done && s.state === ''), 'nothing is locked: every part has a 📖 learn and a 📝 quiz button, none is green yet');
   check(!(await page.$$eval('#cat-list .cat-row', rs => rs.some(r => r.textContent.includes('🔒')))), 'no topic is locked (only the 🎁 prize box at the end)');
   check((await text('path-progress')) === `✅ 0/${want.length}`, 'the path counts 0 passed parts');
-  check(!(await vis('words-count')) && !(await vis('start-btn')), 'the word list and the start button are hidden in the learning tab');
+  check(!(await vis('words-count')) && !(await page.$eval('#start-btn', e => e.getBoundingClientRect().width > 0)) && !(await page.$eval('#learn-list-btn', e => e.getBoundingClientRect().width > 0)), 'the word list and its learn / quiz buttons are hidden in the learning tab');
   check((await page.$eval('#cat-level-select', e => e.value)) === '1', 'the learning tab uses the chosen level');
 
   // the cards of part 1
@@ -2043,7 +2043,65 @@ async function testTop() {
   await page.close();
 }
 
-const TESTS = { fire: testFire, wordbank: testWordbank, random: testRandom, layout: testLayout, back: testBack, tabs: testTabs, streak: testStreak, pairs: () => eachFixture('pairs', testPairs), list: () => eachFixture('list', testList), translation: testTranslationRetry, practice: testPractice, chooser: testChooser, header: testHeader, persist: testPersist, learn: testLearn, shop: testShop, box: testBox, phoneback: testPhoneBack, avatar: testAvatar, celebrate: testCelebrate, boxextra: testBoxExtra, keep: testKeep, wand: testWand, pictures: testPictures, name: testName, top: testTop };
+// 📖 / 📝 The random-words and picture tabs: two buttons instead of "start game": learn the list's words, or the quiz
+async function testListLearn() {
+  console.log('\n[listlearn] random words and picture: a learn button and a quiz button');
+  const page = await openPage();
+  const shown = id => page.$eval('#' + id, e => getComputedStyle(e).display !== 'none');
+  for (const m of ['random', 'picture']) {
+    await page.evaluate(m => setMode(m), m);
+    const b = await page.evaluate(() => {
+      const l = document.getElementById('learn-list-btn'), q = document.getElementById('start-btn');
+      return { learn: l.textContent, quiz: q.textContent, lv: getComputedStyle(l).display !== 'none' && l.getBoundingClientRect().width > 0, qv: getComputedStyle(q).display !== 'none' && q.getBoundingClientRect().width > 0,
+        same: Math.abs(l.getBoundingClientRect().top - q.getBoundingClientRect().top) < 2, old: document.body.textContent.includes('התחל משחק') };
+    });
+    check(b.lv && b.qv && b.learn.includes('לימוד') && b.quiz.includes('בוחן') && b.same && !b.old, `${m}: "📖 לימוד" and "📝 בוחן" side by side, no "start game"`);
+  }
+  await page.evaluate(() => setMode('category'));
+  check(!(await page.$eval('#learn-list-btn', e => e.getBoundingClientRect().width > 0)) && !(await page.$eval('#start-btn', e => e.getBoundingClientRect().width > 0)), 'the learning-path tab has neither (it has its own learn and quiz per topic)');
+  await page.evaluate(() => { setMode('random'); document.getElementById('words-input').value = 'apple\tתפוח\ndog\tכלב\ncat\tחתול\nsun\tשמש'; renderWords(); });
+  // 📖 learn: the list's words as cards
+  await page.click('#learn-list-btn');
+  check((await shown('learn-screen')) && !(await shown('start-screen')), 'the learn button opens the word cards');
+  const card = () => page.evaluate(() => ({ title: document.getElementById('learn-title').textContent, word: document.getElementById('learn-word').textContent, he: document.getElementById('learn-meaning').textContent, count: document.getElementById('learn-count').textContent, back: document.getElementById('learn-back').textContent }));
+  let c = await card();
+  check(c.word === 'apple' && c.he === 'תפוח' && c.count === '1/4' && c.title.includes('המילים שלי') && c.back.includes('חזרה') && !c.back.includes('מסלול'), `the first card: apple = תפוח, 1/4, "back" (not "path") (${JSON.stringify(c)})`);
+  await page.click('#learn-next');
+  c = await card();
+  check(c.word === 'dog' && c.count === '2/4', 'next: dog, 2/4');
+  // reopening the app comes back to the same card
+  await page.reload({ waitUntil: 'load' });
+  await page.waitForFunction(() => getComputedStyle(document.getElementById('learn-screen')).display !== 'none', { timeout: 3000 });
+  c = await card();
+  check(c.word === 'dog' && c.count === '2/4', `closing and opening the app comes back to the same card (${c.word} ${c.count})`);
+  await page.click('#learn-next'); await page.click('#learn-next'); await page.click('#learn-next');
+  check(await shown('learn-done-screen'), 'after the last card: the "well done" screen');
+  const done = await page.evaluate(() => ({ text: document.getElementById('learn-done-text').textContent, back: document.getElementById('learn-done-back').textContent }));
+  check(done.text.includes('4') && !done.back.includes('מסלול'), `it says the 4 words were learned, and its back button says "back" (${JSON.stringify(done)})`);
+  // 📝 its quiz: the same 4 words
+  await page.click('#learn-quiz-btn');
+  await new Promise(r => setTimeout(r, 400));
+  const q = await page.$eval('#question-word', e => e.innerText.trim());
+  check((await shown('game-screen')) && ['apple', 'dog', 'cat', 'sun'].includes(q) && (await page.evaluate(() => wordsData.length)) === 4 && (await page.evaluate(() => stepQuiz)) === null, `then the quiz on the same 4 words ("${q}")`);
+  await page.evaluate(() => showStart());
+  // 📝 the quiz button: straight to the quiz
+  await page.click('#start-btn');
+  await new Promise(r => setTimeout(r, 400));
+  check((await shown('game-screen')) && (await page.evaluate(() => wordsData.length)) === 4, 'the quiz button goes straight to the quiz');
+  await page.evaluate(() => showStart());
+  // a list that cannot be played (a word without its meaning): learning shows the same error as the quiz
+  await page.evaluate(() => { document.getElementById('words-input').value = 'apple\tתפוח\ndog'; renderWords(); });
+  await page.click('#learn-list-btn');
+  check((await shown('start-screen')) && (await page.$eval('#start-error', e => e.textContent)).length > 0, 'a list that cannot be played: learning stays and shows the error');
+  // the learning path still says "path"
+  await page.evaluate(() => startLearning(1, 0));
+  await page.waitForFunction(() => getComputedStyle(document.getElementById('learn-screen')).display !== 'none', { timeout: 5000 });
+  check((await card()).back.includes('מסלול'), 'a learning-path topic still goes back to the path');
+  check(page.pageErrors.length === 0, `no page errors${page.pageErrors.length ? ': ' + page.pageErrors.join('; ') : ''}`);
+  await page.close();
+}
+
+const TESTS = { fire: testFire, wordbank: testWordbank, random: testRandom, layout: testLayout, back: testBack, tabs: testTabs, streak: testStreak, pairs: () => eachFixture('pairs', testPairs), list: () => eachFixture('list', testList), translation: testTranslationRetry, practice: testPractice, chooser: testChooser, header: testHeader, persist: testPersist, learn: testLearn, shop: testShop, box: testBox, phoneback: testPhoneBack, avatar: testAvatar, celebrate: testCelebrate, boxextra: testBoxExtra, keep: testKeep, wand: testWand, pictures: testPictures, name: testName, top: testTop, listlearn: testListLearn };
 try {
   let ran = 0;
   for (const [name, run] of Object.entries(TESTS)) {

@@ -594,6 +594,10 @@
         /* the big buttons */
         .btn-restart { border-radius: 20px; background-color: #4299e1; box-shadow: 0 5px 0 rgba(0,0,0,0.22); transition: transform 0.1s, box-shadow 0.1s; }
         .btn-restart:disabled { box-shadow: none; }
+        /* the word list's two buttons: learn the words (cards) or go straight to the quiz */
+        .start-row { display: flex; gap: 10px; margin-top: 12px; }
+        .start-row .btn-restart { flex: 1; margin: 0; }
+        #learn-list-btn:not(:disabled) { background: linear-gradient(135deg, #9f7aea, #805ad5); }
         #start-btn:not(:disabled) { background: linear-gradient(135deg, #48bb78, #38b2ac); animation: kidPulse 2.2s ease-in-out infinite; }
         @keyframes kidPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.04); } }
         .words-box { border-color: #bee3f8 !important; border-radius: 14px !important; }
@@ -714,7 +718,6 @@
                 <div id="cat-status" style="font-size:0.9rem;color:#c53030;"></div>
                 <div id="cat-list"></div>
             </div>
-            <p class="list-only" style="margin:6px 0;">בכל שורה: מילה באנגלית ופירוש.</p>
             <textarea id="words-input" hidden></textarea>
             <div id="words-count" class="list-only" style="margin:10px 0 4px;font-size:0.9rem;color:#4a5568;min-height:1.3em;"></div>
             <div id="words-hint" class="list-only" style="margin:0 0 4px;font-size:0.8rem;color:#975a16;"></div>
@@ -726,7 +729,10 @@
                 <button type="button" class="action-btn" onclick="clearWords()" style="flex:1;">🗑️ ניקוי המילים</button>
             </div>
             <div id="start-error" class="list-only" style="color:#c53030;margin-top:6px;"></div>
-            <button class="btn-restart list-only" id="start-btn" onclick="startFromInput()" style="margin-top:12px;">התחל משחק</button>
+            <div class="list-only start-row">
+                <button type="button" class="btn-restart" id="learn-list-btn" onclick="learnFromInput()">📖 לימוד</button>
+                <button type="button" class="btn-restart" id="start-btn" onclick="startFromInput()">📝 בוחן</button>
+            </div>
         </div>
 
         <div id="box-toast" role="status"></div>
@@ -830,7 +836,7 @@
             <p id="learn-done-text" style="font-size:1.2rem;margin:8px 0;"></p>
             <p id="learn-unlock" style="font-size:1.1rem;font-weight:bold;color:#553c9a;margin:8px 0;">עכשיו בוחן קצר על המילים 📝</p>
             <button class="btn-restart" id="learn-quiz-btn" onclick="startStepQuiz()">📝 לבוחן</button>
-            <button class="btn-restart" style="margin-top:10px;background:#805ad5;" onclick="showStart()">🗺️ חזרה למסלול</button>
+            <button class="btn-restart" id="learn-done-back" style="margin-top:10px;background:#805ad5;" onclick="showStart()">🗺️ חזרה למסלול</button>
         </div>
 
         <div id="summary-screen" class="summary-screen">
@@ -1302,17 +1308,32 @@
             restartGame();
         }
 
-        function startFromInput() {
-            if (rows.some(r => !r.en.trim() !== !r.he.trim())) { document.getElementById("start-error").innerText = 'יש שורות שחסרים בהן מילה או פירוש.'; return; }
+        // the word list (random words / from a photo) as quiz words, or null (the error is shown)
+        function readInput() {
+            if (rows.some(r => !r.en.trim() !== !r.he.trim())) { document.getElementById("start-error").innerText = 'יש שורות שחסרים בהן מילה או פירוש.'; return null; }
             const text = document.getElementById("words-input").value;
             const res = parseWords(text);
-            if (res.error) { document.getElementById("start-error").innerText = res.error; return; }
+            if (res.error) { document.getElementById("start-error").innerText = res.error; return null; }
             document.getElementById("words-input").value = text.replace(/\s*[\(\[（][^)\]）]*[\)\]）]/g, "");
             renderWords();
             try { localStorage.setItem(storeKey(), document.getElementById("words-input").value); } catch (e) {}
             document.getElementById("start-error").innerText = "";
+            return res.words;
+        }
+        function startFromInput() {
+            const words = readInput();
+            if (!words) return;
             stepQuiz = null;
-            beginGame(res.words);
+            beginGame(words);
+        }
+        // 📖 learning the list's words: the same cards as on the learning path, then its quiz
+        const listLearn = game => ({ list: true, game, step: { name: "", words: game.map(g => ({ en: g.word, he: g.correct, pic: "" })) }, i: 0 });
+        function learnFromInput() {
+            const words = readInput();
+            if (!words) return;
+            stepQuiz = null;
+            learn = listLearn(words);
+            openLearnScreen();
         }
 
         // In-app confirm dialog (the browser's confirm() shows the site's address)
@@ -2152,7 +2173,7 @@
             saveRows();
             drawWords();
             document.getElementById("start-error").innerText = "";
-            status.textContent = `נבחרו ${picked.length} מילים מרמה ${level}. לחצו "התחל משחק".`;
+            status.textContent = `נבחרו ${picked.length} מילים מרמה ${level}. לחצו "📖 לימוד" או "📝 בוחן".`;
         }
 
         document.getElementById("cat-level-select").innerHTML = document.getElementById("level-select").innerHTML;
@@ -2171,7 +2192,7 @@
             const box = document.getElementById("words-input");
             if (!files.length) return;
             const startBtn = document.getElementById("start-btn");
-            startBtn.disabled = true;
+            startBtn.disabled = true; document.getElementById("learn-list-btn").disabled = true;
             document.querySelectorAll(".tab-btn").forEach(b => b.disabled = true);   // stay on this tab until the photo is done
             let failed = 0;
             try {
@@ -2207,7 +2228,7 @@
             } catch (err) {
                 status.innerText = "שגיאה: " + err.message;
             } finally {
-                startBtn.disabled = false;
+                startBtn.disabled = false; document.getElementById("learn-list-btn").disabled = false;
                 document.querySelectorAll(".tab-btn").forEach(b => b.disabled = false);
             }
             e.target.value = "";
@@ -2342,7 +2363,13 @@
             const steps = learnSteps(words);
             if (!steps[index]) return;
             learn = { level, index, steps, step: steps[index], i: 0 };
+            openLearnScreen();
+        }
+        function openLearnScreen() {
             for (const id of ["start-screen", "learn-done-screen", "summary-screen", "game-screen"]) document.getElementById(id).style.display = "none";
+            const back = document.getElementById("learn-back");
+            back.textContent = learn.list ? "→ חזרה" : "→ מסלול";
+            back.setAttribute("aria-label", learn.list ? "חזרה" : "חזרה למסלול");
             document.getElementById("learn-screen").style.display = "flex";
             showCard();
         }
@@ -2357,7 +2384,7 @@
         function showCard() {
             const s = learn.step, w = learnWord(), card = document.getElementById("learn-card");
             card.classList.remove("pop"); void card.offsetWidth; card.classList.add("pop");   // a small pop for each new card
-            document.getElementById("learn-title").textContent = `${catEmoji(s.name)} ${stepLabel(s)}`;
+            document.getElementById("learn-title").textContent = learn.list ? "📖 המילים שלי" : `${catEmoji(s.name)} ${stepLabel(s)}`;
             document.getElementById("learn-count").textContent = `${learn.i + 1}/${s.words.length}`;
             document.getElementById("learn-emoji").textContent = w.pic;   // only the word's own picture (none: nothing; a category picture misled, e.g. 🍕 on "fork")
             document.getElementById("learn-word").textContent = w.en;
@@ -2379,7 +2406,8 @@
             document.getElementById("learn-screen").style.display = "none";
             document.getElementById("learn-done-screen").style.display = "block";
             document.getElementById("learn-done-title").textContent = praise("כל הכבוד");
-            document.getElementById("learn-done-text").textContent = `סיימתם ללמוד: ${catEmoji(steps[index].name)} ${stepLabel(steps[index])}`;
+            document.getElementById("learn-done-text").textContent = learn.list ? `סיימתם ללמוד את ${learn.step.words.length} המילים שלכם` : `סיימתם ללמוד: ${catEmoji(steps[index].name)} ${stepLabel(steps[index])}`;
+            document.getElementById("learn-done-back").textContent = learn.list ? "→ חזרה" : "🗺️ חזרה למסלול";
             saveSession("learn-done");
         }
 
@@ -2400,6 +2428,7 @@
         }
 
         function startStepQuiz() {
+            if (learn.list) { stepQuiz = null; document.getElementById("learn-done-screen").style.display = "none"; return beginGame(learn.game); }
             const { level, index, steps } = learn, step = steps[index];
             const meaning = w => chosen[w.en.toLowerCase()] || w.he;
             const catWords = steps.filter(s => s.name === step.name).flatMap(s => s.words);   // all parts of the category
@@ -3817,7 +3846,7 @@
                 });
                 // the summary is saved as it is shown: showing it again would add its points to the total a second time
                 if (screen === "summary") s.html = document.getElementById("summary-screen").innerHTML;
-            } else if ((screen === "learn" || screen === "learn-done") && learn) s.learn = { level: learn.level, index: learn.index, i: learn.i };
+            } else if ((screen === "learn" || screen === "learn-done") && learn) s.learn = learn.list ? { list: true, i: learn.i } : { level: learn.level, index: learn.index, i: learn.i };
             try { localStorage.setItem("englishquiz-session", JSON.stringify(s)); } catch (e) {}
         }
 
@@ -3834,6 +3863,14 @@
                 const steps = lv ? learnSteps(await loadLevel(lv)) : null;   // the learning path's steps (needs the word bank)
                 if (getComputedStyle(document.getElementById("start-screen")).display === "none") return;   // the user already moved on
                 const hide = () => document.getElementById("start-screen").style.display = "none";
+                if ((s.screen === "learn" || s.screen === "learn-done") && s.learn && s.learn.list) {   // the list's words, read again
+                    const res = parseWords(document.getElementById("words-input").value);
+                    if (res.error) return;
+                    learn = listLearn(res.words);
+                    learn.i = Math.max(0, Math.min(learn.step.words.length - 1, s.learn.i || 0));
+                    if (s.screen === "learn") openLearnScreen(); else { hide(); finishLearning(); }
+                    return;
+                }
                 if (s.screen === "learn" || s.screen === "learn-done") {
                     const step = steps && steps[s.learn.index];
                     if (!step) return;
