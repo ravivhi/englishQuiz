@@ -1229,7 +1229,7 @@
 
         function showGrandTotal() {
             const el = document.getElementById("grand-total");
-            if (el) el.innerText = grandTotal ? `⭐ סה״כ נקודות: ${grandTotal}` : "";
+            if (el) { el.innerText = grandTotal ? `⭐ ${grandTotal}` : ""; el.title = "נקודות"; }   // just the star and the number
             // ✅ how many topics are green, in all the levels (before the progress is read at startup: nothing yet)
             let n = 0; try { n = topicsDone(); } catch (e) {}
             const tp = document.getElementById("menu-topics");
