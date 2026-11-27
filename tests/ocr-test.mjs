@@ -1979,36 +1979,42 @@ async function testName() {
   await page.close();
 }
 
-// 🏆 The top 10 players: a trophy button under the cart opens the list (the cloud is a stand-in: tests never reach Firebase)
+// 🏆 The top 10 players: a trophy button under the cart opens their page (the cloud is a stand-in: tests never reach Firebase)
 async function testTop() {
-  console.log('\n[top] the 🏆 button shows the 10 players with the most points');
+  console.log('\n[top] the 🏆 button opens a page with the 10 players with the most points');
   const page = await openPage();
+  const shown = id => page.$eval('#' + id, e => getComputedStyle(e).display !== 'none');
   const r = await page.$eval('#top-btn', b => b.getBoundingClientRect().toJSON());
   const cart = await page.$eval('#shop-btn', b => b.getBoundingClientRect().toJSON());
   check(r.width > 0 && r.top >= cart.bottom - 1 && Math.abs(r.left - cart.left) < 2, 'the main screen has a 🏆 button right under the cart');
   // no cloud (no network): it says so
   await page.click('#top-btn');
-  await page.waitForFunction(() => document.querySelector('#top-dialog [data-top]')?.textContent.includes('אין חיבור'), { timeout: 3000 });
+  check((await shown('top-screen')) && !(await shown('start-screen')) && !(await page.$('[data-dialog]')), 'it opens a page of its own (not a pop-up), instead of the main screen');
+  await page.waitForFunction(() => document.getElementById('top-msg')?.textContent.includes('אין חיבור'), { timeout: 3000 });
   check(true, 'without a network it says there is no connection');
-  await page.click('#top-dialog [data-close]');
-  check(!(await page.$('#top-dialog')), 'the close button closes it');
+  await page.click('#top-back');
+  check((await shown('start-screen')) && !(await shown('top-screen')), 'the back button on the page goes back to the main screen');
   // with the cloud: 10 players, medals for the first 3, this player marked
   await page.evaluate(() => {
     setPlayerName('נועה');
     window.cloud = { sync() {}, claim: async () => 'ok', top: async () => Array.from({ length: 10 }, (_, i) => ({ name: i === 3 ? 'נועה' : `שחקן${i + 1}`, points: 1000 - i * 50 })) };
   });
   await page.click('#top-btn');
-  await page.waitForSelector('#top-dialog .top-list', { timeout: 3000 });
-  const rows = await page.$$eval('#top-dialog .top-list li', ls => ls.map(l => ({ text: l.textContent, me: l.classList.contains('me') })));
+  await page.waitForSelector('#top-screen .top-list', { timeout: 3000 });
+  const rows = await page.$$eval('#top-screen .top-list li', ls => ls.map(l => ({ text: l.textContent, me: l.classList.contains('me') })));
   check(rows.length === 10, `it lists 10 players (${rows.length})`);
   check(rows[0].text.includes('🥇') && rows[0].text.includes('שחקן1') && rows[0].text.includes('1000') && rows[2].text.includes('🥉') && rows[9].text.includes('10.'), 'in order: 🥇🥈🥉, then numbers, with the points');
   check(rows[3].me && rows.filter(x => x.me).length === 1, "this player's own line is marked");
+  // the page is kept when the app is opened again
+  await page.reload({ waitUntil: 'load' });
+  await page.waitForFunction(() => getComputedStyle(document.getElementById('top-screen')).display !== 'none', { timeout: 3000 });
+  check(!(await shown('start-screen')), 'closing and opening the app comes back to this page');
   await page.evaluate(() => history.back());
-  await page.waitForFunction(() => !document.getElementById('top-dialog'), { timeout: 3000 });
-  check(true, 'the phone back button closes it');
-  await page.evaluate(() => { window.cloud.top = async () => []; });
+  await page.waitForFunction(() => getComputedStyle(document.getElementById('start-screen')).display !== 'none', { timeout: 3000 });
+  check(!(await shown('top-screen')), 'the phone back button goes back to the main screen');
+  await page.evaluate(() => { window.cloud = { sync() {}, claim: async () => 'ok', top: async () => [] }; });
   await page.click('#top-btn');
-  await page.waitForFunction(() => document.querySelector('#top-dialog [data-top]')?.textContent.includes('עדיין אין'), { timeout: 3000 });
+  await page.waitForFunction(() => document.getElementById('top-msg')?.textContent.includes('עדיין אין'), { timeout: 3000 });
   check(true, 'an empty list says there are no players yet');
   check(page.pageErrors.length === 0, `no page errors${page.pageErrors.length ? ': ' + page.pageErrors.join('; ') : ''}`);
   await page.close();

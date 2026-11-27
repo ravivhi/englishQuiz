@@ -349,7 +349,7 @@
                    font-size: 1.5rem; line-height: 46px; cursor: pointer; background: linear-gradient(135deg, #faf089, #ecc94b);
                    box-shadow: 0 3px 0 rgba(0,0,0,0.18); }
         #top-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.18); }
-        .top-list { list-style: none; margin: 0 0 14px; padding: 0; text-align: right; }
+        .top-list { list-style: none; margin: 0; padding: 0; text-align: right; }
         .top-list li { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 10px; font-size: 1.05rem; }
         .top-list li:nth-child(odd) { background: #f7fafc; }
         .top-list li.me { background: #faf089; font-weight: bold; }
@@ -454,7 +454,10 @@
         #game-avatar:empty { display: none; }
         #game-avatar.hop { animation: avatarHop 0.45s ease-out; }
         @keyframes avatarHop { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-10px) scale(1.15); } }
-        #shop-screen { flex-direction: column; flex: 1 1 auto; min-height: 0; }
+        #shop-screen, #top-screen { flex-direction: column; flex: 1 1 auto; min-height: 0; }
+        #top-title { flex: 1; font-weight: bold; color: #4a5568; font-size: 1.15rem; }
+        #top-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+        #top-msg { text-align: center; color: #718096; margin: 24px 0; }
         #shop-title { flex: 1; font-weight: bold; color: #4a5568; font-size: 1.15rem; }
         #shop-balance { font-weight: bold; color: #2b6cb0; white-space: nowrap; }
         #shop-earned { font-weight: bold; color: #276749; background: #f0fff4; border: 2px solid #9ae6b4; border-radius: 14px; padding: 6px 10px; margin: 0 0 6px; font-size: 0.95rem; }
@@ -589,7 +592,7 @@
         .words-box { border-color: #bee3f8 !important; border-radius: 14px !important; }
         #level-select, #cat-level-select { border: 2px solid #d6bcfa !important; border-radius: 12px !important; color: #553c9a !important; }
         /* every screen pops in */
-        #start-screen, #game-screen, #summary-screen, #shop-screen, #learn-screen, #learn-done-screen { animation: screenIn 0.35s ease-out; }
+        #start-screen, #game-screen, #summary-screen, #shop-screen, #top-screen, #learn-screen, #learn-done-screen { animation: screenIn 0.35s ease-out; }
         @keyframes screenIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         /* clouds, stars and balloons drift slowly behind the card (not on picture backgrounds, they have their own) */
         #kid-sky { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
@@ -741,6 +744,14 @@
                 <button type="button" id="wand-btn" onclick="useWand()" aria-label="שרביט קסמים: מראה את התשובה הנכונה" title="שרביט קסמים: מראה את התשובה הנכונה" disabled>🪄<span id="wand-count"></span></button>
             </div>
             <div class="answers-grid" id="answers-container"></div>
+        </div>
+
+        <div id="top-screen" style="display:none;">
+            <div class="learn-head">
+                <button type="button" id="top-back" class="action-btn" onclick="showStart()" aria-label="חזרה" style="padding:5px 10px;font-size:0.9rem;">→ חזרה</button>
+                <div id="top-title">🏆 10 השחקנים המובילים</div>
+            </div>
+            <div id="top-body"><p id="top-msg"></p></div>
         </div>
 
         <div id="shop-screen" style="display:none;">
@@ -1308,24 +1319,19 @@
             showPlayerName();
             window.cloud && cloud.sync();
         }
-        // 🏆 The 10 players with the most points (from the cloud); this player's line is marked
+        // 🏆 The 10 players with the most points (from the cloud), on a page of its own; this player's line is marked
         async function showTop() {
-            document.getElementById("top-dialog")?.remove();
-            const bg = document.createElement("div");
-            bg.id = "top-dialog"; bg.dataset.dialog = "1";
-            bg.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px;box-sizing:border-box;";
-            bg.innerHTML = `<div dir="rtl" style="background:#fff;border-radius:16px;padding:18px;width:100%;max-width:340px;max-height:90vh;overflow:auto;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,0.3);">
-                <div style="font-size:1.25rem;font-weight:bold;margin-bottom:12px;">🏆 10 השחקנים המובילים</div>
-                <div data-top style="margin-bottom:14px;color:#718096;">⏳ טוען...</div>
-                <button type="button" data-close style="width:100%;padding:10px;font-size:1rem;font-weight:bold;border:none;border-radius:10px;background:#805ad5;color:#fff;cursor:pointer;">סגירה</button></div>`;
-            bg.querySelector("[data-close]").onclick = () => bg.remove();
-            bg.onclick = e => { if (e.target === bg) bg.remove(); };
-            document.body.appendChild(bg);
-            const box = bg.querySelector("[data-top]");
+            document.getElementById("start-screen").style.display = "none";
+            document.getElementById("top-screen").style.display = "flex";
+            saveSession("top");
+            const body = document.getElementById("top-body");
+            body.innerHTML = '<p id="top-msg">⏳ טוען...</p>';
             let list = null;
             try { list = window.cloud ? await cloud.top() : null; } catch (e) {}
-            if (!list) { box.textContent = "אין חיבור לאינטרנט, נסו שוב אחר כך"; return; }
-            if (!list.length) { box.textContent = "עדיין אין שחקנים ברשימה"; return; }
+            if (!shownEl("top-screen")) return;   // already left the page
+            const msg = document.getElementById("top-msg");
+            if (!list) { msg.textContent = "אין חיבור לאינטרנט, נסו שוב אחר כך"; return; }
+            if (!list.length) { msg.textContent = "עדיין אין שחקנים ברשימה"; return; }
             const ol = document.createElement("ol");
             ol.className = "top-list";
             const medal = ["🥇", "🥈", "🥉"];
@@ -1339,7 +1345,7 @@
                 li.append(r, n, pts);
                 ol.append(li);
             });
-            box.replaceWith(ol);
+            body.replaceChildren(ol);
         }
 
         // taken: the saved name belongs to another player (names are unique across all players)
@@ -1560,7 +1566,7 @@
             stepQuiz = null;
             if (themePreview) { themePreview = null; applyShop(); }   // out of the shop: back to the background that was bought
             showDaily();   // (a day may have passed while the app was open)
-            for (const id of ["summary-screen", "game-screen", "learn-screen", "learn-done-screen", "shop-screen"]) document.getElementById(id).style.display = "none";
+            for (const id of ["summary-screen", "game-screen", "learn-screen", "learn-done-screen", "shop-screen", "top-screen"]) document.getElementById(id).style.display = "none";
             document.getElementById("start-screen").style.display = "flex";
             if (mode === "category") renderPath();
             saveSession("start");
@@ -3797,6 +3803,7 @@
             if (!s || !s.screen || s.screen === "start") return;
             try {
                 if (s.screen === "shop") return openShop();
+                if (s.screen === "top") return showTop();
                 const lv = (s.step || s.learn || {}).level;
                 const steps = lv ? learnSteps(await loadLevel(lv)) : null;   // the learning path's steps (needs the word bank)
                 if (getComputedStyle(document.getElementById("start-screen")).display === "none") return;   // the user already moved on
@@ -3870,7 +3877,7 @@
         // any screen change or pop-up updates the trap
         const trapWatch = new MutationObserver(updateBackTrap);
         trapWatch.observe(document.body, { childList: true });
-        for (const id of ["start-screen", "game-screen", "summary-screen", "learn-screen", "learn-done-screen", "shop-screen"])
+        for (const id of ["start-screen", "game-screen", "summary-screen", "learn-screen", "learn-done-screen", "shop-screen", "top-screen"])
             trapWatch.observe(document.getElementById(id), { attributes: true, attributeFilter: ["style"] });
         // 🐾 no wandering character during a quiz or a learning card (body.busy hides it)
         const markBusy = () => document.body.classList.toggle("busy", shownEl("game-screen") || shownEl("learn-screen"));
