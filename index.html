@@ -650,7 +650,7 @@
     <div id="avatar-sky" aria-hidden="true"></div>
     <div class="game-container">
         <div id="start-screen">
-            <button type="button" id="shop-btn" onclick="openShop()" aria-label="חנות" title="חנות">🏪</button>
+            <button type="button" id="shop-btn" onclick="openShop()" aria-label="חנות" title="חנות">🛒</button>
             <button type="button" id="menu-avatar" onclick="avatarTap()" aria-label="הדמות שלי – לחצו עליה" title="לחצו על הדמות!"></button>
             <div id="avatar-bubble" role="status" onclick="avatarBubbleTap()"></div>
             <div class="result-title" id="app-title" style="margin-bottom:4px;" aria-label="בוחן באנגלית"><span style="color:#e53e3e">ב</span><span style="color:#dd6b20">ו</span><span style="color:#d69e2e">ח</span><span style="color:#38a169">ן</span> <span style="color:#3182ce">ב</span><span style="color:#805ad5">א</span><span style="color:#e53e3e">נ</span><span style="color:#dd6b20">ג</span><span style="color:#d69e2e">ל</span><span style="color:#38a169">י</span><span style="color:#3182ce">ת</span></div>
@@ -2320,7 +2320,14 @@
         }
 
         // A short happy jingle (made in the browser, no sound file, works offline): four rising notes, then a sparkle.
-        let audioCtx = null;
+        // 🔊 Every sound effect goes through one master volume (sfxOut), so the effects stay softer than the speech and
+        // follow the phone / computer volume together; SFX_VOLUME sets how loud they all are.
+        let audioCtx = null, sfxMaster = null;
+        const SFX_VOLUME = 0.6;
+        function sfxOut() {
+            if (!sfxMaster) { sfxMaster = audioCtx.createGain(); sfxMaster.gain.value = SFX_VOLUME; sfxMaster.connect(audioCtx.destination); }
+            return sfxMaster;
+        }
         function playUnlockSound() {
             try {
                 audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
@@ -2333,7 +2340,7 @@
                     g.gain.setValueAtTime(0.0001, start);
                     g.gain.exponentialRampToValueAtTime(vol, start + 0.02);
                     g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
-                    o.connect(g).connect(audioCtx.destination);
+                    o.connect(g).connect(sfxOut());
                     o.start(start);
                     o.stop(start + dur + 0.05);
                 };
@@ -2448,18 +2455,18 @@
                 const len = Math.floor(audioCtx.sampleRate * 0.05), buf = audioCtx.createBuffer(1, len, audioCtx.sampleRate), d = buf.getChannelData(0);
                 for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
                 const noise = audioCtx.createBufferSource(), hp = audioCtx.createBiquadFilter(), ng = audioCtx.createGain();
-                noise.buffer = buf; hp.type = "highpass"; hp.frequency.value = 3000; ng.gain.value = 0.35;
-                noise.connect(hp).connect(ng).connect(audioCtx.destination);
+                noise.buffer = buf; hp.type = "highpass"; hp.frequency.value = 3000; ng.gain.value = 0.12;
+                noise.connect(hp).connect(ng).connect(sfxOut());
                 noise.start(t);
                 // "ching": a bell (a high note with metallic overtones), struck twice quickly
-                const bell = (at, base) => [[1, 0.22], [2.76, 0.08], [5.4, 0.04]].forEach(([m, vol]) => {
+                const bell = (at, base) => [[1, 0.14], [2.76, 0.04], [5.4, 0.015]].forEach(([m, vol]) => {
                     const o = audioCtx.createOscillator(), g = audioCtx.createGain();
                     o.type = "sine";
                     o.frequency.value = base * m;
                     g.gain.setValueAtTime(0.0001, t + at);
                     g.gain.exponentialRampToValueAtTime(vol, t + at + 0.005);
                     g.gain.exponentialRampToValueAtTime(0.0001, t + at + 0.32);
-                    o.connect(g).connect(audioCtx.destination);
+                    o.connect(g).connect(sfxOut());
                     o.start(t + at); o.stop(t + at + 0.34);
                 });
                 bell(0.05, 1568); bell(0.12, 2093);   // G6, then C7
