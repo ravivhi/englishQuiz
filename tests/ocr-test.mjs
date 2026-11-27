@@ -2240,7 +2240,36 @@ async function testGames() {
   await page.close();
 }
 
-const TESTS = { fire: testFire, wordbank: testWordbank, random: testRandom, layout: testLayout, back: testBack, tabs: testTabs, streak: testStreak, pairs: () => eachFixture('pairs', testPairs), list: () => eachFixture('list', testList), translation: testTranslationRetry, practice: testPractice, chooser: testChooser, header: testHeader, persist: testPersist, learn: testLearn, shop: testShop, box: testBox, phoneback: testPhoneBack, avatar: testAvatar, celebrate: testCelebrate, boxextra: testBoxExtra, keep: testKeep, wand: testWand, pictures: testPictures, name: testName, top: testTop, listlearn: testListLearn, games: testGames };
+// level 1 keeps only the colors; the shapes are the last topic of level 2. Old green marks of level 1 move with their topics.
+async function testShapes() {
+  console.log('\n[shapes] colors in level 1, shapes at the end of level 2; old progress moves');
+  const page = await openPage();
+  const info = await page.evaluate(async () => {
+    const s1 = learnSteps(await loadLevel(1)), s2 = learnSteps(await loadLevel(2));
+    return { l1: s1.map(s => s.name), colors: s1[3], last2: s2[s2.length - 1] };
+  });
+  check(info.colors.name === 'צבעים' && info.colors.parts === 1 && info.colors.words.length === 14 && info.colors.words.every(w => !['circle', 'square', 'triangle', 'star', 'heart', 'line'].includes(w.en)), `level 1 step 4 is only the colors (${info.colors.words.length} words)`);
+  check(!info.l1.some(n => n.includes('צורות')), 'level 1 has no shapes topic');
+  check(info.last2.name === 'צורות' && info.last2.words.map(w => w.en).join() === 'circle,square,triangle,star,heart,line', 'the shapes are the last topic of level 2');
+  // an old save: level 1 parts 0,1,2 green, colors+shapes part 2 (index 4) green, 5 and 7 green; a level-1 quiz open at index 5
+  await page.evaluate(() => {
+    localStorage.removeItem('englishquiz-shapes-moved');
+    localStorage.setItem('englishquiz-learn-progress', JSON.stringify({ 1: [0, 1, 2, 4, 5, 7], 2: [0, 3] }));
+    localStorage.setItem('englishquiz-session', JSON.stringify({ screen: 'learn', learn: { level: 1, index: 5, i: 2 } }));
+  });
+  await page.reload({ waitUntil: 'load' });
+  await new Promise(r => setTimeout(r, 800));
+  const after = await page.evaluate(() => ({ p: learnProgress, flag: localStorage.getItem('englishquiz-shapes-moved'), learnShown: getComputedStyle(document.getElementById('learn-screen')).display !== 'none' }));
+  check(JSON.stringify(after.p[1]) === '[0,1,2,3,4,6]' && JSON.stringify(after.p[2]) === '[0,3]', `level 1 green marks move with their topics (${JSON.stringify(after.p)})`);
+  check(after.flag === '1' && !after.learnShown, 'a level-1 topic open past the colors starts again from the main screen');
+  // it happens once: a later reload keeps the marks
+  await page.reload({ waitUntil: 'load' });
+  check(JSON.stringify(await page.evaluate(() => learnProgress[1])) === '[0,1,2,3,4,6]', 'the move happens only once');
+  check(page.pageErrors.length === 0, `no page errors${page.pageErrors.length ? ': ' + page.pageErrors.join('; ') : ''}`);
+  await page.close();
+}
+
+const TESTS = { fire: testFire, wordbank: testWordbank, random: testRandom, layout: testLayout, back: testBack, tabs: testTabs, streak: testStreak, pairs: () => eachFixture('pairs', testPairs), list: () => eachFixture('list', testList), translation: testTranslationRetry, practice: testPractice, chooser: testChooser, header: testHeader, persist: testPersist, learn: testLearn, shop: testShop, box: testBox, phoneback: testPhoneBack, avatar: testAvatar, celebrate: testCelebrate, boxextra: testBoxExtra, keep: testKeep, wand: testWand, pictures: testPictures, name: testName, top: testTop, listlearn: testListLearn, games: testGames, shapes: testShapes };
 try {
   let ran = 0;
   for (const [name, run] of Object.entries(TESTS)) {

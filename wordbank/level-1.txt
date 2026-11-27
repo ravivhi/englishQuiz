@@ -14,34 +14,28 @@ good night|לילה טוב|🌙
 name|שם
 okay|בסדר|👌
 # מספרים
-one|אחד|1️⃣
-two|שניים|2️⃣
-three|שלושה|3️⃣
-four|ארבעה|4️⃣
-five|חמישה|5️⃣
-six|שישה|6️⃣
-seven|שבעה|7️⃣
+one|אחת|1️⃣
+two|שתיים|2️⃣
+three|שלוש|3️⃣
+four|ארבע|4️⃣
+five|חמש|5️⃣
+six|שש|6️⃣
+seven|שבע|7️⃣
 eight|שמונה|8️⃣
-nine|תשעה|9️⃣
-ten|עשרה|🔟
-eleven|אחד עשר
-twelve|שנים עשר
-thirteen|שלושה עשר
-fourteen|ארבעה עשר
-fifteen|חמישה עשר
-sixteen|שישה עשר
-seventeen|שבעה עשר
-eighteen|שמונה עשר
-nineteen|תשעה עשר
+nine|תשע|9️⃣
+ten|עשר|🔟
+eleven|אחת עשרה
+twelve|שתים עשרה
+thirteen|שלוש עשרה
+fourteen|ארבע עשרה
+fifteen|חמש עשרה
+sixteen|שש עשרה
+seventeen|שבע עשרה
+eighteen|שמונה עשרה
+nineteen|תשע עשרה
 twenty|עשרים
 zero|אפס|0️⃣
-# צבעים וצורות
-circle|עיגול|⭕
-square|ריבוע|🔲
-triangle|משולש|🔺
-star|כוכב|⭐
-heart|לב|❤️
-line|קו
+# צבעים
 red|אדום|🟥
 blue|כחול|🟦
 green|ירוק|🟩

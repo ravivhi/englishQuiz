@@ -2563,6 +2563,22 @@
         const PART_MAX = 15;
         let learnProgress = {};
         try { learnProgress = JSON.parse(localStorage.getItem(LEARN_KEY)) || {}; } catch (e) {}
+        // once: level 1 "colors and shapes" (2 parts: steps 3, 4) became "colors" (1 step: 3); the shapes moved to the end
+        // of level 2. Level 1's green marks move with their topics: colors is green if one of its old parts was,
+        // the later topics move back by one. A level-1 topic left open in the middle starts again from the main screen.
+        try {
+            if (!localStorage.getItem("englishquiz-shapes-moved")) {
+                const v = learnProgress[1];
+                if (v !== undefined) {
+                    const old = Array.isArray(v) ? v : Array.from({ length: Math.max(0, +v || 0) }, (_, i) => i);
+                    learnProgress[1] = [...new Set(old.map(i => i <= 3 ? i : i - 1))].sort((a, b) => a - b);
+                    localStorage.setItem(LEARN_KEY, JSON.stringify(learnProgress));
+                }
+                const s = JSON.parse(localStorage.getItem("englishquiz-session") || "null"), at = s && (s.step || s.learn);
+                if (at && +at.level === 1 && at.index >= 3) localStorage.removeItem("englishquiz-session");
+                localStorage.setItem("englishquiz-shapes-moved", "1");
+            }
+        } catch (e) {}
         // older versions saved how many parts were passed in order (a number): those are the first N parts
         function passedSet(level) {
             const v = learnProgress[level];

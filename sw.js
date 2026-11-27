@@ -1,4 +1,4 @@
-const CACHE = 'englishquiz-v157';
+const CACHE = 'englishquiz-v158';
 
 self.addEventListener('install', e => { self.skipWaiting(); });
 // drop the caches of older versions, so an old copy of a file can never be served again

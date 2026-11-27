@@ -538,3 +538,10 @@ cousin|בן דוד
 twin|תאום
 neighbor|שכן
 guest|אורח
+# צורות
+circle|עיגול|⭕
+square|ריבוע|🔲
+triangle|משולש|🔺
+star|כוכב|⭐
+heart|לב|❤️
+line|קו
