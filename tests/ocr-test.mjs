@@ -2008,6 +2008,22 @@ async function testTop() {
   check(await page.$eval('#menu-topics', e => e.textContent) === '', 'no green topics yet: the main screen shows no ✅ count');
   check(await page.evaluate(() => { const keep = learnProgress; learnProgress = { 1: [0, 2, 5], 3: 4 }; const n = topicsDone(); learnProgress = keep; return n; }) === 7, 'the count of finished topics adds up all the levels (old saves too)');
   check(rows[3].me && rows.filter(x => x.me).length === 1, "this player's own line is marked");
+  check(await page.$eval('#top-tab-earned', b => b.getAttribute('aria-selected')) === 'true' && await page.$eval('#top-tab-topics', b => b.getAttribute('aria-selected')) === 'false', 'it opens on the points tab');
+  check(await page.$eval('#top-screen .top-list li .t-pts', e => e.classList.contains('t-by')), 'on the points tab the points are the big number');
+  // the categories tab: asks the cloud for the list by finished topics
+  await page.evaluate(() => {
+    window.cloud.top = async by => by === 'topics' ? [{ name: 'דני', points: 40, topics: 30 }, { name: 'נועה', points: 900, topics: 12 }] : [];
+  });
+  await page.click('#top-tab-topics');
+  await page.waitForFunction(() => document.querySelectorAll('#top-screen .top-list li').length === 2, { timeout: 3000 });
+  const trows = await page.$$eval('#top-screen .top-list li', ls => ls.map(l => ({ text: l.textContent, me: l.classList.contains('me'), big: l.querySelector('.t-by').textContent })));
+  check(await page.$eval('#top-tab-topics', b => b.getAttribute('aria-selected')) === 'true' && trows[0].text.includes('דני') && trows[0].big === '✅ 30' && trows[1].me, 'the categories tab lists the players by finished topics (the ✅ number is the big one)');
+  await page.evaluate(() => {
+    window.cloud.top = async () => Array.from({ length: 10 }, (_, i) => ({ name: i === 3 ? 'נועה' : `שחקן${i + 1}`, points: 1000 - i * 50, topics: 20 - i }));
+  });
+  await page.click('#top-tab-earned');
+  await page.waitForFunction(() => document.querySelectorAll('#top-screen .top-list li').length === 10, { timeout: 3000 });
+  check(true, 'back on the points tab, the points list again');
   // the page is kept when the app is opened again
   await page.reload({ waitUntil: 'load' });
   await page.waitForFunction(() => getComputedStyle(document.getElementById('top-screen')).display !== 'none', { timeout: 3000 });

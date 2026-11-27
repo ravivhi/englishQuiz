@@ -357,6 +357,13 @@
         .top-list .t-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .top-list .t-pts { flex-shrink: 0; color: #b7791f; font-weight: bold; direction: ltr; }
         .top-list .t-topics { flex-shrink: 0; color: #2f855a; font-weight: bold; font-size: 0.9rem; direction: ltr; }
+        .top-list .t-by { font-size: 1.1rem; }
+        .top-list .t-other { opacity: 0.55; font-size: 0.85rem; }
+        .top-tabs { display: flex; gap: 6px; margin: 0 0 10px; }
+        .top-tab { flex: 1; padding: 9px 6px; font-size: 0.95rem; font-weight: bold; font-family: inherit; border: 2px solid #cbd5e0; border-radius: 12px;
+                   background: #edf2f7; color: #4a5568; cursor: pointer; touch-action: manipulation; }
+        .top-tab[aria-selected="true"] { background: #d69e2e; border-color: #d69e2e; color: #fff; }
+        .top-tab#top-tab-topics[aria-selected="true"] { background: #38a169; border-color: #38a169; }
         /* 🎁 mystery boxes: earned after the last emoji, opened in the shop */
         .box-area { display: flex; align-items: center; gap: 10px; padding: 10px; margin-bottom: 8px; border-radius: 16px;
                     background: linear-gradient(135deg, #fefcbf, #fbd38d); box-shadow: 0 3px 0 rgba(0,0,0,0.08); }
@@ -753,7 +760,10 @@
                 <button type="button" id="top-back" class="action-btn" onclick="showStart()" aria-label="חזרה" style="padding:5px 10px;font-size:0.9rem;">→ חזרה</button>
                 <div id="top-title">🏆 10 השחקנים המובילים</div>
             </div>
-            <div id="top-legend" style="text-align:center;color:#718096;font-size:0.85rem;margin:-2px 0 8px;">⭐ כל הנקודות שנצברו · ✅ נושאים שהושלמו</div>
+            <div class="top-tabs" role="tablist">
+                <button type="button" role="tab" id="top-tab-earned" class="top-tab" aria-selected="true" onclick="showTop('earned')">⭐ נקודות</button>
+                <button type="button" role="tab" id="top-tab-topics" class="top-tab" aria-selected="false" onclick="showTop('topics')">✅ נושאים שהושלמו</button>
+            </div>
             <div id="top-body"><p id="top-msg"></p></div>
         </div>
 
@@ -1326,16 +1336,19 @@
             showPlayerName();
             window.cloud && cloud.sync();
         }
-        // 🏆 The 10 players with the most points (from the cloud), on a page of its own; this player's line is marked
-        async function showTop() {
+        // 🏆 The top 10 players (from the cloud), on a page of its own with two tabs: by all the points ever earned
+        // (the default) or by how many topics they finished; this player's line is marked
+        let topToken = 0;
+        async function showTop(by = "earned") {
             document.getElementById("start-screen").style.display = "none";
             document.getElementById("top-screen").style.display = "flex";
             saveSession("top");
-            const body = document.getElementById("top-body");
+            for (const k of ["earned", "topics"]) document.getElementById("top-tab-" + k).setAttribute("aria-selected", String(k === by));
+            const body = document.getElementById("top-body"), token = ++topToken;
             body.innerHTML = '<p id="top-msg">⏳ טוען...</p>';
             let list = null;
-            try { list = window.cloud ? await cloud.top() : null; } catch (e) {}
-            if (!shownEl("top-screen")) return;   // already left the page
+            try { list = window.cloud ? await cloud.top(by) : null; } catch (e) {}
+            if (token !== topToken || !shownEl("top-screen")) return;   // another tab was chosen meanwhile, or the page was left
             const msg = document.getElementById("top-msg");
             if (!list) { msg.textContent = "אין חיבור לאינטרנט, נסו שוב אחר כך"; return; }
             if (!list.length) { msg.textContent = "עדיין אין שחקנים ברשימה"; return; }
@@ -1350,7 +1363,10 @@
                 n.className = "t-name"; n.textContent = p.name;
                 pts.className = "t-pts"; pts.textContent = `⭐ ${p.points}`;
                 tp.className = "t-topics"; tp.textContent = `✅ ${p.topics}`; tp.title = "נושאים שהושלמו";
-                li.append(r, n, tp, pts);
+                // the number the list is sorted by is big; the other one small, beside it
+                (by === "topics" ? tp : pts).classList.add("t-by");
+                (by === "topics" ? pts : tp).classList.add("t-other");
+                li.append(r, n, by === "topics" ? pts : tp, by === "topics" ? tp : pts);
                 ol.append(li);
             });
             body.replaceChildren(ol);
@@ -3957,10 +3973,12 @@
                 try { await write(await user(), playerName); dropOld(playerName); } catch (e) {}
             }, 2000);
         }
-        // the 10 players who earned the most points ever in this app (spending in the shop doesn't lower it): [{ name, points, topics }]
-        async function top() {
+        // the top 10 players of this app: by = "earned" (all the points ever earned; spending in the shop doesn't
+        // lower it) or "topics" (how many topics are green): [{ name, points, topics }]
+        async function top(by = "earned") {
             await user();
-            const snap = await getDocs(query(collection(db, "players"), orderBy(`apps.${APP}.earned`, "desc"), limit(10)));
+            const field = by === "topics" ? "topics" : "earned";
+            const snap = await getDocs(query(collection(db, "players"), orderBy(`apps.${APP}.${field}`, "desc"), limit(10)));
             return snap.docs.map(d => ({ name: d.data().name, points: d.data().apps?.[APP]?.earned || 0, topics: d.data().apps?.[APP]?.topics || 0 }));
         }
         window.cloud = { claim, sync, top };
