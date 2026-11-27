@@ -1469,7 +1469,7 @@
             { id: "listen", pic: "👂", name: "שמיעה", desc: "שומעים מילה ובוחרים אותה", color: "#63b3ed, #3182ce",
               ok: w => /^[a-z][a-z' -]{1,14}$/i.test(w.en), min: 4, run: playListen },
             { id: "truefalse", pic: "⚡", name: "נכון או לא?", desc: `${TF_ROUNDS} מילים: הפירוש נכון?`, color: "#68d391, #38a169",
-              ok: w => w.he.length <= 22, min: 2, run: playTrueFalse },
+              ok: w => w.he.length <= 22, min: 2, good: TF_MAX, run: playTrueFalse },   // (its top: 3 ⭐ counts as a good game)
         ];
         const gBody = () => document.getElementById("games-body");
         const gameLevel = () => +document.getElementById("level-select").value || 1;
@@ -1498,7 +1498,7 @@
         function gamesBack() { if (curGame) gamesMenu(); else showStart(); }
 
         // how far to the next 🎁: a game with 4 ⭐ or more counts
-        const goodText = () => `🎁 ${goodLeft()}/${GOOD_GAMES} משחקים עם ${GOOD_MIN} ⭐ ומעלה – ובונוס של ${GOOD_BONUS} מטבעות`;
+        const goodText = () => `🎁 ${goodLeft()}/${GOOD_GAMES} משחקים עם ${GOOD_MIN} ⭐ ומעלה (נכון או לא: ${TF_MAX} ⭐) – ובונוס של ${GOOD_BONUS} מטבעות`;
         function gamesMenu() {
             stopGame();
             document.getElementById("games-title").textContent = "🎮 משחקים";
@@ -1555,7 +1555,7 @@
         function gameOver(token, g, points, text) {
             if (token !== gameToken) return;
             let bonus = 0;
-            if (points >= GOOD_MIN) {   // a good game: one more toward the 🎁 bonus
+            if (points >= (g.good || GOOD_MIN)) {   // a good game (4+ ⭐; true or false: 3 ⭐): one more toward the 🎁 bonus
                 goodGames++;
                 try { localStorage.setItem(GOOD_KEY, String(goodGames)); } catch (e) {}
                 if (goodGames % GOOD_GAMES === 0) bonus = GOOD_BONUS;

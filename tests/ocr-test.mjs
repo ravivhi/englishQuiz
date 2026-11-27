@@ -2197,7 +2197,7 @@ async function testGames() {
   // the range: a very good game 6 ⭐, a very bad one 1 ⭐, in between by how good
   check(await page.evaluate(() => [gameStars(1), gameStars(0), gameStars(0.5), gameStars(-1), gameStars(2), gameStars(1, TF_MAX), gameStars(0, TF_MAX), gameStars(0.5, TF_MAX)].join()) === '6,1,4,1,6,3,1,2', 'games give 6 ⭐ for a very good game, 1 ⭐ for a very bad one, the rest in between');
   // 🎁 every 10 games with 4 ⭐ or more: +10 bonus coins. So far: memory 6, spell 5, listen 5, true/false 6 = 4 good games
-  check((await page.evaluate(() => goodGames)) === 3 && (await page.$eval('.game-end .g-good', e => e.textContent)).includes('3/10'), 'games with 4 ⭐ or more count toward the bonus (3/10: true or false with 3 ⭐ does not)');
+  check((await page.evaluate(() => goodGames)) === 4 && (await page.$eval('.game-end .g-good', e => e.textContent)).includes('4/10'), 'games with 4 ⭐ or more count toward the bonus, true or false at its 3 ⭐ too (4/10)');
   await page.evaluate(() => { goodGames = 9; });
   [t0] = await money();
   await page.click('#game-menu');
