@@ -344,6 +344,18 @@
         #shop-btn[data-boxes]::after { content: attr(data-boxes); position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px;
                     padding: 0 4px; box-sizing: border-box; border-radius: 9px; background: #e53e3e; color: #fff; font-size: 0.7rem;
                     font-weight: bold; line-height: 18px; font-family: sans-serif; }
+        /* 🏆 the top 10 players: a round button under the shop button */
+        #top-btn { position: absolute; top: 46px; left: -8px; width: 46px; height: 46px; padding: 0; border: none; border-radius: 50%;
+                   font-size: 1.5rem; line-height: 46px; cursor: pointer; background: linear-gradient(135deg, #faf089, #ecc94b);
+                   box-shadow: 0 3px 0 rgba(0,0,0,0.18); }
+        #top-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.18); }
+        .top-list { list-style: none; margin: 0 0 14px; padding: 0; text-align: right; }
+        .top-list li { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 10px; font-size: 1.05rem; }
+        .top-list li:nth-child(odd) { background: #f7fafc; }
+        .top-list li.me { background: #faf089; font-weight: bold; }
+        .top-list .t-rank { width: 2rem; text-align: center; flex-shrink: 0; }
+        .top-list .t-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .top-list .t-pts { flex-shrink: 0; color: #b7791f; font-weight: bold; direction: ltr; }
         /* 🎁 mystery boxes: earned after the last emoji, opened in the shop */
         .box-area { display: flex; align-items: center; gap: 10px; padding: 10px; margin-bottom: 8px; border-radius: 16px;
                     background: linear-gradient(135deg, #fefcbf, #fbd38d); box-shadow: 0 3px 0 rgba(0,0,0,0.08); }
@@ -615,6 +627,7 @@
         /* Small screens. Keep these LAST: they must come after the base rules above to override them. */
         @media (max-width: 360px) {
             #shop-btn { width: 36px; height: 36px; line-height: 36px; font-size: 1.2rem; top: -10px; left: -10px; }
+            #top-btn { width: 36px; height: 36px; line-height: 36px; font-size: 1.15rem; top: 32px; left: -10px; }
             #menu-avatar { width: 36px; height: 36px; line-height: 30px; font-size: 1.2rem; top: -10px; right: -10px; }
             .game-container { padding: 14px; }
             /* narrow phones: slightly smaller buttons (all of them, so they keep one look) so the longer
@@ -651,6 +664,7 @@
     <div class="game-container">
         <div id="start-screen">
             <button type="button" id="shop-btn" onclick="openShop()" aria-label="חנות" title="חנות">🛒</button>
+            <button type="button" id="top-btn" onclick="showTop()" aria-label="10 השחקנים המובילים" title="10 השחקנים המובילים">🏆</button>
             <button type="button" id="menu-avatar" onclick="avatarTap()" aria-label="הדמות שלי – לחצו עליה" title="לחצו על הדמות!"></button>
             <div id="avatar-bubble" role="status" onclick="avatarBubbleTap()"></div>
             <div class="result-title" id="app-title" style="margin-bottom:4px;" aria-label="בוחן באנגלית"><span style="color:#e53e3e">ב</span><span style="color:#dd6b20">ו</span><span style="color:#d69e2e">ח</span><span style="color:#38a169">ן</span> <span style="color:#3182ce">ב</span><span style="color:#805ad5">א</span><span style="color:#e53e3e">נ</span><span style="color:#dd6b20">ג</span><span style="color:#d69e2e">ל</span><span style="color:#38a169">י</span><span style="color:#3182ce">ת</span></div>
@@ -1294,6 +1308,40 @@
             showPlayerName();
             window.cloud && cloud.sync();
         }
+        // 🏆 The 10 players with the most points (from the cloud); this player's line is marked
+        async function showTop() {
+            document.getElementById("top-dialog")?.remove();
+            const bg = document.createElement("div");
+            bg.id = "top-dialog"; bg.dataset.dialog = "1";
+            bg.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px;box-sizing:border-box;";
+            bg.innerHTML = `<div dir="rtl" style="background:#fff;border-radius:16px;padding:18px;width:100%;max-width:340px;max-height:90vh;overflow:auto;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,0.3);">
+                <div style="font-size:1.25rem;font-weight:bold;margin-bottom:12px;">🏆 10 השחקנים המובילים</div>
+                <div data-top style="margin-bottom:14px;color:#718096;">⏳ טוען...</div>
+                <button type="button" data-close style="width:100%;padding:10px;font-size:1rem;font-weight:bold;border:none;border-radius:10px;background:#805ad5;color:#fff;cursor:pointer;">סגירה</button></div>`;
+            bg.querySelector("[data-close]").onclick = () => bg.remove();
+            bg.onclick = e => { if (e.target === bg) bg.remove(); };
+            document.body.appendChild(bg);
+            const box = bg.querySelector("[data-top]");
+            let list = null;
+            try { list = window.cloud ? await cloud.top() : null; } catch (e) {}
+            if (!list) { box.textContent = "אין חיבור לאינטרנט, נסו שוב אחר כך"; return; }
+            if (!list.length) { box.textContent = "עדיין אין שחקנים ברשימה"; return; }
+            const ol = document.createElement("ol");
+            ol.className = "top-list";
+            const medal = ["🥇", "🥈", "🥉"];
+            list.forEach((p, i) => {
+                const li = document.createElement("li");
+                if (playerName && p.name.toLowerCase() === playerName.toLowerCase()) li.className = "me";
+                const r = document.createElement("span"), n = document.createElement("span"), pts = document.createElement("span");
+                r.className = "t-rank"; r.textContent = medal[i] || `${i + 1}.`;
+                n.className = "t-name"; n.textContent = p.name;
+                pts.className = "t-pts"; pts.textContent = `⭐ ${p.points}`;
+                li.append(r, n, pts);
+                ol.append(li);
+            });
+            box.replaceWith(ol);
+        }
+
         // taken: the saved name belongs to another player (names are unique across all players)
         function askName(taken) {
             document.getElementById("name-dialog")?.remove();
@@ -3838,7 +3886,7 @@
         // its own points under apps.<app name>. Without a network the game works as before.
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, deleteDoc, serverTimestamp, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
         const APP = "englishQuiz";
         const app = initializeApp({
             apiKey: "AIzaSyCGMszu_Wg7ttVZNehGT5wTyVnKQFRQopo",
@@ -3882,7 +3930,13 @@
                 try { await write(await user(), playerName); } catch (e) {}
             }, 2000);
         }
-        window.cloud = { claim, sync };
+        // the 10 players with the most points in this app: [{ name, points }]
+        async function top() {
+            await user();
+            const snap = await getDocs(query(collection(db, "players"), orderBy(`apps.${APP}.points`, "desc"), limit(10)));
+            return snap.docs.map(d => ({ name: d.data().name, points: d.data().apps?.[APP]?.points || 0 }));
+        }
+        window.cloud = { claim, sync, top };
         sync();   // on start: take the name typed before this version, and send the points
     </script>
 </body>

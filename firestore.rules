@@ -4,7 +4,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // One document per player, shared by all the apps: its id is the name (lower-cased), so names are unique.
     // apps.<app name> holds each app's points. Only the device that took the name (its anonymous sign-in)
-    // can read, change or remove it.
+    // can read one by its id, change or remove it. Anyone signed in may list up to 10 (the 🏆 top 10).
     match /players/{nameKey} {
       function ok() {
         return request.auth != null
@@ -16,7 +16,8 @@ service cloud.firestore {
       }
       allow create: if ok();
       allow update: if ok() && resource.data.uid == request.auth.uid;
-      allow read, delete: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow get, delete: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow list: if request.auth != null && request.query.limit <= 10;
     }
   }
 }
