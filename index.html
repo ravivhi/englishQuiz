@@ -3905,7 +3905,12 @@
         });
         const auth = getAuth(app), db = getFirestore(app);
         const CLAIMED_KEY = "englishquiz-cloud-name";
-        const ref = name => doc(db, "players", encodeURIComponent(name.toLowerCase()));
+        // the entry's id is the name itself (lower-cased), readable in the Firebase console; only "/" is not
+        // allowed in an id (it becomes "∕"), and ".", ".." and __x__ are reserved (they get a "_" in front)
+        const idOf = name => { const k = name.toLowerCase().replace(/\//g, "∕"); return /^(\.\.?|__.*__)$/.test(k) ? "_" + k : k; };
+        const ref = name => doc(db, "players", idOf(name));
+        // until Nov 2026 the id was the encoded name (%D7%A8...): once the entry is saved under the new id, the old one goes
+        const dropOld = name => { const old = encodeURIComponent(name.toLowerCase()); if (old !== idOf(name)) deleteDoc(doc(db, "players", old)).catch(() => {}); };
         let ready = null;
         const user = () => ready || (ready = (auth.authStateReady().then(() => auth.currentUser || signInAnonymously(auth).then(c => c.user))).catch(e => { ready = null; throw e; }));
         const claimed = () => { try { return localStorage.getItem(CLAIMED_KEY) || ""; } catch (e) { return ""; } };
@@ -3922,7 +3927,8 @@
                 // a new name takes the old name's points of all the apps with it
                 const oldApps = moving ? ((await getDoc(ref(old)).catch(() => null))?.data()?.apps || {}) : {};
                 await write(u, name, oldApps);
-                if (moving) deleteDoc(ref(old)).catch(() => {});
+                if (moving) { deleteDoc(ref(old)).catch(() => {}); dropOld(old); }
+                dropOld(name);
                 try { localStorage.setItem(CLAIMED_KEY, name); } catch (e) {}
                 return "ok";
             } catch (e) { return e && e.code === "permission-denied" ? "taken" : "offline"; }
@@ -3934,7 +3940,7 @@
             timer = setTimeout(async () => {
                 if (!playerName) return;
                 if (claimed() !== playerName) { if (await claim(playerName) === "taken") askName(true); return; }
-                try { await write(await user(), playerName); } catch (e) {}
+                try { await write(await user(), playerName); dropOld(playerName); } catch (e) {}
             }, 2000);
         }
         // the 10 players with the most points in this app: [{ name, points }]
