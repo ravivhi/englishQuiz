@@ -344,8 +344,8 @@
         #shop-btn[data-boxes]::after { content: attr(data-boxes); position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px;
                     padding: 0 4px; box-sizing: border-box; border-radius: 9px; background: #e53e3e; color: #fff; font-size: 0.7rem;
                     font-weight: bold; line-height: 18px; font-family: sans-serif; }
-        /* 🏆 the top 10 players: a round button under the shop button */
-        #top-btn { position: absolute; top: 46px; left: -8px; width: 46px; height: 46px; padding: 0; border: none; border-radius: 50%;
+        /* 🏆 the top 10 players: a round button under the character, in the top-right corner */
+        #top-btn { position: absolute; top: 46px; right: -8px; width: 46px; height: 46px; padding: 0; border: none; border-radius: 50%;
                    font-size: 1.5rem; line-height: 46px; cursor: pointer; background: linear-gradient(135deg, #faf089, #ecc94b);
                    box-shadow: 0 3px 0 rgba(0,0,0,0.18); }
         #top-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.18); }
@@ -638,7 +638,7 @@
         /* Small screens. Keep these LAST: they must come after the base rules above to override them. */
         @media (max-width: 360px) {
             #shop-btn { width: 36px; height: 36px; line-height: 36px; font-size: 1.2rem; top: -10px; left: -10px; }
-            #top-btn { width: 36px; height: 36px; line-height: 36px; font-size: 1.15rem; top: 32px; left: -10px; }
+            #top-btn { width: 36px; height: 36px; line-height: 36px; font-size: 1.15rem; top: 32px; right: -10px; }
             #menu-avatar { width: 36px; height: 36px; line-height: 30px; font-size: 1.2rem; top: -10px; right: -10px; }
             .game-container { padding: 14px; }
             /* narrow phones: slightly smaller buttons (all of them, so they keep one look) so the longer

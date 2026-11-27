@@ -1984,9 +1984,10 @@ async function testTop() {
   console.log('\n[top] the 🏆 button opens a page with the 10 players with the most points');
   const page = await openPage();
   const shown = id => page.$eval('#' + id, e => getComputedStyle(e).display !== 'none');
+  await page.evaluate(() => { shop.owned.push('dog'); shop.avatar = 'dog'; applyShop(); });   // a character in the corner
   const r = await page.$eval('#top-btn', b => b.getBoundingClientRect().toJSON());
-  const cart = await page.$eval('#shop-btn', b => b.getBoundingClientRect().toJSON());
-  check(r.width > 0 && r.top >= cart.bottom - 1 && Math.abs(r.left - cart.left) < 2, 'the main screen has a 🏆 button right under the cart');
+  const av = await page.$eval('#menu-avatar', b => b.getBoundingClientRect().toJSON());
+  check(av.width > 0 && r.width > 0 && r.top >= av.bottom - 1 && Math.abs(r.right - av.right) < 4, 'the main screen has a 🏆 button right under the character, in the top-right corner');
   // no cloud (no network): it says so
   await page.click('#top-btn');
   check((await shown('top-screen')) && !(await shown('start-screen')) && !(await page.$('[data-dialog]')), 'it opens a page of its own (not a pop-up), instead of the main screen');
