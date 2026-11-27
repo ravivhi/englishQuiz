@@ -1997,13 +1997,15 @@ async function testTop() {
   // with the cloud: 10 players, medals for the first 3, this player marked
   await page.evaluate(() => {
     setPlayerName('נועה');
-    window.cloud = { sync() {}, claim: async () => 'ok', top: async () => Array.from({ length: 10 }, (_, i) => ({ name: i === 3 ? 'נועה' : `שחקן${i + 1}`, points: 1000 - i * 50 })) };
+    window.cloud = { sync() {}, claim: async () => 'ok', top: async () => Array.from({ length: 10 }, (_, i) => ({ name: i === 3 ? 'נועה' : `שחקן${i + 1}`, points: 1000 - i * 50, topics: 20 - i })) };
   });
   await page.click('#top-btn');
   await page.waitForSelector('#top-screen .top-list', { timeout: 3000 });
   const rows = await page.$$eval('#top-screen .top-list li', ls => ls.map(l => ({ text: l.textContent, me: l.classList.contains('me') })));
   check(rows.length === 10, `it lists 10 players (${rows.length})`);
   check(rows[0].text.includes('🥇') && rows[0].text.includes('שחקן1') && rows[0].text.includes('1000') && rows[2].text.includes('🥉') && rows[9].text.includes('10.'), 'in order: 🥇🥈🥉, then numbers, with the points');
+  check(rows[0].text.includes('✅ 20') && rows[9].text.includes('✅ 11'), 'each line shows how many topics the player finished');
+  check(await page.evaluate(() => { const keep = learnProgress; learnProgress = { 1: [0, 2, 5], 3: 4 }; const n = topicsDone(); learnProgress = keep; return n; }) === 7, 'the count of finished topics adds up all the levels (old saves too)');
   check(rows[3].me && rows.filter(x => x.me).length === 1, "this player's own line is marked");
   // the page is kept when the app is opened again
   await page.reload({ waitUntil: 'load' });

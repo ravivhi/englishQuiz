@@ -356,6 +356,7 @@
         .top-list .t-rank { width: 2rem; text-align: center; flex-shrink: 0; }
         .top-list .t-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .top-list .t-pts { flex-shrink: 0; color: #b7791f; font-weight: bold; direction: ltr; }
+        .top-list .t-topics { flex-shrink: 0; color: #2f855a; font-weight: bold; font-size: 0.9rem; direction: ltr; }
         /* 🎁 mystery boxes: earned after the last emoji, opened in the shop */
         .box-area { display: flex; align-items: center; gap: 10px; padding: 10px; margin-bottom: 8px; border-radius: 16px;
                     background: linear-gradient(135deg, #fefcbf, #fbd38d); box-shadow: 0 3px 0 rgba(0,0,0,0.08); }
@@ -751,6 +752,7 @@
                 <button type="button" id="top-back" class="action-btn" onclick="showStart()" aria-label="חזרה" style="padding:5px 10px;font-size:0.9rem;">→ חזרה</button>
                 <div id="top-title">🏆 10 השחקנים המובילים</div>
             </div>
+            <div id="top-legend" style="text-align:center;color:#718096;font-size:0.85rem;margin:-2px 0 8px;">⭐ כל הנקודות שנצברו · ✅ נושאים שהושלמו</div>
             <div id="top-body"><p id="top-msg"></p></div>
         </div>
 
@@ -1338,11 +1340,12 @@
             list.forEach((p, i) => {
                 const li = document.createElement("li");
                 if (playerName && p.name.toLowerCase() === playerName.toLowerCase()) li.className = "me";
-                const r = document.createElement("span"), n = document.createElement("span"), pts = document.createElement("span");
+                const r = document.createElement("span"), n = document.createElement("span"), pts = document.createElement("span"), tp = document.createElement("span");
                 r.className = "t-rank"; r.textContent = medal[i] || `${i + 1}.`;
                 n.className = "t-name"; n.textContent = p.name;
                 pts.className = "t-pts"; pts.textContent = `⭐ ${p.points}`;
-                li.append(r, n, pts);
+                tp.className = "t-topics"; tp.textContent = `✅ ${p.topics}`; tp.title = "נושאים שהושלמו";
+                li.append(r, n, tp, pts);
                 ol.append(li);
             });
             body.replaceChildren(ol);
@@ -2205,6 +2208,8 @@
             const v = learnProgress[level];
             return new Set(Array.isArray(v) ? v : Array.from({ length: Math.max(0, +v || 0) }, (_, i) => i));
         }
+        // ✅ how many topics are green, in all the levels together (shown in the 🏆 list)
+        const topicsDone = () => Object.keys(learnProgress).reduce((n, lv) => n + passedSet(lv).size, 0);
         const CAT_EMOJIS = [
             [/מקצועות לימוד|בית ספר|בית הספר|חינוך|למידה|קריאה וכתיבה/, "🏫"], [/ברכות/, "👋"], [/מספרים/, "🔢"],
             [/צבעים/, "🎨"], [/משפחה/, "👨‍👩‍👧"], [/חיות מחמד/, "🐶"], [/חיות בר/, "🦁"], [/צמחים/, "🌱"], [/בעלי חיים/, "🐾"],
@@ -2693,6 +2698,7 @@
                 passedSteps.add(index);
                 learnProgress[level] = [...passedSteps].sort((a, b) => a - b);
                 try { localStorage.setItem(LEARN_KEY, JSON.stringify(learnProgress)); } catch (e) {}
+                window.cloud && cloud.sync();
                 playUnlockSound();   // the step just turned green
             }
             const allPassed = steps.every((s, i) => passedSteps.has(i));
@@ -3893,7 +3899,7 @@
         // its own points under apps.<app name>. Without a network the game works as before.
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, deleteDoc, serverTimestamp, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, deleteDoc, deleteField, serverTimestamp, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
         const APP = "englishQuiz";
         const app = initializeApp({
             apiKey: "AIzaSyCGMszu_Wg7ttVZNehGT5wTyVnKQFRQopo",
@@ -3917,7 +3923,9 @@
         // writes the name with this app's points (merged: the other apps' points stay as they are)
         const write = (u, name, apps = {}) => setDoc(ref(name), {
             name, uid: u.uid, updatedAt: serverTimestamp(),
-            apps: { ...apps, [APP]: { points: Math.max(0, Math.floor(grandTotal) || 0), updatedAt: serverTimestamp() } }
+            // earned = all the points ever earned (the 🏆 list is by these); topics = how many topics are green.
+            // What is left to spend is not kept in the cloud (an entry saved before has it removed)
+            apps: { ...apps, [APP]: { points: deleteField(), earned: Math.max(0, Math.floor(earnedTotal) || 0), topics: topicsDone(), updatedAt: serverTimestamp() } }
         }, { merge: true });
         // takes the name: "ok", "taken" (another player has it) or "offline" (try again later)
         async function claim(name) {
@@ -3943,11 +3951,11 @@
                 try { await write(await user(), playerName); dropOld(playerName); } catch (e) {}
             }, 2000);
         }
-        // the 10 players with the most points in this app: [{ name, points }]
+        // the 10 players who earned the most points ever in this app (spending in the shop doesn't lower it): [{ name, points, topics }]
         async function top() {
             await user();
-            const snap = await getDocs(query(collection(db, "players"), orderBy(`apps.${APP}.points`, "desc"), limit(10)));
-            return snap.docs.map(d => ({ name: d.data().name, points: d.data().apps?.[APP]?.points || 0 }));
+            const snap = await getDocs(query(collection(db, "players"), orderBy(`apps.${APP}.earned`, "desc"), limit(10)));
+            return snap.docs.map(d => ({ name: d.data().name, points: d.data().apps?.[APP]?.earned || 0, topics: d.data().apps?.[APP]?.topics || 0 }));
         }
         window.cloud = { claim, sync, top };
         sync();   // on start: take the name typed before this version, and send the points
