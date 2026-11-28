@@ -2290,6 +2290,25 @@ async function testShapes() {
   // it happens once: a later reload keeps the marks
   await page.reload({ waitUntil: 'load' });
   check(JSON.stringify(await page.evaluate(() => learnProgress[1])) === '[0,1,2,3,4,6]', 'the move happens only once');
+  // the days of the week moved into level 1 as step 3: level 1's green marks from step 3 on move forward by one
+  const daysMove = async (flags, progress) => {
+    await page.evaluate((flags, progress) => {
+      for (const k of flags) localStorage.removeItem(k);
+      localStorage.setItem('englishquiz-learn-progress', JSON.stringify(progress));
+      localStorage.setItem('englishquiz-session', JSON.stringify({ screen: 'learn', learn: { level: 1, index: 3, i: 0 } }));
+    }, flags, progress);
+    await page.reload({ waitUntil: 'load' });
+    await new Promise(r => setTimeout(r, 600));
+    return page.evaluate(() => ({ p: learnProgress, flag: localStorage.getItem('englishquiz-days-moved'), learnShown: getComputedStyle(document.getElementById('learn-screen')).display !== 'none' }));
+  };
+  // a player who already had the colors move: greetings, numbers 1-2, colors 3, family 4... -> colors 4, family 5...
+  let dm = await daysMove(['englishquiz-days-moved'], { 1: [0, 1, 2, 3, 4, 6], 2: [0, 1] });
+  check(JSON.stringify(dm.p[1]) === '[0,1,2,4,5,7]' && JSON.stringify(dm.p[2]) === '[0,1]' && dm.flag === '1' && !dm.learnShown, `days move: level 1 marks from step 3 on move forward (${JSON.stringify(dm.p[1])}), level 2 stays, an open level-1 topic starts again`);
+  // an older player: both moves at once (colors+shapes 3-4 -> colors 3 -> colors 4)
+  dm = await daysMove(['englishquiz-days-moved', 'englishquiz-shapes-moved'], { 1: [0, 1, 2, 4, 5, 7] });
+  check(JSON.stringify(dm.p[1]) === '[0,1,2,4,5,7]', `both moves at once keep every mark on its topic (${JSON.stringify(dm.p[1])})`);
+  const names = await page.evaluate(async () => { const st = learnSteps(await loadLevel(1)); return [4, 5, 7].map(i => st[i].name + (st[i].part ? ' ' + st[i].part : '')); });
+  check(names.join() === 'צבעים,משפחה ואנשים 1,הגוף 1', `the marks are on colors, family 1 and body 1 as before (${names.join(', ')})`);
   check(page.pageErrors.length === 0, `no page errors${page.pageErrors.length ? ': ' + page.pageErrors.join('; ') : ''}`);
   await page.close();
 }
