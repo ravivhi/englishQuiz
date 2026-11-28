@@ -2816,6 +2816,21 @@
                 localStorage.setItem("englishquiz-shapes-moved", "1");
             }
         } catch (e) {}
+        // once: the days of the week moved from level 2 to a new level-1 topic (step 3, after the numbers). Level 1's
+        // green marks from step 3 on move forward by one; a level-1 topic left open from step 3 on starts again from the main screen.
+        try {
+            if (!localStorage.getItem("englishquiz-days-moved")) {
+                const v = learnProgress[1];
+                if (v !== undefined) {
+                    const old = Array.isArray(v) ? v : Array.from({ length: Math.max(0, +v || 0) }, (_, i) => i);
+                    learnProgress[1] = old.map(i => i >= 3 ? i + 1 : i).sort((a, b) => a - b);
+                    localStorage.setItem(LEARN_KEY, JSON.stringify(learnProgress));
+                }
+                const s = JSON.parse(localStorage.getItem("englishquiz-session") || "null"), at = s && (s.step || s.learn);
+                if (at && +at.level === 1 && at.index >= 3) localStorage.removeItem("englishquiz-session");
+                localStorage.setItem("englishquiz-days-moved", "1");
+            }
+        } catch (e) {}
         // older versions saved how many parts were passed in order (a number): those are the first N parts
         function passedSet(level) {
             const v = learnProgress[level];
@@ -2830,7 +2845,7 @@
             [/פירות/, "🍓"], [/ירקות/, "🥕"], [/משקאות/, "🥤"], [/אוכל|בישול/, "🍕"], [/בגדים/, "👕"], [/צעצועים/, "🧸"],
             [/תחבורה/, "🚗"], [/מזג אוויר/, "🌦️"], [/כדור הארץ/, "🌍"], [/סביבה/, "♻️"], [/טבע/, "🌳"], [/אגדות|קסמים|סיפורים/, "🧚"],
             [/מילות מקום|איפה/, "📍"], [/מקומות|העיר|עיר|קהילה/, "🏙️"], [/חפצים בבית|הבית|בבית|בית ומטבח|בית וחיי/, "🏠"],
-            [/ימים|זמן/, "⏰"], [/מקצועות|עבודה|קריירה/, "👷"], [/ספורט/, "⚽"], [/רגשות|מצבי רוח/, "😊"], [/מוזיקה|חגיגות|אירועים/, "🎉"],
+            [/ימים|ימות השבוע|זמן/, "⏰"], [/מקצועות|עבודה|קריירה/, "👷"], [/ספורט/, "⚽"], [/רגשות|מצבי רוח/, "😊"], [/מוזיקה|חגיגות|אירועים/, "🎉"],
             [/טיולים/, "🧳"], [/מחשבים|טכנולוגיה/, "💻"], [/מדיה|תקשורת/, "📰"], [/כסף|כלכלה|עסקים|קניות/, "💰"], [/החלל/, "🚀"],
             [/מדע|מחקר/, "🔬"], [/מתמטיקה|צורות|כמות/, "📐"], [/בריאות|רפואה|הגוף|גוף/, "🩺"], [/היסטוריה/, "🏛️"], [/חוק|משפט/, "⚖️"],
             [/ממשל|פוליטיקה|בחירות/, "🗳️"], [/ספרות|אמנות|תרבות/, "🎭"], [/חשיבה|רעיונות|גילוי|טיעון/, "💡"], [/אופי|אישיות|התנהגות|ערכים/, "🌟"],

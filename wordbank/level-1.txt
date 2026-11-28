@@ -35,6 +35,14 @@ eighteen|שמונה עשרה
 nineteen|תשע עשרה
 twenty|עשרים
 zero|אפס|0️⃣
+# ימות השבוע
+Sunday|יום ראשון
+Monday|יום שני
+Tuesday|יום שלישי
+Wednesday|יום רביעי
+Thursday|יום חמישי
+Friday|יום שישי
+Saturday|שבת
 # צבעים
 red|אדום|🟥
 blue|כחול|🟦

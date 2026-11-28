@@ -2270,9 +2270,10 @@ async function testShapes() {
   const page = await openPage();
   const info = await page.evaluate(async () => {
     const s1 = learnSteps(await loadLevel(1)), s2 = learnSteps(await loadLevel(2));
-    return { l1: s1.map(s => s.name), colors: s1[3], last2: s2[s2.length - 1] };
+    return { l1: s1.map(s => s.name), colors: s1[4], days: s1[3], l2: s2.flatMap(s => s.words.map(w => w.en)), last2: s2[s2.length - 1] };
   });
   check(info.colors.name === 'צבעים' && info.colors.parts === 1 && info.colors.words.length === 14 && info.colors.words.every(w => !['circle', 'square', 'triangle', 'star', 'heart', 'line'].includes(w.en)), `level 1 step 4 is only the colors (${info.colors.words.length} words)`);
+  check(info.days.name === 'ימות השבוע' && info.days.words.map(w => w.en).join() === 'Sunday,Monday,Tuesday,Wednesday,Thursday,Friday,Saturday' && !info.l2.includes('Sunday'), 'the days of the week are level 1 step 4 (after the numbers), not in level 2');
   check(!info.l1.some(n => n.includes('צורות')), 'level 1 has no shapes topic');
   check(info.last2.name === 'צורות' && info.last2.words.map(w => w.en).join() === 'circle,square,triangle,star,heart,line', 'the shapes are the last topic of level 2');
   // an old save: level 1 parts 0,1,2 green, colors+shapes part 2 (index 4) green, 5 and 7 green; a level-1 quiz open at index 5

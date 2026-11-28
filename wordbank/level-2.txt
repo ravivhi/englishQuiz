@@ -1,11 +1,4 @@
 # ימים, חודשים ועונות
-Sunday|יום ראשון
-Monday|יום שני
-Tuesday|יום שלישי
-Wednesday|יום רביעי
-Thursday|יום חמישי
-Friday|יום שישי
-Saturday|שבת
 weekend|סוף שבוע
 January|ינואר
 February|פברואר
