@@ -1,5 +1,4 @@
-# local-only test photos (copyrighted workbook pages) and test deps
-/tests/fixtures/
+# test deps (the test photos in tests/fixtures are committed: GitHub runs the photo tests)
 /tests/node_modules/
 
 # Android TWA build output (keys live in C:\Users\Raviv.Hilleli\signing-keys\englishQuiz)
