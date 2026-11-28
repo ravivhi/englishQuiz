@@ -1681,7 +1681,6 @@
                         if (pos < word.length) return;
                         if (!mistakes) points++;   // a word with no mistakes
                         slots.classList.add("spell-done");
-                        speakText(word);
                         round++;
                         setTimeout(next, 1000);
                     };
@@ -1689,6 +1688,7 @@
                 }
                 box.append(gEl("div", "g-progress", `${round + 1}/${words.length}`), gEl("div", "spell-pic", w.pic || ""), gEl("div", "spell-he", w.he), say, slots, tiles);
                 gBody().replaceChildren(box);
+                speakText(word);   // the English word is said at the start of the round
             };
             next();
         }
@@ -1787,7 +1787,6 @@
                         bt.classList.add("correct");
                         answers.querySelectorAll("button").forEach(y => y.disabled = true);
                         const slot = shown.querySelector(".missing-slot"); slot.textContent = ch; slot.classList.add("ok");
-                        speakText(word);
                         if (first) points++;
                         round++;
                         setTimeout(next, 1000);
@@ -1796,6 +1795,7 @@
                 }
                 box.append(gEl("div", "g-progress", `${round + 1}/${words.length}`), gEl("div", "spell-pic", w.pic || ""), gEl("div", "spell-he", w.he), shown, answers);
                 gBody().replaceChildren(box);
+                speakText(word);   // the English word is said at the start of the round
             };
             next();
         }
@@ -1821,7 +1821,6 @@
                         bt.classList.add("correct");
                         answers.querySelectorAll("button").forEach(y => y.disabled = true);
                         he.textContent = w.he;   // and now its meaning too
-                        speakText(w.en);
                         if (first) points++;
                         round++;
                         setTimeout(next, 1000);
@@ -1830,6 +1829,7 @@
                 }
                 box.append(gEl("div", "g-progress", `${round + 1}/${words.length}`), gEl("div", "pic-big", w.pic), he, answers);
                 gBody().replaceChildren(box);
+                speakText(w.en);   // the English word is said at the start of the round
             };
             next();
         }
@@ -1854,7 +1854,6 @@
                         if (x !== w) { first = false; bt.disabled = true; bt.classList.add("popped"); return; }
                         bt.classList.add("good");
                         sky.querySelectorAll("button").forEach(y => y.disabled = true);
-                        speakText(w.en);
                         if (first) points++;
                         round++;
                         setTimeout(next, 900);
@@ -1863,6 +1862,7 @@
                 });
                 box.append(gEl("div", "g-progress", `${round + 1}/${ROUNDS}`), gEl("p", "games-note", "פוצצו את הבועה של המילה באנגלית"), gEl("div", "spell-he bub-he", w.he), sky);
                 gBody().replaceChildren(box);
+                speakText(w.en);   // the English word is said at the start of the round
             };
             next();
         }

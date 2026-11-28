@@ -2374,7 +2374,9 @@ async function testGames2() {
   // 🧩 missing letter: 8 words; the first one wrong first
   await page.click('#game-menu');
   t0 = await money();
+  await page.evaluate(() => { window.__said = []; const orig = speakText; speakText = w => { window.__said.push(w); orig(w); }; });
   await play('missing');
+  check((await page.evaluate(() => window.__said)).join() === (await page.$eval('.missing-box', e => e.dataset.word)), 'the English word is said at the start of the round (before answering)');
   for (let n = 0; n < 8; n++) {
     await page.waitForFunction(n => document.querySelector('.missing-box .g-progress')?.textContent === `${n + 1}/8`, { timeout: 3000 }, n);
     const [word, letter] = await page.$eval('.missing-box', e => [e.dataset.word, e.dataset.letter]);
