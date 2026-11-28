@@ -2120,7 +2120,7 @@ async function testGames() {
   check((await page.$eval('#games-body', e => e.textContent)).includes('רמה 1'), 'it says which level the words come from');
   const play = async id => { await page.click(`.game-card[data-game="${id}"]`); await page.waitForFunction(id => curGame === id && !document.querySelector('#games-body').textContent.includes('טוען'), { timeout: 5000 }, id); };
 
-  // 🃏 memory: 12 cards, each word twice (English with its meaning under it); a wrong pair closes again, the right pairs stay open
+  // 🃏 memory: 12 cards, each word twice (one card English, one its meaning); a wrong pair closes again, the right pairs stay open
   let [t0, e0] = await money();
   await play('memory');
   const ks = await page.$$eval('.mem-card', bs => bs.map(b => b.dataset.k));
@@ -2129,7 +2129,8 @@ async function testGames() {
   const [a0] = idx('0'), [b0] = idx('1');
   await page.evaluate((a, b) => { const c = document.querySelectorAll('.mem-card'); c[a].click(); c[b].click(); }, a0, b0);
   const opened = await page.$$eval('.mem-card.open', bs => bs.map(b => ({ en: b.querySelector('.mem-en')?.textContent, he: b.querySelector('.mem-he')?.textContent })));
-  check(opened.length === 2 && opened.every(o => /[a-z]/i.test(o.en || '') && /[֐-׿]/.test(o.he || '')), `an open card shows the English word and its meaning together (${JSON.stringify(opened)})`);
+  check(opened.length === 2 && opened.every(o => !!o.en !== !!o.he && (o.en ? /[a-z]/i.test(o.en) : /[֐-׿]/.test(o.he))), `an open card shows either the English word or its meaning (${JSON.stringify(opened)})`);
+  check((await page.$$eval('.mem-list .mem-pair', rs => rs.length)) === 6, 'the 6 words and their meanings are listed above the cards');
   await wait(1100);
   check(await page.$$eval('.mem-card', bs => bs.every(b => !b.classList.contains('open'))), 'two cards that do not belong together turn back');
   for (let k = 0; k < 6; k++) { const [x, y] = idx(String(k)); await page.evaluate((x, y) => { const c = document.querySelectorAll('.mem-card'); c[x].click(); c[y].click(); }, x, y); }
