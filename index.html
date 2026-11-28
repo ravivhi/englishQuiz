@@ -428,6 +428,10 @@
         .tf-box.tf-good { animation: tfGood 0.35s; } .tf-box.tf-bad { animation: tfBad 0.35s; }
         @keyframes tfGood { 50% { background: #c6f6d5; } } @keyframes tfBad { 50% { background: #fed7d7; } }
         .game-end .g-end-pic { font-size: 3.5rem; }
+        .game-end .g-end-av { display: inline-block; margin-inline-start: 10px; }   /* 💃 the character dancing after a perfect game */
+        .game-end .g-end-say { width: max-content; max-width: 92%; margin: 4px auto 8px; padding: 6px 12px; border-radius: 14px; background: #fffaf0;
+                               border: 3px solid #f6ad55; color: #975a16; font-weight: bold; font-size: 0.9rem; line-height: 1.2; animation: cardPop 0.3s ease-out; }
+        .game-end .g-end-say .ss-he { font-size: 0.8rem; color: #4a5568; margin-top: 2px; }
         .game-end .g-end-title { font-size: 1.5rem; font-weight: bold; color: #553c9a; }
         .game-end .g-end-text { font-size: 1.1rem; margin: 6px 0; }
         .game-end .g-end-bonus { font-size: 1.15rem; font-weight: bold; color: #2f855a; background: #f0fff4; border: 2px solid #9ae6b4; border-radius: 12px; padding: 8px 10px; margin: -6px 0 14px; }
@@ -1676,7 +1680,7 @@
         try { goodGames = Math.max(0, parseInt(localStorage.getItem(GOOD_KEY)) || 0); } catch (e) {}
         const goodLeft = () => goodGames % GOOD_GAMES;
         const gameStars = (q, max = GAME_MAX) => 1 + Math.round((max - 1) * Math.max(0, Math.min(1, q)));   // how good (0..1) -> 1..max ⭐
-        function gameOver(token, g, points, text) {
+        function gameOver(token, g, points, text, perfect = false) {
             if (token !== gameToken) return;
             let bonus = 0;
             if (points >= (g.good || GOOD_MIN)) {   // a good game (4+ ⭐; true or false: 3 ⭐): one more toward the 🎁 bonus
@@ -1706,6 +1710,17 @@
             menu.onclick = () => gamesMenu();
             end.append(again, menu);
             gBody().replaceChildren(end);
+            // 💃 every answer right on the first try: the character joins the 🎉 and does its dance party
+            const av = perfect && SHOP_AVATARS.find(x => x.id === shop.avatar);
+            if (av) {
+                const pic = end.querySelector(".g-end-pic"), dancer = gEl("span", "g-end-av"), say = gEl("div", "g-end-say");
+                putPic(dancer, av);
+                pic.append(dancer);
+                say.append(gEl("div", "ss-en", `${picPrefix(av)}Perfect! Dance party!`), gEl("div", "ss-he", "מושלם! מסיבת ריקודים!"));
+                say.dir = "ltr"; say.querySelector(".ss-he").dir = "rtl";   // the English line left to right, like the result screen's bubble
+                pic.after(say);
+                setTimeout(() => { if (token === gameToken && end.isConnected) danceMoves(dancer); }, 400);
+            }
         }
         const gShake = el => el.animate([{ transform: "translateX(0)" }, { transform: "translateX(-6px)" }, { transform: "translateX(6px)" }, { transform: "translateX(0)" }], { duration: 250 });
 
@@ -1730,7 +1745,7 @@
                     const [a, d] = open;
                     if (a.dataset.k === d.dataset.k) {
                         a.classList.add("done"); d.classList.add("done"); open = [];
-                        if (++found === PAIRS) setTimeout(() => gameOver(token, g, gameStars((3 * PAIRS - tries) / (2 * PAIRS)), `מצאתם את כל ${PAIRS} הזוגות ב-${tries} ניסיונות`), 500);
+                        if (++found === PAIRS) setTimeout(() => gameOver(token, g, gameStars((3 * PAIRS - tries) / (2 * PAIRS)), `מצאתם את כל ${PAIRS} הזוגות ב-${tries} ניסיונות`, ((3 * PAIRS - tries) / (2 * PAIRS)) >= 1), 500);
                     } else setTimeout(() => {
                         if (token !== gameToken) return;
                         for (const x of open) { x.classList.remove("open"); x.textContent = "❓"; }
@@ -1751,7 +1766,7 @@
             let round = 0, points = 0;
             const next = () => {
                 if (token !== gameToken) return;
-                if (round === words.length) return gameOver(token, g, gameStars(points / words.length), `איייתם ${words.length} מילים באנגלית, ${points} מהן בלי טעויות`);
+                if (round === words.length) return gameOver(token, g, gameStars(points / words.length), `איייתם ${words.length} מילים באנגלית, ${points} מהן בלי טעויות`, (points / words.length) >= 1);
                 const w = words[round], word = w.en.toLowerCase();
                 let pos = 0, mistakes = 0;
                 const box = gEl("div", "spell-box");
@@ -1789,7 +1804,7 @@
             let round = 0, points = 0;
             const next = () => {
                 if (token !== gameToken) return;
-                if (round === words.length) return gameOver(token, g, gameStars(points / words.length), `זיהיתם ${points} מתוך ${words.length} מילים בשמיעה`);
+                if (round === words.length) return gameOver(token, g, gameStars(points / words.length), `זיהיתם ${points} מתוך ${words.length} מילים בשמיעה`, (points / words.length) >= 1);
                 const w = words[round];
                 let first = true;
                 const others = shuffle(pool.filter(x => x !== w)).slice(0, 3);
@@ -1827,7 +1842,7 @@
             let b = 0, mistakes = 0;
             const board = () => {
                 if (token !== gameToken) return;
-                if (b === boards.length) return gameOver(token, g, gameStars(1 - mistakes / all.length), mistakes ? `חיברתם ${all.length} זוגות עם ${mistakes} ${mistakes === 1 ? "טעות" : "טעויות"}` : `חיברתם ${all.length} זוגות בלי אף טעות!`);
+                if (b === boards.length) return gameOver(token, g, gameStars(1 - mistakes / all.length), mistakes ? `חיברתם ${all.length} זוגות עם ${mistakes} ${mistakes === 1 ? "טעות" : "טעויות"}` : `חיברתם ${all.length} זוגות בלי אף טעות!`, (1 - mistakes / all.length) >= 1);
                 const words = boards[b];
                 let picked = null, left = words.length;
                 const box = gEl("div", "match-box"), en = gEl("div", "match-col"), he = gEl("div", "match-col");
@@ -1861,7 +1876,7 @@
             let round = 0, points = 0;
             const next = () => {
                 if (token !== gameToken) return;
-                if (round === words.length) return gameOver(token, g, gameStars(points / words.length), `השלמתם ${points} מתוך ${words.length} מילים`);
+                if (round === words.length) return gameOver(token, g, gameStars(points / words.length), `השלמתם ${points} מתוך ${words.length} מילים`, (points / words.length) >= 1);
                 const w = words[round], word = w.en.toLowerCase(), at = Math.floor(Math.random() * word.length), ch = word[at];
                 let first = true;
                 const box = gEl("div", "missing-box"); box.dataset.word = word; box.dataset.letter = ch;
@@ -1897,7 +1912,7 @@
             let round = 0, points = 0;
             const next = () => {
                 if (token !== gameToken) return;
-                if (round === words.length) return gameOver(token, g, gameStars(points / words.length, SMALL_MAX), `זיהיתם ${points} מתוך ${words.length} תמונות`);
+                if (round === words.length) return gameOver(token, g, gameStars(points / words.length, SMALL_MAX), `זיהיתם ${points} מתוך ${words.length} תמונות`, (points / words.length) >= 1);
                 const w = words[round];
                 let first = true;
                 const box = gEl("div", "pic-box"); box.dataset.word = w.en;
@@ -1931,7 +1946,7 @@
             let round = 0, points = 0;
             const next = () => {
                 if (token !== gameToken) return;
-                if (round === ROUNDS) return gameOver(token, g, gameStars(points / ROUNDS, SMALL_MAX), `פוצצתם נכון ${points} מתוך ${ROUNDS} בועות`);
+                if (round === ROUNDS) return gameOver(token, g, gameStars(points / ROUNDS, SMALL_MAX), `פוצצתם נכון ${points} מתוך ${ROUNDS} בועות`, (points / ROUNDS) >= 1);
                 const w = words[round];
                 let first = true;
                 const box = gEl("div", "bub-box"); box.dataset.word = w.en;
@@ -1990,7 +2005,7 @@
                 box.classList.add(good ? "tf-good" : "tf-bad");
                 if (++n < TF_ROUNDS) return show();
                 scoreEl.textContent = `✔ ${score}`;
-                setTimeout(() => gameOver(token, g, gameStars(score / TF_ROUNDS, TF_MAX), `ענו נכון על ${score} מתוך ${TF_ROUNDS} מילים`), 400);
+                setTimeout(() => gameOver(token, g, gameStars(score / TF_ROUNDS, TF_MAX), `ענו נכון על ${score} מתוך ${TF_ROUNDS} מילים`, (score / TF_ROUNDS) >= 1), 400);
             };
             yes.onclick = () => answer(true);
             no.onclick = () => answer(false);
@@ -3476,6 +3491,10 @@
         // 💃 every question right on the first try: after its cheer, the character does a little dance party
         // (sways, jumps into a spin, wiggles and takes a bow). Every frame lists the same transforms, so they blend smoothly.
         function perfectDance(el, av) {
+            summarySay(`${picPrefix(av)}Perfect! Dance party!`, "מושלם! מסיבת ריקודים!");
+            return danceMoves(el);
+        }
+        function danceMoves(el) {
             const f = (x, y, r, sx, sy, k, offset) => ({ transform: `translate(${x}px, ${y}px) rotate(${r}deg) scale(${sx}, ${sy}) skewX(${k}deg)`, offset });
             const keys = [f(0, 0, 0, 1, 1, 0, 0),
                 f(-16, 0, -14, 1, 1, 0, 0.09), f(16, 0, 14, 1, 1, 0, 0.18), f(-16, 0, -14, 1, 1, 0, 0.27), f(16, 0, 14, 1, 1, 0, 0.36),   // sway
@@ -3483,7 +3502,6 @@
                 f(0, 4, 360, 1.25, 0.8, 0, 0.71), f(0, 0, 360, 1, 1, -18, 0.76), f(0, 0, 360, 1, 1, 18, 0.81), f(0, 0, 360, 1, 1, -18, 0.86), // wiggle
                 f(0, 0, 360, 1, 1, 0, 0.9), f(0, 8, 380, 1, 0.9, 0, 0.95), f(0, 0, 360, 1, 1, 0, 1)];                                  // a bow
             avatarBurst(["💃", "🕺", "🎵", "🎶", "⭐"], 18, el, true);
-            summarySay(`${picPrefix(av)}Perfect! Dance party!`, "מושלם! מסיבת ריקודים!");
             return el.animate(keys, { duration: 2600, easing: "ease-in-out" }).finished.catch(() => {});
         }
 

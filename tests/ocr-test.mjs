@@ -2468,6 +2468,18 @@ async function testGames() {
   await page.waitForSelector('.game-end', { timeout: 3000 });
   [t1] = await money();
   check(t1 === t0 + 1 && (await page.evaluate(() => goodGames)) === 0 && !(await page.$('.g-end-bonus')), `a very bad game: +1 ⭐ and does not count (${t1 - t0})`);
+  check(!(await page.$('.g-end-av')) && !(await page.$('.g-end-say')), 'not every answer right: no dance');
+  // 💃 every answer right on the first try: the character dances on the end screen
+  await page.evaluate(() => { if (!shop.owned.includes('dog')) shop.owned.push('dog'); shop.avatar = 'dog'; saveShop(); applyShop(); document.getElementById('avatar-fx').innerHTML = ''; });
+  await page.click('#game-menu');
+  await play('truefalse');
+  for (let n = 0; n < 10; n++) await page.evaluate(() => document.querySelector(document.querySelector('.tf-box').dataset.ok === '1' ? '.tf-yes' : '.tf-no').click());
+  await page.waitForSelector('.game-end .g-end-av', { timeout: 3000 }).catch(() => {});
+  await wait(700);
+  check((await page.$eval('.g-end-av', e => e.textContent).catch(() => '')) === '🐶' && await page.$eval('.g-end-av', e => e.getAnimations().length > 0).catch(() => false)
+        && (await page.$eval('.g-end-say', e => e.textContent).catch(() => '')).includes('Perfect! Dance party!מושלם! מסיבת ריקודים!')
+        && (await page.$$eval('#avatar-fx span', s => s.map(x => x.textContent))).some(x => ['💃', '🕺', '🎵', '🎶'].includes(x)), 'every answer right: the dog dances next to the 🎉 ("Perfect! Dance party!")');
+  await page.evaluate(() => { shop.avatar = null; saveShop(); applyShop(); goodGames = 0; });
 
   // leaving: the phone back button from a game goes to the list; a left game stops (its timer gives nothing)
   await page.click('#game-menu');
