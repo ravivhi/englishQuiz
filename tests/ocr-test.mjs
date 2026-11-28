@@ -971,11 +971,38 @@ async function testLearn() {
   check(after[0] === before[0] && !(await page.$('#level-bonus')), 'the bonus is not given by itself: it waits in the box');
   await page.click('#change-words-btn');
   await page.waitForFunction(() => document.querySelector('#cat-list .cat-prize.open'), { timeout: 10000 });
-  // 🏆 tapping the open box: a 1000-point bonus, once, with a golden pop-up
-  const base = await pts();   // with the quiz points of that last part
-  await page.click('#cat-list .cat-prize');
+  // 🏆 tapping the open box starts the level's big quiz: 100 different words of the level; 70 right on the first try give 1000 points, once
+  const playExam = n => page.evaluate(n => {   // the first n words right on the first try, the rest after a wrong answer
+    for (let k = 0; currentIndex < wordsData.length; k++) {
+      const c = wordsData[currentIndex].correct, bs = [...document.querySelectorAll('#answers-container .btn-answer')];
+      if (k >= n) bs.find(x => x.innerText !== c).click();
+      bs.find(x => x.innerText === c).click();
+      clearTimeout(nextQuestionTimer); nextQuestionTimer = null; currentIndex++; loadQuestion();
+    }
+  }, n);
+  const openExam = async () => {
+    await page.click('#cat-list .cat-prize');
+    await page.waitForFunction(() => getComputedStyle(document.getElementById('game-screen')).display !== 'none' && stepQuiz && stepQuiz.exam, { timeout: 5000 });
+  };
+  const money = () => page.evaluate(() => grandTotal + pendingCoins);   // (a quiz's own points wait in its box)
+  await openExam();
+  const ex = await page.evaluate(() => ({ n: wordsData.length, uniq: new Set(wordsData.map(w => w.word.toLowerCase())).size, opts: wordsData.every(w => w.dynamics.length === 3 && !w.dynamics.includes(w.correct)) }));
+  check(ex.n === 100 && ex.uniq === 100 && ex.opts, `tapping the open box starts a quiz of 100 different words of the level, each with 3 wrong answers (${ex.n}, ${ex.uniq} different)`);
+  let base = await money();
+  await playExam(69);
+  await new Promise(r => setTimeout(r, 1500));
   after = await pts();
-  check(after[0] === base[0] + 1000 && after[1] === after[0] && after[2].includes(5), `tapping the open box gives 1000 points right away, saved (${base[0]} → ${after[0]}, levels ${JSON.stringify(after[2])})`);
+  check(!after[2].includes(5) && !(await page.$('#level-bonus')) && (await text('step-result')).includes('69') && (await text('step-result')).includes('70'), `69 right: no prize, and it says 70 are needed ("${await text('step-result')}")`);
+  check(!(await vis('restart-btn')) && !(await vis('practice-missed-btn')) && !(await vis('next-step-btn')) && (await text('change-words-btn')).includes('מסלול'), 'its result screen leads back to the path only');
+  await page.click('#change-words-btn');
+  await page.waitForFunction(() => document.querySelector('#cat-list .cat-prize.open'), { timeout: 10000 });
+  check(true, 'the box stays open to try again');
+  await openExam();
+  base = await money();
+  await playExam(70);
+  after = await pts();
+  const got = (await money()) - base - (await page.evaluate(() => pendingCoins));
+  check(got === 1000 && after[1] === after[0] && after[2].includes(5) && (await text('step-result')).includes('1000'), `70 right: 1000 points right away, saved (+${got}, levels ${JSON.stringify(after[2])}, "${await text('step-result')}")`);
   await page.waitForSelector('#level-bonus', { timeout: 4000 });
   await new Promise(r => setTimeout(r, 2300));
   const lb = await page.evaluate(() => { const p = document.getElementById('level-bonus'), c = p.querySelector('.lb-card').getBoundingClientRect();
@@ -984,27 +1011,34 @@ async function testLearn() {
   check(lb.n === '1000' && lb.title.includes('5') && lb.rain > 10 && lb.fw && lb.fits, `a golden pop-up: the points count up to +${lb.n}, coins rain (${lb.rain}), fireworks, and it fits the screen ("${lb.title}")`);
   await page.click('#level-bonus');
   check(!(await page.$('#level-bonus')), 'a tap closes it');
+  await page.click('#change-words-btn');
+  await page.waitForFunction(() => document.querySelector('#cat-list .cat-prize.taken'), { timeout: 10000 });
   pz = await prize();
   check(pz.cls.includes('taken'), 'the box now shows the prize was taken');
+  const t1 = await money();
   await page.click('#cat-list .cat-prize');
-  after = await pts();
-  check(after[0] === base[0] + 1000 && !(await page.$('#level-bonus')), 'the bonus is given only once per level');
+  await new Promise(r => setTimeout(r, 300));
+  check((await money()) === t1 && !(await page.$('#level-bonus')) && !(await vis('game-screen')), 'the bonus is given only once per level (a taken box starts no quiz)');
   await page.evaluate(() => { levelBonus(4, 0); });
   await page.waitForSelector('#level-bonus', { timeout: 4000 });
   await page.evaluate(() => history.back());
   await page.waitForFunction(() => !document.getElementById('level-bonus'), { timeout: 4000 });
-  check((await pts())[0] === base[0] + 2000, 'the phone back button closes it too (another level: another 1000)');
-  // 🔥 10 days in a row: the box says 2000 and gives 2000
+  check((await money()) === t1 + 1000, 'the phone back button closes it too (another level: another 1000)');
+  // 🔥 10 days in a row: the box says 2000 and its quiz gives 2000
   await page.evaluate(() => { daily = { last: dayStr(), days: 10 }; levelBonusGiven = levelBonusGiven.filter(l => l !== 5); renderPath(); });
   await page.waitForFunction(() => document.querySelector('#cat-list .cat-prize.open'), { timeout: 10000 });
   pz = await prize();
   check(pz.name.includes('2000') && pz.name.includes('🔥'), `on a 🔥 streak the box says "${pz.name}"`);
-  await page.click('#cat-list .cat-prize');
+  await openExam();
+  base = await money();
+  await playExam(100);
+  const got2 = (await money()) - base - (await page.evaluate(() => pendingCoins));
   await page.waitForSelector('#level-bonus', { timeout: 4000 });
   await new Promise(r => setTimeout(r, 2300));
   const fireLb = await page.$eval('#level-bonus', p => [p.querySelector('.lb-n').textContent, p.querySelector('.lb-sub').textContent]);
-  check((await pts())[0] === base[0] + 4000 && fireLb[0] === '2000' && fireLb[1].includes('🔥'), `and gives 2000 (the pop-up counts to +${fireLb[0]}, "${fireLb[1]}")`);
+  check(got2 === 2000 && fireLb[0] === '2000' && fireLb[1].includes('🔥'), `and gives 2000 (+${got2}; the pop-up counts to +${fireLb[0]}, "${fireLb[1]}")`);
   await page.click('#level-bonus');
+  await page.click('#change-words-btn');
   await page.evaluate(() => { daily = { last: '', days: 0 }; grandTotal -= 2000; });
   await page.evaluate(() => { levelBonusGiven = []; localStorage.removeItem('englishquiz-level-bonus'); grandTotal -= 2000; localStorage.setItem('englishquiz-total-points', String(grandTotal)); });
   await fireworks();   // clear them (the check below must not see these)
