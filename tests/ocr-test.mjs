@@ -1536,6 +1536,41 @@ async function testAvatar() {
   await page.close();
 }
 
+// 🔄 a new version while the app is open: it reloads itself on the main menu only (never in a quiz, a game or a pop-up)
+async function testUpdate() {
+  console.log('\n[update] a new version reloads the app on the main menu, never in the middle of something');
+  const ctx = await browser.createBrowserContext();
+  const page = await ctx.newPage();
+  page.pageErrors = [];
+  page.on('pageerror', e => page.pageErrors.push(e.message));
+  await page.goto(url, { waitUntil: 'load' });
+  // the very first install (no older version yet): the new service worker takes over, no reload
+  await page.evaluate(() => { window.mark = 1; });
+  await page.waitForFunction(() => navigator.serviceWorker.controller, { timeout: 10000 });
+  await page.evaluate(() => navigator.serviceWorker.dispatchEvent(new Event('controllerchange')));
+  await new Promise(r => setTimeout(r, 2500));
+  check(await page.evaluate(() => window.mark === 1), 'the first install never reloads the page');
+  // an app with a version: open the shop, then a new version takes over
+  await page.reload({ waitUntil: 'load' });
+  await new Promise(r => setTimeout(r, 500));
+  const reloaded = () => page.evaluate(() => window.mark !== 1);
+  await page.evaluate(() => { window.mark = 1; openShop(); navigator.serviceWorker.dispatchEvent(new Event('controllerchange')); });
+  await new Promise(r => setTimeout(r, 3500));
+  check(!(await reloaded()), 'a new version while in the shop: no reload yet');
+  // back on the main menu, but a pop-up open: still waits
+  await page.evaluate(() => { showStart(); const d = document.createElement('div'); d.dataset.dialog = '1'; d.id = 'test-dialog'; document.body.appendChild(d); });
+  await new Promise(r => setTimeout(r, 3500));
+  check(!(await reloaded()), 'on the main menu with a pop-up open: no reload yet');
+  // the pop-up closed: it reloads, and the progress is still there
+  await page.evaluate(() => { grandTotal = 77; localStorage.setItem(TOTAL_KEY, '77'); document.getElementById('test-dialog').remove(); });
+  await page.waitForFunction(() => window.mark !== 1, { timeout: 6000 }).catch(() => {});
+  check(await reloaded(), 'once on the main menu with nothing open, the app reloads itself to the new version');
+  await page.waitForFunction(() => typeof grandTotal !== 'undefined', { timeout: 6000 });
+  check(await page.evaluate(() => grandTotal === 77), 'after the reload the points are all still there');
+  check(page.pageErrors.length === 0, `no page errors${page.pageErrors.length ? ': ' + page.pageErrors.join('; ') : ''}`);
+  await page.close(); await ctx.close();
+}
+
 async function testKeep() {
   console.log('\n[keep] progress survives app updates');
   const ctx = await browser.createBrowserContext();
@@ -2572,7 +2607,7 @@ async function testPurple() {
   await page.close();
 }
 
-const TESTS = { fire: testFire, wordbank: testWordbank, random: testRandom, layout: testLayout, back: testBack, tabs: testTabs, streak: testStreak, pairs: () => eachFixture('pairs', testPairs), list: () => eachFixture('list', testList), translation: testTranslationRetry, practice: testPractice, chooser: testChooser, header: testHeader, persist: testPersist, learn: testLearn, purple: testPurple, shop: testShop, box: testBox, phoneback: testPhoneBack, avatar: testAvatar, celebrate: testCelebrate, boxextra: testBoxExtra, keep: testKeep, wand: testWand, pictures: testPictures, name: testName, top: testTop, listlearn: testListLearn, games: testGames, shapes: testShapes, ice: testIce, games2: testGames2 };
+const TESTS = { fire: testFire, wordbank: testWordbank, random: testRandom, layout: testLayout, back: testBack, tabs: testTabs, streak: testStreak, pairs: () => eachFixture('pairs', testPairs), list: () => eachFixture('list', testList), translation: testTranslationRetry, practice: testPractice, chooser: testChooser, header: testHeader, persist: testPersist, learn: testLearn, purple: testPurple, shop: testShop, box: testBox, phoneback: testPhoneBack, avatar: testAvatar, celebrate: testCelebrate, boxextra: testBoxExtra, keep: testKeep, wand: testWand, pictures: testPictures, name: testName, top: testTop, listlearn: testListLearn, games: testGames, shapes: testShapes, ice: testIce, games2: testGames2, update: testUpdate };
 try {
   let ran = 0;
   for (const [name, run] of Object.entries(TESTS)) {

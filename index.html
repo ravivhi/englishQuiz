@@ -443,9 +443,9 @@
         .top-list li:nth-child(odd) { background: #f7fafc; }
         .top-list li.me { background: #faf089; font-weight: bold; }
         .top-list .t-rank { width: 2rem; text-align: center; flex-shrink: 0; }
-        .top-list .t-av { width: 1.8rem; height: 1.8rem; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; line-height: 1; }
+        .top-list .t-av { width: 1.8rem; height: 1.8rem; flex-shrink: 0; margin-inline-end: auto; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; line-height: 1; }
         .top-list .t-av .pic-img { width: 100%; height: 100%; object-fit: contain; }
-        .top-list .t-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .top-list .t-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .top-list .t-pts { flex-shrink: 0; color: #b7791f; font-weight: bold; direction: ltr; }
         .top-list .t-topics { flex-shrink: 0; color: #2f855a; font-weight: bold; font-size: 0.9rem; direction: ltr; }
         .top-list .t-by { font-size: 1.1rem; }
@@ -977,8 +977,29 @@
         // this site's data on its own when the phone runs low on space. App updates never touch it anyway (the
         // service worker only replaces its own file cache). Chrome decides without a prompt.
         try { if (navigator.storage && navigator.storage.persist) navigator.storage.persisted().then(p => p || navigator.storage.persist()).catch(() => {}); } catch (e) {}
+        // 🔄 New versions: an app left open in the background never loads a new version by itself, so every time it
+        // comes back to the screen it asks for one. Once the new version has taken over, the page reloads itself - only
+        // on the main menu, with no pop-up open and nothing being typed (never in the middle of a quiz or a game).
+        // The progress is all in localStorage, so nothing is lost. The very first install (no old version) never reloads.
+        let updateReady = false, updateTimer = 0;
+        function reloadIfReady() {
+            if (!updateReady) return;
+            const start = document.getElementById("start-screen"), a = document.activeElement;
+            if (!start || getComputedStyle(start).display === "none" || document.querySelector("[data-dialog]")) return;
+            if (a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA")) return;
+            updateReady = false; clearInterval(updateTimer);
+            location.reload();
+        }
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').catch(() => {});
+            const hadVersion = !!navigator.serviceWorker.controller;
+            navigator.serviceWorker.register('sw.js').then(reg => {
+                document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") reg.update().catch(() => {}); });
+            }).catch(() => {});
+            navigator.serviceWorker.addEventListener("controllerchange", () => {
+                if (!hadVersion || updateReady) return;
+                updateReady = true;
+                updateTimer = setInterval(reloadIfReady, 1500);   // waits for the main menu
+            });
         }
     </script>
     <script>
@@ -1963,7 +1984,7 @@
                 // the number the list is sorted by is big; the other one small, beside it
                 (by === "topics" ? tp : pts).classList.add("t-by");
                 (by === "topics" ? pts : tp).classList.add("t-other");
-                li.append(r, av, n, by === "topics" ? pts : tp, by === "topics" ? tp : pts);
+                li.append(r, n, av, by === "topics" ? pts : tp, by === "topics" ? tp : pts);
                 ol.append(li);
             });
             body.replaceChildren(ol);
