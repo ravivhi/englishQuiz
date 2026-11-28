@@ -10,7 +10,8 @@ A Hebrew English-practice app that is one page, `index.html`. It is live at ravi
 - **Editing `index.html`:** it mixes CRLF and LF line endings. Change only the lines you need, and never convert the whole file.
 - **Testing:** before pushing, run `node ocr-test.mjs` in `tests/` for the fast tests. Run `slow`, `all` or a single test's name to choose others. The slow tests also run on GitHub. Don't edit files while a test run is in progress.
 - **Flaky tests:** `header` (off by 1–2px) and `ice` (times out under load). Rerun them before blaming a change.
-- **Commit and push** once the tests pass. If another session's commit has a problem, fix it in a new commit on top; never rewrite it.
+- **Auto-push:** every time you finish a request, run the tests that cover the change. If they pass, commit and push right away, without asking. If they fail, fix the problem first; never push red tests. Ask first only for something risky, like deleting data or a big rewrite.
+- **Other sessions' commits:** if one has a problem, fix it in a new commit on top; never rewrite it.
 
 ## After every push: watch the GitHub checks
 
