@@ -1594,10 +1594,10 @@ async function testFriends() {
   await page.type('#fr-search', 'xyz');
   await page.waitForFunction(() => document.querySelector('#fr-drop li')?.textContent === 'לא נמצאו שמות', { timeout: 3000 });
   check(true, 'no match: the list says no names were found');
-  const rows = await page.$$eval('#fr-body .fr-list li', ls => ls.map(l => ({ text: l.textContent, on: l.classList.contains('on'), img: l.querySelector('.t-av').textContent })));
-  check(rows[0].text.includes('🟢') && rows[0].text.includes('נגה') && rows[0].text.includes('משחק עכשיו') && rows[0].on && rows[0].img,
-    `a friend playing now is first, with 🟢 and their character (${rows[0].text})`);
-  check(rows[1].text.includes('⚪') && rows[1].text.includes('נוי') && rows[1].text.includes('לא מחובר') && rows[1].text.includes('⭐ 30'), `one not playing: ⚪ "לא מחובר", with the points (${rows[1].text})`);
+  const rows = await page.$$eval('#fr-body .fr-list li', ls => ls.map(l => ({ text: l.textContent, on: l.classList.contains('on'), img: l.querySelector('.t-av').textContent, dot: getComputedStyle(l.querySelector('.fr-dot'), '::before').backgroundColor, label: l.querySelector('.fr-dot').getAttribute('aria-label') })));
+  check(rows[0].dot === 'rgb(56, 161, 105)' && rows[0].label === 'משחק עכשיו' && rows[0].text.includes('נגה') && !rows[0].text.includes('משחק עכשיו') && rows[0].on && rows[0].img,
+    `a friend playing now is first, with a green circle (no words) and their character (${rows[0].dot})`);
+  check(rows[1].dot === 'rgb(160, 174, 192)' && rows[1].label === 'לא מחובר' && rows[1].text.includes('נוי') && !rows[1].text.includes('לא מחובר') && rows[1].text.includes('⭐ 30'), `one not playing: a gray circle, with the points (${rows[1].dot})`);
   // a name that is no longer in the cloud
   await page.evaluate(() => { friends.push('רון'); saveFriends(); renderFriends(); });
   await page.waitForFunction(() => document.querySelectorAll('#fr-body .fr-list li').length === 3, { timeout: 3000 });

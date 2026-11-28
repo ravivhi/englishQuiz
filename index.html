@@ -456,9 +456,12 @@
         #fr-drop li.fr-none { color: #718096; cursor: default; background: none; }
         #fr-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
         #fr-msg { text-align: center; color: #718096; margin: 24px 0; }
+        /* the circle: green = playing now, gray = not */
+        .fr-list .fr-dot { width: 2rem; flex-shrink: 0; display: flex; justify-content: center; }
+        .fr-list .fr-dot::before { content: ""; width: 14px; height: 14px; border-radius: 50%; background: #a0aec0; }
+        .fr-list li.on .fr-dot::before { background: #38a169; box-shadow: 0 0 0 3px rgba(56, 161, 105, 0.25); }
         .fr-list .fr-state { flex-shrink: 0; font-size: 0.85rem; color: #718096; white-space: nowrap; }
-        .fr-list li.on .fr-state { color: #2f855a; font-weight: bold; }
-        .fr-list .fr-del { flex-shrink: 0; width: 30px; height: 30px; padding: 0; border: none; border-radius: 50%; background: #edf2f7; color: #4a5568; font-size: 0.95rem; cursor: pointer; }
+                .fr-list .fr-del { flex-shrink: 0; width: 30px; height: 30px; padding: 0; border: none; border-radius: 50%; background: #edf2f7; color: #4a5568; font-size: 0.95rem; cursor: pointer; }
         .top-list { list-style: none; margin: 0; padding: 0; text-align: right; }
         .top-list li { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 10px; font-size: 1.05rem; }
         .top-list li:nth-child(odd) { background: #f7fafc; }
@@ -2066,10 +2069,10 @@
                 if (p.online) li.className = "on";
                 const dot = document.createElement("span"), n = document.createElement("span"), av = document.createElement("span"),
                       st = document.createElement("span"), pts = document.createElement("span"), del = document.createElement("button");
-                dot.className = "t-rank"; dot.textContent = p.online ? "🟢" : "⚪";
+                dot.className = "fr-dot"; dot.setAttribute("role", "img"); dot.setAttribute("aria-label", p.online ? "משחק עכשיו" : "לא מחובר"); dot.title = dot.getAttribute("aria-label");
                 n.className = "t-name"; n.textContent = p.name;
                 av.className = "t-av"; putPic(av, SHOP_AVATARS.find(x => x.id === p.avatar));
-                st.className = "fr-state"; st.textContent = p.gone ? "השם לא נמצא" : p.online ? "משחק עכשיו" : "לא מחובר";
+                st.className = "fr-state"; st.textContent = p.gone ? "השם לא נמצא" : "";   // online or not: the circle shows it
                 pts.className = "t-pts"; pts.textContent = p.gone ? "" : `⭐ ${p.points || 0}`;
                 del.type = "button"; del.className = "fr-del"; del.textContent = "✕"; del.setAttribute("aria-label", `הסרת ${p.name} מהחברים`);
                 del.onclick = async () => {
