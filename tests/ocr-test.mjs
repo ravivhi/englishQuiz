@@ -1257,7 +1257,7 @@ async function testBox() {
   check((await page.$$('#shop-faces .face.missing')).length === 30, 'after the box the faces start over too (all hidden again)');
   await page.evaluate(() => showStart());
 
-  // opening: 45% of the boxes hold 50 coins, 45% 100 coins, 10% an ice cube - never a magic wand
+  // opening: 40% of the boxes hold 50 coins, 40% 100 coins, 20% an ice cube - never a magic wand
   const reveal = () => page.evaluate(() => { const p = document.getElementById('box-reveal'); if (!p) return null; const c = p.querySelector('.br-card').getBoundingClientRect();
     return { cls: p.className, pic: p.querySelector('.br-pic').textContent, big: p.querySelector('.br-big').textContent, sub: p.querySelector('.br-sub').textContent, fire: !!p.querySelector('.br-fire'),
       fits: c.left >= 0 && c.right <= innerWidth && c.top >= 0 && c.bottom <= innerHeight }; });
@@ -1283,7 +1283,7 @@ async function testBox() {
   await page.evaluate(() => { shop.wands = 2; saveShop(); });
   await page.reload();
   check(await vis('shop-screen') && (await page.evaluate(() => shop.wands)) === 2, 'after a reload the app reopens in the shop and the wands are kept');
-  for (const [r, coins] of [[0.3, 50], [0.8, 100]]) {
+  for (const [r, coins] of [[0.3, 50], [0.7, 100]]) {
     const before = await page.evaluate(r => { Math.random = () => r; shop.boxes = 1; saveShop(); renderShop(); return { total: grandTotal, wands: shop.wands }; }, r);
     await page.click('#box-open');
     await new Promise(res => setTimeout(res, 900));
@@ -1298,7 +1298,7 @@ async function testBox() {
     for (let k = 0; k < 600; k++) { const r = k / 600; Math.random = () => r; shop.boxes = 1; const t = grandTotal, w = shop.wands, i = shop.ice || 0; openBox();
       if (grandTotal - t === 50) out[50]++; else if (grandTotal - t === 100) out[100]++; else if (shop.wands === w + 1) out.wand++; else if (shop.ice === i + 1) out.ice++; }
     Math.random = real; return out; });
-  check(odds.wand === 0 && odds[50] === 270 && odds[100] === 270 && odds.ice === 60, `no box gives a wand: 45% 50 coins, 45% 100 coins, 10% an ice cube (${JSON.stringify(odds)})`);
+  check(odds.wand === 0 && odds[50] === 240 && odds[100] === 240 && odds.ice === 120, `no box gives a wand: 40% 50 coins, 40% 100 coins, 20% an ice cube (${JSON.stringify(odds)})`);
 
   for (const [w, h] of [[320, 568], [390, 844]]) {
     await page.setViewport({ width: w, height: h });
@@ -1944,7 +1944,7 @@ async function testFire() {
       if ((shop.wands || 0) === w + 2) out.wand++; else if ((shop.ice || 0) === i + 2) out.ice++; else out[grandTotal - t] = (out[grandTotal - t] || 0) + 1; }
     shop.ice = 0; saveShop();   // (no ice left: the missed day below must break the 🔥 days)
     return out; });
-  check(odds.wand === 0 && odds.ice === 60 && odds[50] === 0 && odds[100] === 270 && odds[200] === 270, `🔥 in a streak everything in the shop box is doubled: 10% 2 ice cubes, 45% 100, 45% 200, never 50, no wands (${JSON.stringify(odds)})`);
+  check(odds.wand === 0 && odds.ice === 120 && odds[50] === 0 && odds[100] === 240 && odds[200] === 240, `🔥 in a streak everything in the shop box is doubled: 20% 2 ice cubes, 40% 100, 40% 200, never 50, no wands (${JSON.stringify(odds)})`);
   // a missed day: back to 0 on the main screen, and the next quiz starts again from 1, points no longer doubled
   await setDay(11);
   check((await fire()) === '🔥 1', 'a day missed: back to 🔥 1');
@@ -2375,7 +2375,7 @@ async function testIce() {
   const rv = await page.evaluate(() => ({ cls: document.getElementById('box-reveal').className, big: document.querySelector('#box-reveal .br-big').textContent, ice: shop.ice, shopIce: document.getElementById('shop-ice').textContent }));
   check(rv.cls === 'ice' && rv.big === 'קוביית קרח!' && rv.ice === 2 && rv.shopIce === '🧊 × 2', `the box can give an ice cube: "${rv.big}" (now ${rv.ice})`);
   const chance = await page.$eval('#box-reveal .br-chance', e => e.textContent);
-  check(chance.includes('10%'), `the pop-up says how likely it was (${chance})`);
+  check(chance.includes('20%'), `the pop-up says how likely it was (${chance})`);
   check(page.pageErrors.length === 0, `no page errors${page.pageErrors.length ? ': ' + page.pageErrors.join('; ') : ''}`);
   await page.close();
 }

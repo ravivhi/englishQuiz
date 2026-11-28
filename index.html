@@ -3644,7 +3644,7 @@
             { id: "bronze", pic: "🥉", name: "מדליית ארד" }, { id: "silver", pic: "🥈", name: "מדליית כסף" },
             { id: "gold", pic: "🥇", name: "מדליית זהב" }, { id: "trophy", pic: "🏆", name: "גביע" }, { id: "crown", pic: "👑", name: "כתר" },
         ];
-        // What's inside: 45% 50 coins, 45% 100 coins, 10% an ice cube 🧊 (no magic wands: those come at the end of a quiz)
+        // What's inside: 40% 50 coins, 40% 100 coins, 20% an ice cube 🧊 (no magic wands: those come at the end of a quiz)
         // (🔥 from 10 days in a row: doubled - 100 / 200 / 2 ice cubes).
         // (Medals / trophies from older boxes stay saved in shop.awards.)
         function openBox() {
@@ -3652,12 +3652,12 @@
             shop.boxes--;
             const r = Math.random(), x2 = pointsDoubled() ? 2 : 1;   // 🔥 from 10 days in a row everything in the box is doubled
             let it;
-            if (r >= 0.9) {   // 10%: an ice cube (🔥 two)
+            if (r >= 0.8) {   // 20%: an ice cube (🔥 two)
                 shop.ice = (shop.ice || 0) + x2;
-                it = { id: "ice", pic: "🧊", name: x2 === 2 ? "2 קוביות קרח" : "קוביית קרח", ice: true, chance: 10 };
-            } else {         // 45%: 50 coins, 45%: 100 coins (🔥 100 / 200)
-                const coins = (r < 0.45 ? 50 : 100) * x2;
-                it = { id: "coins", pic: "💰", name: `${coins} נקודות`, coins, chance: 45 };
+                it = { id: "ice", pic: "🧊", name: x2 === 2 ? "2 קוביות קרח" : "קוביית קרח", ice: true, chance: 20 };
+            } else {         // 40%: 50 coins, 40%: 100 coins (🔥 100 / 200)
+                const coins = (r < 0.4 ? 50 : 100) * x2;
+                it = { id: "coins", pic: "💰", name: `${coins} נקודות`, coins, chance: 40 };
                 grandTotal += coins;
                 addEarned(coins);
                 try { localStorage.setItem(TOTAL_KEY, String(grandTotal)); } catch (e) {} window.cloud && cloud.sync();
