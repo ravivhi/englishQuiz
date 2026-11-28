@@ -1257,7 +1257,7 @@ async function testBox() {
   check((await page.$$('#shop-faces .face.missing')).length === 30, 'after the box the faces start over too (all hidden again)');
   await page.evaluate(() => showStart());
 
-  // opening: 20% of the boxes hold a magic wand, 40% 50 coins, 40% 100 coins
+  // opening: 45% of the boxes hold 50 coins, 45% 100 coins, 10% an ice cube - never a magic wand
   const reveal = () => page.evaluate(() => { const p = document.getElementById('box-reveal'); if (!p) return null; const c = p.querySelector('.br-card').getBoundingClientRect();
     return { cls: p.className, pic: p.querySelector('.br-pic').textContent, big: p.querySelector('.br-big').textContent, sub: p.querySelector('.br-sub').textContent, fire: !!p.querySelector('.br-fire'),
       fits: c.left >= 0 && c.right <= innerWidth && c.top >= 0 && c.bottom <= innerHeight }; });
@@ -1266,11 +1266,11 @@ async function testBox() {
   await page.evaluate(() => { Math.random = () => 0; });
   await page.click('#box-open');
   await new Promise(r => setTimeout(r, 900));
-  check((await saved()).boxes === 0 && (await saved()).wands === 1 && !Object.keys((await saved()).awards || {}).length, 'opening the box can give a magic wand (saved; no medal)');
-  check((await text('box-pic')) === '🪄' && (await text('shop-msg')).includes('שרביט קסמים') && (await page.evaluate(() => window.unlockSounds)) === 2, 'the box shows the wand, with the happy sound');
-  check((await text('shop-wands')) === '🪄 × 1' && (await text('menu-wands')) === '🪄 1', 'the wand counts go up (🪄 1)');
+  check((await saved()).boxes === 0 && !((await saved()).wands > 0) && !Object.keys((await saved()).awards || {}).length, 'opening the box gives no magic wand (saved; no medal)');
+  check((await text('box-pic')) === '💰' && (await page.evaluate(() => window.unlockSounds)) === 2, 'the box shows what was inside, with the happy sound');
+  check((await text('shop-wands')) === '🪄 × 0' && (await text('menu-wands')) === '', 'the wand counts stay at 0');
   let rv = await reveal();
-  check(rv && rv.cls === 'wand' && rv.pic === '🪄' && rv.big.includes('שרביט קסמים') && rv.sub.includes('התשובה הנכונה') && rv.sub.includes('1') && rv.fits, `a big pop-up says clearly what was inside: ${rv && rv.pic} "${rv && rv.big}" - ${rv && rv.sub}`);
+  check(rv && rv.cls === 'coins' && rv.pic === '💰' && rv.big === '+50 נקודות' && rv.fits, `a big pop-up says clearly what was inside: ${rv && rv.pic} "${rv && rv.big}" - ${rv && rv.sub}`);
   await new Promise(r => setTimeout(r, 600)); await page.click('#box-reveal');   // (taps in its first half second are ignored: a quick double tap doesn't close it unseen)
   check(!(await page.$('#box-reveal')), 'a tap closes it');
   check(await page.$eval('#box-open', e => e.disabled) && (await page.$eval('#shop-btn', e => e.dataset.boxes)) === undefined, 'no boxes left: the button is off and the red count is gone');
@@ -1280,7 +1280,7 @@ async function testBox() {
   await page.evaluate(() => history.back());
   await page.waitForFunction(() => !document.getElementById('box-reveal'), { timeout: 3000 }).catch(() => {});
   check(!(await page.$('#box-reveal')), 'the phone back button closes it too');
-  check((await saved()).wands === 2 && (await text('shop-msg')).includes('2'), 'another wand: now 2');
+  await page.evaluate(() => { shop.wands = 2; saveShop(); });
   await page.reload();
   check(await vis('shop-screen') && (await page.evaluate(() => shop.wands)) === 2, 'after a reload the app reopens in the shop and the wands are kept');
   for (const [r, coins] of [[0.3, 50], [0.8, 100]]) {
@@ -1298,7 +1298,7 @@ async function testBox() {
     for (let k = 0; k < 600; k++) { const r = k / 600; Math.random = () => r; shop.boxes = 1; const t = grandTotal, w = shop.wands, i = shop.ice || 0; openBox();
       if (grandTotal - t === 50) out[50]++; else if (grandTotal - t === 100) out[100]++; else if (shop.wands === w + 1) out.wand++; else if (shop.ice === i + 1) out.ice++; }
     Math.random = real; return out; });
-  check(odds.wand === 120 && odds[50] === 210 && odds[100] === 210 && odds.ice === 60, `20% of the boxes give a wand, 35% 50 coins, 35% 100 coins, 10% an ice cube (${JSON.stringify(odds)})`);
+  check(odds.wand === 0 && odds[50] === 270 && odds[100] === 270 && odds.ice === 60, `no box gives a wand: 45% 50 coins, 45% 100 coins, 10% an ice cube (${JSON.stringify(odds)})`);
 
   for (const [w, h] of [[320, 568], [390, 844]]) {
     await page.setViewport({ width: w, height: h });
@@ -1611,7 +1611,7 @@ async function testPictures() {
 }
 
 async function testWand() {
-  console.log('\n[wand] a magic wand shows the right answer in a quiz (the end-of-quiz box gives none)');
+  console.log('\n[wand] a magic wand takes away a wrong answer in a quiz (an ordinary end-of-quiz box gives none)');
   const page = await openPage();
   await page.evaluate(() => {
     speechSynthesis.speak = u => setTimeout(() => u.onend && u.onend(), 50); speechSynthesis.cancel = () => {}; window.coinSound = () => {};
@@ -1645,37 +1645,43 @@ async function testWand() {
   await page.waitForSelector('[data-dialog] [data-ok]', { timeout: 3000 });
   check((await page.$eval('[data-dialog] [data-text]', e => e.textContent)).includes('שרביט'), 'tapping the wand first asks "are you sure?"');
   await page.click('[data-dialog] [data-cancel]');
-  check((await wands()) === '1,1' && !(await page.$('#answers-container .magic')) && !(await page.$eval('#wand-btn', e => e.disabled)), 'cancel: the wand is kept and nothing is shown');
+  check((await wands()) === '1,1' && !(await page.$('#answers-container .faded')) && !(await page.$eval('#wand-btn', e => e.disabled)), 'cancel: the wand is kept and nothing is taken away');
   await page.click('#wand-btn');
   await page.waitForSelector('[data-dialog] [data-ok]', { timeout: 3000 });
   await page.click('[data-dialog] [data-ok]');
   const st = await page.evaluate(() => { const c = wordsData[currentIndex].correct, bs = [...document.querySelectorAll('#answers-container .btn-answer')];
-    return { magic: bs.filter(b => b.classList.contains('magic')).map(b => b.innerText), c, othersOff: bs.filter(b => b.innerText !== c).every(b => b.disabled && b.classList.contains('faded')) }; });
-  check(st.magic.length === 1 && st.magic[0] === st.c && st.othersOff, 'tapping the wand makes the right answer glow; the other answers fade and cannot be tapped');
+    return { faded: bs.filter(b => b.classList.contains('faded')).map(b => ({ t: b.innerText, off: b.disabled })), c, n: bs.length, magic: bs.some(b => b.classList.contains('magic')), rightOn: !bs.find(b => b.innerText === c).disabled }; });
+  check(st.faded.length === 1 && st.faded[0].t !== st.c && st.faded[0].off && !st.magic && st.rightOn && st.n === 4, `tapping the wand takes away one wrong answer (it fades and cannot be tapped), the right one is not shown (${JSON.stringify(st.faded)})`);
   check((await wands()) === '0,0' && await page.$eval('#wand-btn', e => e.disabled), 'the wand is used up (saved), once per question');
   check((await page.$eval('#menu-wands', e => e.textContent)) === '' && (await page.$eval('#shop-wands', e => e.textContent)) === '🪄 × 0', 'the counts go down too (none left: nothing on the main screen, 0 in the shop)');
   // reopening the app in the middle of that question: still shown, the wand is not given back
   await page.reload({ waitUntil: 'load' });
   await page.waitForFunction(() => getComputedStyle(document.getElementById('game-screen')).display !== 'none', { timeout: 10000 });
-  check((await page.$$eval('#answers-container .magic', b => b.length)) === 1 && (await wands()) === '0,0', 'after reopening the app the right answer still glows (the wand is not given back)');
+  check((await page.$$eval('#answers-container .faded', b => b.map(x => x.innerText))).join() === st.faded[0].t && (await wands()) === '0,0', 'after reopening the app the same wrong answer is still taken away (the wand is not given back)');
   await page.evaluate(() => { speechSynthesis.speak = u => setTimeout(() => u.onend && u.onend(), 50); window.coinSound = () => {}; });
-  await page.evaluate(() => [...document.querySelectorAll('#answers-container .btn-answer')].find(b => b.classList.contains('magic')).click());
+  await page.evaluate(() => { const c = wordsData[currentIndex].correct; [...document.querySelectorAll('#answers-container .btn-answer')].find(b => b.innerText === c).click(); });
   const after = await page.evaluate(() => ({ score: totalScore, streak, missed: missed.length }));
   check(after.score === before.score && after.streak === before.streak && after.missed === 1, 'the word answered with the wand gives no point, takes none, keeps the streak and goes to the practice list');
   await page.evaluate(() => { clearTimeout(nextQuestionTimer); nextQuestionTimer = null; currentIndex++; loadQuestion(); });
   check(await shown('#wand-btn') && await page.$eval('#wand-btn', e => e.disabled) && (await page.$eval('#wand-count', e => e.textContent)) === '0', 'with no wands left the button stays disabled (0) on the next question');
 
-  // end-of-quiz boxes never add a wand, opened or not
+  // ordinary end-of-quiz boxes never add a wand, opened or not (the lucky one is tested in [boxextra])
   await finishQuiz(); await page.evaluate(() => showStart());   // left closed
   await finishQuiz(); await page.click('#coin-box');
   await finishQuiz(); await page.evaluate(() => restartGame());
-  check((await wands()) === '0,0', `end-of-quiz boxes add no wands, opened or not (${await wands()})`);
+  check((await wands()) === '0,0', `ordinary end-of-quiz boxes add no wands, opened or not (${await wands()})`);
+  // the wand takes away only wrong answers that are still there; none left: it is not used
+  await page.evaluate(() => { showStart(); startFromInput(); shop.wands = 1; saveShop(); updateWandBtn(); const c = wordsData[currentIndex].correct;
+    [...document.querySelectorAll('#answers-container .btn-answer')].filter(b => b.innerText !== c).slice(0, 2).forEach(b => b.click()); });
+  await page.click('#wand-btn'); await page.waitForSelector('[data-dialog] [data-ok]', { timeout: 3000 }); await page.click('[data-dialog] [data-ok]');
+  const st2 = await page.evaluate(() => { const bs = [...document.querySelectorAll('#answers-container .btn-answer')]; return { wrong: bs.filter(b => b.classList.contains('wrong')).length, faded: bs.filter(b => b.classList.contains('faded') && !b.classList.contains('wrong')).length }; });
+  check(st2.wrong === 2 && st2.faded === 1 && (await wands()) === '0,0', `after 2 wrong taps the wand takes away the last wrong answer (${JSON.stringify(st2)})`);
   check(page.pageErrors.length === 0, `no page errors${page.pageErrors.length ? ': ' + page.pageErrors.join('; ') : ''}`);
   await page.close();
 }
 
 async function testBoxExtra() {
-  console.log('\n[boxextra] in every 10 quizzes with more than half right, one random box has 50 more coins');
+  console.log('\n[boxextra] in every 10 quizzes with more than half right, one random box has 50 more coins or a magic wand');
   const page = await openPage();
   await page.evaluate(() => { window.coinSound = () => {}; playUnlockSound = () => {};
     document.getElementById('words-input').value = Array.from({ length: 10 }, (_, i) => `word${i + 1}\tמילה${i + 1}`).join('\n'); renderWords(); });
@@ -1689,14 +1695,16 @@ async function testBoxExtra() {
     }
     return { points: totalScore, pending: pendingCoins, total: grandTotal, extra: JSON.parse(localStorage.getItem('englishquiz-box-extra')) };
   }, wrong);
-  const setRound = (n, at) => page.evaluate((n, at) => { boxExtra = { n, at }; localStorage.setItem('englishquiz-box-extra', JSON.stringify(boxExtra)); }, n, at);
+  const setRound = (n, at, wand = false) => page.evaluate((n, at, wand) => { boxExtra = { n, at, wand }; localStorage.setItem('englishquiz-box-extra', JSON.stringify(boxExtra)); }, n, at, wand);
 
   // every 10 good quizzes: exactly one bonus, in a random place
-  const odds = await page.evaluate(() => { const out = []; boxExtra = newExtraRound(); for (let k = 0; k < 100; k++) out.push(boxExtraFor(80)); return out; });
-  const per10 = Array.from({ length: 10 }, (_, b) => odds.slice(b * 10, b * 10 + 10).filter(x => x === 50).length);
-  const places = new Set(Array.from({ length: 10 }, (_, b) => odds.slice(b * 10, b * 10 + 10).indexOf(50)));
-  check(per10.every(n => n === 1) && odds.every(x => x === 0 || x === 50), `in each 10 good quizzes exactly one gives +50 (${per10.join(',')})`);
+  const odds = await page.evaluate(() => { const out = []; boxExtra = newExtraRound(); for (let k = 0; k < 200; k++) { const c = boxExtraFor(80); out.push(c === 50 ? 'c' : boxWand ? 'w' : c === 0 ? '-' : '?'); } return out; });
+  const per10 = Array.from({ length: 20 }, (_, b) => odds.slice(b * 10, b * 10 + 10).filter(x => x !== '-').length);
+  const places = new Set(Array.from({ length: 20 }, (_, b) => odds.slice(b * 10, b * 10 + 10).findIndex(x => x !== '-')));
+  const kinds = odds.filter(x => x !== '-');
+  check(per10.every(n => n === 1) && !odds.includes('?'), `in each 10 good quizzes exactly one gives a bonus (${per10.join(',')})`);
   check(places.size > 1, `in a random place each time (places: ${[...places].join(',')})`);
+  check(kinds.includes('c') && kinds.includes('w'), `the bonus is sometimes +50 and sometimes a magic wand (${kinds.join('')})`);
   check(await page.evaluate(() => boxExtraFor(50) === 0 && boxExtraFor(30) === 0), 'exactly half right, or less, does not count');
 
   await setRound(2, 3);
@@ -1724,6 +1732,18 @@ async function testBoxExtra() {
   await setRound(0, 1);
   r = await play(0);
   check(plain.points === 22 && r.points === 22 && r.pending === r.points + 100, `🔥 days in a row: the quiz's points are doubled (11 → ${r.points}) and the box bonus too (+100: ${r.pending})`);
+  // 🪄 a wand round: the lucky quiz's box holds a magic wand (🔥 two), given at once; no extra coins
+  await page.evaluate(() => { shop.wands = 0; saveShop(); daily = { last: dayStr(), days: 1 }; localStorage.setItem(DAILY_KEY, JSON.stringify(daily)); });
+  await setRound(0, 1, true);
+  r = await play(0);
+  const w1 = await page.evaluate(() => [shop.wands, JSON.parse(localStorage.getItem(SHOP_KEY)).wands].join());
+  check(r.pending === r.points && w1 === '1,1' && await page.$eval('#coin-box', e => getComputedStyle(e).display !== 'none'), `a wand round: the lucky quiz gives a magic wand (saved: ${w1}), no extra coins`);
+  await page.click('#coin-box');
+  await page.waitForFunction(() => document.getElementById('box-toast').textContent.includes('שרביט'), { timeout: 5000 }).catch(() => {});
+  const wt = await page.$eval('#box-toast', e => e.textContent);
+  check(wt.includes('שרביט') && wt.includes('1'), `opening its box tells about the wand: "${wt}"`);
+  r = await play(0);
+  check(r.pending === r.points && (await page.evaluate(() => shop.wands)) === 1, 'the next good quiz: no wand');
   check(page.pageErrors.length === 0, `no page errors${page.pageErrors.length ? ': ' + page.pageErrors.join('; ') : ''}`);
   await page.close();
 }
@@ -1924,7 +1944,7 @@ async function testFire() {
       if ((shop.wands || 0) === w + 2) out.wand++; else if ((shop.ice || 0) === i + 2) out.ice++; else out[grandTotal - t] = (out[grandTotal - t] || 0) + 1; }
     shop.ice = 0; saveShop();   // (no ice left: the missed day below must break the 🔥 days)
     return out; });
-  check(odds.wand === 120 && odds.ice === 60 && odds[50] === 0 && odds[100] === 210 && odds[200] === 210, `🔥 in a streak everything in the shop box is doubled: 20% 2 wands, 10% 2 ice cubes, 35% 100, 35% 200, never 50 (${JSON.stringify(odds)})`);
+  check(odds.wand === 0 && odds.ice === 60 && odds[50] === 0 && odds[100] === 270 && odds[200] === 270, `🔥 in a streak everything in the shop box is doubled: 10% 2 ice cubes, 45% 100, 45% 200, never 50, no wands (${JSON.stringify(odds)})`);
   // a missed day: back to 0 on the main screen, and the next quiz starts again from 1, points no longer doubled
   await setDay(11);
   check((await fire()) === '🔥 1', 'a day missed: back to 🔥 1');

@@ -510,7 +510,7 @@
                                border-bottom: 12px solid #f6ad55; }
         #summary-avatar { display: inline-block; font-size: 3rem; line-height: 1; vertical-align: bottom; margin: 0 8px 22px 0; padding: 0;
                           background: none; border: 0; cursor: pointer; font-family: inherit; touch-action: manipulation; }
-        /* 🪄 the magic wand in the quiz (won in the result screen's surprise box): shows the right answer */
+        /* 🪄 the magic wand in the quiz (sometimes won at the end of a quiz): takes away a wrong answer */
         #wand-btn { position: absolute; right: 0; top: 50%; transform: translateY(-50%); z-index: 2; font-size: 1.3rem; line-height: 1; padding: 5px 10px; border: 2px solid #b794f4; border-radius: 999px;
                     background: #faf5ff; color: #553c9a; cursor: pointer; font-family: inherit; touch-action: manipulation; white-space: nowrap; }
         #wand-btn #wand-count { font-size: 0.9rem; font-weight: bold; margin-inline-start: 3px; }
@@ -779,7 +779,7 @@
                 <div id="menu-topics" title="נושאים שהושלמו (ירוקים) בכל הרמות" style="font-weight:bold;color:#2f855a;white-space:nowrap;"></div>
                 <div id="menu-fire" title="ימים ברצף: כל יום שמשחקים (מסיימים בוחן) מוסיף 🔥. מ-10 ימים ברצף הנקודות בסוף כל בוחן כפולות!" style="font-weight:bold;color:#dd6b20;white-space:nowrap;"></div>
                 <div id="menu-ice" title="קוביות קרח: יום בלי בוחן משתמש בקוביה אחת, והימים ברצף 🔥 נשמרים" style="font-weight:bold;color:#2b6cb0;white-space:nowrap;"></div>
-                <div id="menu-wands" title="שרביטי קסמים: בבוחן הם מראים את התשובה הנכונה" style="font-weight:bold;color:#6b46c1;white-space:nowrap;"></div>
+                <div id="menu-wands" title="שרביטי קסמים: בבוחן כל אחד מוריד תשובה לא נכונה" style="font-weight:bold;color:#6b46c1;white-space:nowrap;"></div>
                 <div id="menu-streak" aria-hidden="true" style="font-size:1.6rem;line-height:1.2;"></div>
             </div>
             <div class="tabs" role="tablist">
@@ -846,7 +846,7 @@
             <!-- the gap between the word and the answers; the big streak emoji appears inside it -->
             <div style="min-height:clamp(20px, 11vh, 90px);position:relative;display:flex;align-items:center;justify-content:center;">
                 <div id="streak-emoji" aria-hidden="true"></div>
-                <button type="button" id="wand-btn" onclick="useWand()" aria-label="שרביט קסמים: מראה את התשובה הנכונה" title="שרביט קסמים: מראה את התשובה הנכונה" disabled>🪄<span id="wand-count"></span></button>
+                <button type="button" id="wand-btn" onclick="useWand()" aria-label="שרביט קסמים: מוריד תשובה לא נכונה" title="שרביט קסמים: מוריד תשובה לא נכונה" disabled>🪄<span id="wand-count"></span></button>
             </div>
             <div class="answers-grid" id="answers-container"></div>
         </div>
@@ -891,7 +891,7 @@
                 <div class="shop-section">🪄 שרביטי הקסמים שלי</div>
                 <div class="wand-area">
                     <div id="shop-wands"></div>
-                    <div class="wand-info">מקבלים שרביט בקופסת ההפתעה. בבוחן לוחצים עליו והוא מראה את התשובה הנכונה!</div>
+                    <div class="wand-info">לפעמים יש שרביט בקופסת ההפתעה של סוף הבוחן. בבוחן לוחצים עליו והוא מוריד תשובה לא נכונה!</div>
                 </div>
                 <div class="shop-section">🔥 ימים ברצף</div>
                 <div class="wand-area fire-area">
@@ -1008,16 +1008,21 @@
         try { pendingCoins = Math.max(0, parseInt(localStorage.getItem(PENDING_KEY), 10) || 0); } catch (e) {}
         function savePending() { try { localStorage.setItem(PENDING_KEY, String(pendingCoins)); } catch (e) {} }
         // 🎁 A box bonus: in every 10 quizzes finished with more than half right, one of them (a random one) has
-        // BOX_EXTRA more coins in its box - a surprise until it is opened. Saved: { n: good quizzes so far in this 10, at: the lucky one (1-10) }
+        // BOX_EXTRA more coins in its box, or a magic wand (half of the rounds each) - a surprise until it is opened.
+        // Saved: { n: good quizzes so far in this 10, at: the lucky one (1-10), wand: this round's bonus is a wand }
         const BOX_EXTRA = 50, BOX_EXTRA_EVERY = 10, BOX_EXTRA_KEY = "englishquiz-box-extra";
-        const newExtraRound = () => ({ n: 0, at: 1 + Math.floor(Math.random() * BOX_EXTRA_EVERY) });
+        const newExtraRound = () => ({ n: 0, at: 1 + Math.floor(Math.random() * BOX_EXTRA_EVERY), wand: Math.random() < 0.5 });
         let boxExtra = newExtraRound();
         try { const v = JSON.parse(localStorage.getItem(BOX_EXTRA_KEY)); if (v && v.at >= 1) boxExtra = v; } catch (e) {}
-        // called once per finished quiz: returns the extra coins for its box (0 or BOX_EXTRA)
+        // called once per finished quiz: returns the extra coins for its box (0 or BOX_EXTRA); a wand bonus sets boxWand (1) instead
+        let boxWand = 0;
         function boxExtraFor(rate) {
+            boxWand = 0;
             if (!(rate > 50)) return 0;
             boxExtra.n++;
-            const extra = boxExtra.n === boxExtra.at ? BOX_EXTRA : 0;
+            const lucky = boxExtra.n === boxExtra.at;
+            if (lucky && boxExtra.wand) boxWand = 1;
+            const extra = lucky && !boxExtra.wand ? BOX_EXTRA : 0;
             if (boxExtra.n >= Math.max(BOX_EXTRA_EVERY, boxExtra.at)) boxExtra = newExtraRound();   // (the tests set a far-away "at")
             try { localStorage.setItem(BOX_EXTRA_KEY, JSON.stringify(boxExtra)); } catch (e) {}
             return extra;
@@ -1169,13 +1174,13 @@
                 if (wrongPicks.includes(ans)) { button.classList.add("wrong"); button.disabled = true; }
                 container.appendChild(button);
             });
-            wandUsed = !!(saved && saved.wand);
+            wandUsed = saved && saved.wand ? saved.wand : false;   // the wrong answer it took away (true: an older save)
             if (wandUsed) showMagic(false);
             updateWandBtn();
             saveSession("game");
         }
 
-        // 🪄 The magic wand: one tap shows the right answer (it glows, the others fade). The word then gives no point
+        // 🪄 The magic wand: one tap takes away one wrong answer (it fades and cannot be tapped). The word then gives no point
         // and takes none away, the streak stays as it is, and it goes to "practise the words I got wrong".
         let wandUsed = false;
         // how many wands: on the main screen (next to the points, only once there are any) and in the shop
@@ -1196,22 +1201,27 @@
         function showMagic(animate) {
             const correct = wordsData[currentIndex].correct;
             const bs = [...document.querySelectorAll("#answers-container .btn-answer")];
-            for (const btn of bs) {
-                if (btn.innerText === correct) {
-                    btn.classList.add("magic");
-                    if (animate) avatarBurst(["✨", "🪄", "⭐"], 10, btn, true);
-                } else if (!btn.classList.contains("wrong")) { btn.classList.add("faded"); btn.disabled = true; }
+            let btn = typeof wandUsed === "string" && bs.find(b => b.innerText === wandUsed);
+            if (!btn) {   // a wrong answer not tapped yet, at random
+                const left = bs.filter(b => b.innerText !== correct && !b.classList.contains("wrong"));
+                btn = left[Math.floor(Math.random() * left.length)];
+                if (!btn) return;
+                wandUsed = btn.innerText;
             }
+            btn.classList.add("faded"); btn.disabled = true;
+            if (animate) avatarBurst(["✨", "🪄", "💨"], 10, btn, true);
         }
         // asks first ("are you sure?"), so a wand is not used up by a tap by mistake
         async function useWand() {
             if (!canAnswer || wandUsed || !(shop.wands > 0) || currentIndex >= wordsData.length) return;
+            const cw = wordsData[currentIndex].correct;
+            if (![...document.querySelectorAll("#answers-container .btn-answer")].some(b => b.innerText !== cw && !b.classList.contains("wrong"))) return;   // no wrong answer left to take away
             const at = currentIndex;
-            if (!(await askConfirm(`🪄 להשתמש בשרביט קסמים? הוא יראה את התשובה הנכונה (יש לכם ${shop.wands})`, "כן, להשתמש", "#805ad5"))) return;
+            if (!(await askConfirm(`🪄 להשתמש בשרביט קסמים? הוא יוריד תשובה לא נכונה (יש לכם ${shop.wands})`, "כן, להשתמש", "#805ad5"))) return;
             if (!canAnswer || wandUsed || !(shop.wands > 0) || currentIndex !== at) return;   // (nothing changed meanwhile)
             shop.wands--;
             saveShop(); showWands();
-            wandUsed = true;
+            wandUsed = true;   // (showMagic puts the answer it took away here)
             const cur = wordsData[currentIndex];
             if (!missed.includes(cur)) missed.push(cur);
             showMagic(true);
@@ -1302,6 +1312,8 @@
             // 🎁 the points (and maybe a bonus, 🔥 doubled too from 10 days in a row) wait in the surprise box until it is opened
             pendingCoins = totalScore + boxExtraFor(successRate) * (pointsDoubled() ? 2 : 1);
             savePending();
+            summaryWands = boxWand * (pointsDoubled() ? 2 : 1);   // 🪄 the lucky quiz's wand: given right away (never lost), shown when the box opens
+            if (summaryWands) { shop.wands = (shop.wands || 0) + summaryWands; saveShop(); showWands(); }
 
             document.getElementById("summary-emoji").innerText = emoji;
             document.getElementById("summary-title").innerText = title;
@@ -1310,7 +1322,7 @@
             // until the box is opened the total is the one from before; opening it counts the quiz's points into it
             scoreEl.innerText = `נקודות בבוחן: ${totalScore} · סה״כ: ${grandTotal}`;
             scoreEl.style.display = "";
-            box.style.display = pendingCoins ? "" : "none";
+            box.style.display = pendingCoins || summaryWands ? "" : "none";
             box.disabled = false;
             box.querySelector(".cb-pic").textContent = "🎁";
 
@@ -3283,6 +3295,7 @@
         }
 
         // 🎁 Tapping the surprise box: it shakes, pops open, coins burst out and the points tick up into the total
+        let summaryWands = 0;   // wands won in the quiz just finished (shown when its box is opened)
         async function openCoinBox() {
             const box = document.getElementById("coin-box"), pic = box.querySelector(".cb-pic"), scoreEl = document.getElementById("summary-final-score");
             if (box.disabled) return;
@@ -3292,7 +3305,7 @@
             coinSound();      // 💰 cha-ching, right on the tap
             const run = celebrateRun, here = () => run === celebrateRun && shownEl("summary-screen");
             // the quiz's points stay; the total counts up to its new value, popping on every step
-            const label = `נקודות בבוחן: ${totalScore}` + (extra ? ` + 🎁 ${extra} בונוס` : "");
+            const label = `נקודות בבוחן: ${totalScore}` + (extra ? ` + 🎁 ${extra} בונוס` : "") + (summaryWands ? ` + 🪄${summaryWands > 1 ? " × " + summaryWands : ""}` : "");
             const show = n => { scoreEl.innerHTML = `${label} · סה״כ: <span class="total-up">${before + n}</span>`; return scoreEl.querySelector(".total-up"); };
             const finish = () => { if (run !== celebrateRun) return;   // a newer result screen is showing: leave it alone
                 box.style.display = "none"; scoreEl.style.display = ""; show(points); if (shownEl("summary-screen")) saveSession("summary"); };
@@ -3302,10 +3315,10 @@
             pic.textContent = "💰";
             pic.animate([{ transform: "scale(0.4)" }, { transform: "scale(1.6)", offset: 0.6 }, { transform: "scale(1)" }], { duration: 450, easing: "ease-out" });
             avatarBurst(["💰", "⭐", "✨"], 16, pic, true);
-            if (extra) {   // 🎉 the lucky box: a bigger burst, a second sound and a note
-                avatarBurst(["💰", "🪙", "🎉", "⭐"], 26, pic, true);
+            if (extra || summaryWands) {   // 🎉 the lucky box: a bigger burst, a second sound and a note
+                avatarBurst(extra ? ["💰", "🪙", "🎉", "⭐"] : ["🪄", "✨", "🎉", "💫"], 26, pic, true);
                 setTimeout(playUnlockSound, 250);
-                showToast(`🎉 הפתעה! בקופסה יש עוד ${extra} נקודות בונוס!`, 3500);
+                showToast(extra ? `🎉 הפתעה! בקופסה יש עוד ${extra} נקודות בונוס!` : `🎉 הפתעה! בקופסה יש ${summaryWands === 2 ? "2 שרביטי קסמים" : "שרביט קסמים"} 🪄 (יש לכם ${shop.wands})`, 3500);
                 await new Promise(r => setTimeout(r, 600));
             }
             await new Promise(r => setTimeout(r, 650));
@@ -3631,23 +3644,20 @@
             { id: "bronze", pic: "🥉", name: "מדליית ארד" }, { id: "silver", pic: "🥈", name: "מדליית כסף" },
             { id: "gold", pic: "🥇", name: "מדליית זהב" }, { id: "trophy", pic: "🏆", name: "גביע" }, { id: "crown", pic: "👑", name: "כתר" },
         ];
-        // What's inside: 20% a magic wand, 35% 50 coins, 35% 100 coins, 10% an ice cube 🧊
-        // (🔥 from 10 days in a row: doubled - 2 wands / 100 / 200 / 2 ice cubes).
+        // What's inside: 45% 50 coins, 45% 100 coins, 10% an ice cube 🧊 (no magic wands: those come at the end of a quiz)
+        // (🔥 from 10 days in a row: doubled - 100 / 200 / 2 ice cubes).
         // (Medals / trophies from older boxes stay saved in shop.awards.)
         function openBox() {
             if (!(shop.boxes > 0)) return;
             shop.boxes--;
             const r = Math.random(), x2 = pointsDoubled() ? 2 : 1;   // 🔥 from 10 days in a row everything in the box is doubled
             let it;
-            if (r < 0.2) {   // 20%: a magic wand (🔥 two)
-                shop.wands = (shop.wands || 0) + x2;
-                it = { id: "wand", pic: "🪄", name: x2 === 2 ? "2 שרביטי קסמים" : "שרביט קסמים", wand: true, chance: 20 };
-            } else if (r >= 0.9) {   // 10%: an ice cube (🔥 two)
+            if (r >= 0.9) {   // 10%: an ice cube (🔥 two)
                 shop.ice = (shop.ice || 0) + x2;
                 it = { id: "ice", pic: "🧊", name: x2 === 2 ? "2 קוביות קרח" : "קוביית קרח", ice: true, chance: 10 };
-            } else {         // 35%: 50 coins, 35%: 100 coins (🔥 100 / 200)
-                const coins = (r < 0.55 ? 50 : 100) * x2;
-                it = { id: "coins", pic: "💰", name: `${coins} נקודות`, coins, chance: 35 };
+            } else {         // 45%: 50 coins, 45%: 100 coins (🔥 100 / 200)
+                const coins = (r < 0.45 ? 50 : 100) * x2;
+                it = { id: "coins", pic: "💰", name: `${coins} נקודות`, coins, chance: 45 };
                 grandTotal += coins;
                 addEarned(coins);
                 try { localStorage.setItem(TOTAL_KEY, String(grandTotal)); } catch (e) {} window.cloud && cloud.sync();
@@ -3684,7 +3694,7 @@
             pop.querySelector(".br-big").textContent = it.coins ? `+${it.coins} נקודות` : it.ice ? (n === 2 ? "2 קוביות קרח!" : "קוביית קרח!") : n === 2 ? "2 שרביטי קסמים!" : "שרביט קסמים!";
             pop.querySelector(".br-sub").textContent = it.coins ? `עכשיו יש לכם ⭐ ${grandTotal} נקודות לקניות בחנות`
                 : it.ice ? `יום בלי בוחן משתמש בקוביה אחת, והימים ברצף 🔥 נשמרים. יש לכם עכשיו ${shop.ice}`
-                : `בבוחן לוחצים על 🪄 והוא מראה את התשובה הנכונה. יש לכם עכשיו ${shop.wands}`;
+                : `בבוחן לוחצים על 🪄 והוא מוריד תשובה לא נכונה. יש לכם עכשיו ${shop.wands}`;
             // 🎲 how likely this prize was
             if (it.chance) pop.querySelector(".br-chance").textContent = `🎲 הסיכוי לקבל את זה: ${it.chance}%`;
             const opened = Date.now();
