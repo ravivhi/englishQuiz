@@ -1426,13 +1426,20 @@ async function testPhoneBack() {
 
 // 🐶 Tapping the character on the main screen: its own move, emojis and English phrase, then a word of the chosen
 // level in a speech bubble (read aloud, tap the bubble to hear it again). 5 taps in a row make it dizzy. Not the shop.
+// tap the character in use, in the characters' house (tapping it on the main page opens the house)
+async function tapMe(page) {
+  await page.evaluate(() => { if (document.getElementById('house-screen').style.display !== 'flex') showHouse(); else renderHouse(); });
+  await page.click('#house-body .h-char.me');
+}
+const meFree = page => page.waitForFunction(() => { const b = document.querySelector('#house-body .h-char.me'); return !b || !b.disabled; }, { timeout: 15000 });
+
 async function testAvatar() {
   console.log('\n[avatar] tapping the character: one of its own 4 funny GIFs; the 5th tap in a row: dizzy, then a headache');
   const page = await openPage();
   const text = sel => page.$eval(sel, e => e.textContent);
   // record what is read aloud instead of speaking (each text "takes" 300 ms, then reports its end like a real voice)
   await page.evaluate(() => { window.spoken = []; speechSynthesis.speak = u => { window.spoken.push(u.text); setTimeout(() => u.onend && u.onend(), 300); }; speechSynthesis.cancel = () => {}; });
-  const turnOver = () => page.waitForFunction(() => !document.getElementById('menu-avatar').disabled, { timeout: 15000 });
+  const turnOver = () => meFree(page);
   const spoken = () => page.evaluate(() => { const s = window.spoken.slice(); window.spoken.length = 0; return s; });
   const setAvatar = id => page.evaluate(id => { if (!shop.owned.includes(id)) shop.owned.push(id); shop.avatar = id; saveShop(); applyShop(); }, id);
   const gif = () => page.evaluate(() => { const p = document.getElementById('gif-pop'); return p && { scene: p.dataset.scene, say: p.querySelector('.gp-say').textContent, he: p.querySelector('.gp-he').textContent,
@@ -1449,7 +1456,7 @@ async function testAvatar() {
   check(scenes.length === 0, `all ${await page.evaluate(() => Object.keys(GIF_SCENES).length)} cartoons draw and move, each with the character's own things (emoji and drawn characters)${scenes.length ? ': ' + scenes.join(', ') : ''}`);
 
   await setAvatar('dog');
-  await page.click('#menu-avatar');
+  await tapMe(page);
   await page.waitForSelector('#gif-pop', { timeout: 5000 });
   let g = await gif();
   const dogGifs = await page.evaluate(() => AVATAR_GIFS.dog);
@@ -1459,7 +1466,7 @@ async function testAvatar() {
         `tapping the dog opens one of its GIFs (${g.scene}): the dog with its bones / paws, moving, its own "Woof woof!" and the cartoon's own line (${sceneSay}) and a Hebrew line (${g.he})`);
   check(g.fits && await page.$eval('#gif-pop .gp-badge', e => e.textContent === 'GIF'), 'the GIF pop-up is fully on the screen');
   check(!(await page.$eval('#avatar-bubble', e => e.classList.contains('on'))) && !(await page.evaluate(() => typeof avatarWord !== 'undefined')), 'no word to learn any more');
-  check(await page.$eval('#menu-avatar', e => e.disabled), 'while the GIF is open the character\'s button is off');
+  check(await page.$$eval('#house-body .h-char', bs => bs.every(b => b.disabled)), 'while the GIF is open the characters in the house can\'t be tapped');
   await new Promise(r => setTimeout(r, 300));
   check(JSON.stringify(await spoken()) === JSON.stringify(['Woof woof!', sceneSay]), `it says "Woof woof!" and "${sceneSay}" aloud`);
   await page.waitForFunction(() => !document.getElementById('gif-pop'), { timeout: 8000 });
@@ -1469,7 +1476,7 @@ async function testAvatar() {
   const seen = [g.scene];
   for (let k = 0; k < 3; k++) {
     await new Promise(r => setTimeout(r, 200));
-    await page.click('#menu-avatar');
+    await tapMe(page);
     await page.waitForSelector('#gif-pop', { timeout: 5000 });
     const gk = await gif(); seen.push(gk.scene); seen.says = [...(seen.says || [g.say]), gk.say];
     await page.click('#gif-pop');
@@ -1483,9 +1490,9 @@ async function testAvatar() {
 
   // the 5th tap in a row (slow taps too): dizzy, then the headache GIF
   await spoken();
-  await page.click('#menu-avatar');
-  await page.waitForFunction(() => document.getElementById('avatar-bubble').classList.contains('on'), { timeout: 5000 });
-  check((await text('#avatar-bubble .ab-say')).includes('dizzy') && !(await page.$('#gif-pop')), 'the 5th tap in a row: first the character spins, dizzy');
+  await tapMe(page);
+  await page.waitForFunction(() => document.getElementById('house-say').classList.contains('on'), { timeout: 5000 });
+  check((await text('#house-say .ab-say')).includes('dizzy') && !(await page.$('#gif-pop')), 'the 5th tap in a row: first the character spins, dizzy');
   await page.waitForSelector('#gif-pop', { timeout: 5000 });
   g = await gif();
   check(g.scene === 'headache' && g.stage.includes('🧊') && g.say.includes('headache') && g.he.includes('כואב לי הראש'), 'then a headache: an ice pack on its head, "Ouch, now I have a headache!" / "אוי, כואב לי הראש!"');
@@ -1493,20 +1500,20 @@ async function testAvatar() {
   await turnOver();
   const sp = await spoken();
   check(sp.includes("Whoa, I'm dizzy!") && sp.includes('Ouch, now I have a headache!'), 'it says both aloud');
-  await page.click('#menu-avatar');
+  await tapMe(page);
   await page.waitForSelector('#gif-pop', { timeout: 5000 });
   check((await gif()).scene !== 'headache', 'after the headache the count starts over (the next tap is a GIF again)');
   await page.click('#gif-pop'); await turnOver();
   // a pause of more than 6 seconds starts the count over
   await page.evaluate(() => { avatarTaps = 4; avatarLastTap = Date.now() - 6500; });
-  await page.click('#menu-avatar');
+  await tapMe(page);
   await page.waitForSelector('#gif-pop', { timeout: 5000 });
   check((await gif()).scene !== 'headache', 'after a 6-second pause, the next tap is not the 5th in a row');
   await page.click('#gif-pop'); await turnOver();
 
   // the capybara (a drawn character) has its GIFs too
   await setAvatar('capybara');
-  await page.click('#menu-avatar');
+  await tapMe(page);
   await page.waitForSelector('#gif-pop', { timeout: 5000 });
   g = await gif();
   check(g.imgs > 0 && (await page.evaluate(() => AVATAR_GIFS.capybara)).includes(g.scene) && g.say.includes("I'm so chill! " + await page.evaluate(n => GIF_SCENES[n].say, g.scene)), `the drawn capybara stars in its own GIF (${g.scene})`);
@@ -1519,6 +1526,7 @@ async function testAvatar() {
   const sky = () => page.evaluate(() => { const s = document.getElementById('avatar-sky'), els = [...s.children];
     return { n: els.length, pics: els.map(e => e.textContent), imgs: s.querySelectorAll('img').length, moving: els.every(e => e.getAnimations().length > 0),
       z: getComputedStyle(s).zIndex, taps: getComputedStyle(s).pointerEvents, op: els.length ? +getComputedStyle(els[0]).opacity : 0, shown: getComputedStyle(s).display !== 'none' }; });
+  await page.click('#house-back');   // back from the house to the main page (no wandering character in the house)
   let k = await sky();
   check(k.n === 1 && k.imgs === 1 && k.moving && k.shown, `the drawn capybara wanders on the main screen, one of it (${k.n})`);
   await setAvatar('fox');
@@ -1548,6 +1556,56 @@ async function testAvatar() {
 }
 
 // 👫 friends: the top row of buttons, a search box with names from the cloud, who is playing now
+async function testHouse() {
+  console.log("\n[house] tapping the character on the main page opens the characters' house");
+  const page = await openPage();
+  await page.evaluate(() => { shop.owned = ['dog', 'cat', 'unicorn', 'capybara', 'messi']; shop.avatar = 'cat'; saveShop(); applyShop(); showStart(); });
+  await new Promise(r => setTimeout(r, 500));
+  await page.click('#menu-avatar');
+  await page.waitForSelector('#house-body .h-char', { timeout: 5000 });
+  const h = await page.evaluate(() => ({
+    shown: document.getElementById('house-screen').style.display === 'flex', start: document.getElementById('start-screen').style.display,
+    chars: [...document.querySelectorAll('#house-body .h-char')].map(b => b.dataset.id), me: document.querySelector('#house-body .h-char.me')?.dataset.id,
+    rooms: document.querySelectorAll('#house-body .h-room').length, moving: [...document.querySelectorAll('#house-body .h-char')].every(b => b.getAnimations().length > 0),
+    acts: document.querySelectorAll('#house-body .h-char .h-act').length, imgs: document.querySelectorAll('#house-body .h-char img.pic-img').length,
+    count: document.getElementById('house-count').textContent, fill: document.querySelector('#house-count .hc-fill').style.width,
+    ghosts: [...document.querySelectorAll('#house-body .h-slot')].map(b => ({ id: b.dataset.id, price: b.querySelector('.h-price').textContent, dark: getComputedStyle(b.querySelector('.h-ghost')).filter })),
+    cheapest: SHOP_AVATARS.filter(a => !shop.owned.includes(a.id)).slice(0, 4).map(a => a.id), total: SHOP_AVATARS.length,
+    fits: document.getElementById('house-body').scrollWidth <= document.getElementById('house-body').clientWidth + 1,
+  }));
+  check(h.shown && h.start === 'none', 'tapping the character on the main page opens the house');
+  check(JSON.stringify(h.chars) === JSON.stringify(['dog', 'cat', 'unicorn', 'capybara', 'messi']) && h.rooms === 2, `the 5 characters collected live in it, 4 to a room (${h.rooms} rooms: ${h.chars.join(', ')})`);
+  check(h.moving && h.acts === 5 && h.imgs === 2, 'each one moves and does something (its room\'s emoji over it); the drawn ones show as pictures');
+  check(h.me === 'cat', 'the character in use has the 👑');
+  check(h.count.includes(`5 מתוך ${h.total}`) && parseFloat(h.fill) > 0, `it says how many were collected (${h.count})`);
+  check(h.ghosts.length === 4 && JSON.stringify(h.ghosts.map(g => g.id)) === JSON.stringify(h.cheapest) && h.ghosts.every(g => g.dark.includes('brightness(0)') && /⭐ \d+/.test(g.price)),
+    `the garden: the next 4 to buy, as shadows with their price (${h.ghosts.map(g => g.id + ' ' + g.price).join(', ')})`);
+  check(h.fits, 'nothing sticks out sideways');
+  await page.click('#house-body .h-slot');
+  check(await page.$eval('#house-say', e => e.classList.contains('on') && e.textContent.includes('🔒') && e.textContent.includes('⭐')),'tapping a shadow says what it is and its price (🔒 … ⭐ בחנות)');
+  // tapping another character in the house: its own funny turn
+  await page.evaluate(() => { speechSynthesis.speak = u => setTimeout(() => u.onend && u.onend(), 50); });
+  await page.click('#house-body .h-char[data-id="dog"]');
+  await page.waitForSelector('#gif-pop', { timeout: 5000 });
+  check(await page.evaluate(() => AVATAR_GIFS.dog.includes(document.getElementById('gif-pop').dataset.scene)), 'tapping the dog in the house: one of its GIFs');
+  await page.click('#gif-pop');
+  await meFree(page);
+  // after a reload, still in the house
+  await page.reload({ waitUntil: 'networkidle0' });
+  await page.waitForSelector('#house-body .h-char', { timeout: 5000 });
+  check(await page.evaluate(() => document.getElementById('house-screen').style.display === 'flex'), 'after a reload the house is still open');
+  await page.click('#house-back');
+  check(await page.evaluate(() => document.getElementById('house-screen').style.display === 'none' && document.getElementById('start-screen').style.display !== 'none'), 'the back button goes to the main page');
+  // all of them collected
+  await page.evaluate(() => { shop.owned = SHOP_AVATARS.map(a => a.id); saveShop(); showHouse(); });
+  const full = await page.evaluate(() => ({ slots: document.querySelectorAll('#house-body .h-slot').length, done: !!document.querySelector('#house-body .h-done'), n: document.querySelectorAll('#house-body .h-char').length }));
+  check(full.slots === 0 && full.done && full.n === await page.evaluate(() => SHOP_AVATARS.length), `all collected: all ${full.n} live in the house, and it says so`);
+  await page.click('#house-shop');
+  check(await page.evaluate(() => document.getElementById('shop-screen').style.display !== 'none'), 'the 🏪 button opens the shop');
+  check(page.pageErrors.length === 0, `no page errors${page.pageErrors.length ? ': ' + page.pageErrors.join('; ') : ''}`);
+  await page.close();
+}
+
 async function testFriends() {
   console.log('\n[friends] the 👫 page: add friends from a list of names, see who is playing now');
   const page = await openPage();
@@ -1742,9 +1800,9 @@ async function testPictures() {
   await page.evaluate(() => { showStart(); speechSynthesis.speak = u => setTimeout(() => u.onend && u.onend(), 50); });
   const lines = new Set();
   for (let k = 0; k < 3; k++) {
-    await page.waitForFunction(() => !document.getElementById('menu-avatar').disabled, { timeout: 15000 });
+    await meFree(page);
     await page.evaluate(() => { avatarLastTap = 0; });
-    await page.click('#menu-avatar');
+    await tapMe(page);
     await page.waitForSelector('#gif-pop', { timeout: 5000 });
     const g = await page.evaluate(() => { const p = document.getElementById('gif-pop'); return { scene: p.dataset.scene, say: p.querySelector('.gp-say').textContent, he: p.querySelector('.gp-he').textContent, img: !!p.querySelector('.gp-stage img') }; });
     const ok = await page.evaluate(g => AVATAR_GIFS.messi.includes(g.scene) && AVATAR_FX.messi.says.some(([en, he]) => g.say.endsWith(en) && g.he === he), g);
@@ -1753,7 +1811,7 @@ async function testPictures() {
     await page.click('#gif-pop');
   }
   check(lines.size >= 2, `a different line each time (${lines.size} different in 3 taps)`);
-  await page.waitForFunction(() => !document.getElementById('menu-avatar').disabled, { timeout: 15000 });
+  await meFree(page);
   await page.evaluate(() => { avatarLastTap = 0; shop.theme = 'purple'; shop.avatar = null; saveShop(); applyShop(); });
   // the capybara: a drawing (no emoji exists) everywhere a character shows
   await page.evaluate(() => { shop.owned.push('capybara'); shop.avatar = 'capybara'; saveShop(); applyShop(); openShop(); });
@@ -1764,7 +1822,7 @@ async function testPictures() {
   }));
   check(capy.menu && capy.game && capy.shop && capy.swatch && capy.loaded, `the capybara drawing shows on the main screen, in the quiz, in the shop and on its background's swatch (${JSON.stringify(capy)})`);
   await page.evaluate(() => { showStart(); speechSynthesis.speak = u => setTimeout(() => u.onend && u.onend(), 50); });
-  await page.click('#menu-avatar');
+  await tapMe(page);
   await page.waitForSelector('#gif-pop', { timeout: 10000 });
   check((await page.$eval('#gif-pop', e => e.querySelector('.gp-say').textContent === "I'm so chill! " + GIF_SCENES[e.dataset.scene].say)) && !!(await page.$('#gif-pop .gp-stage img.pic-img')), "tapping the capybara: its drawing in a GIF, with its own phrase and that cartoon's line");
   check(page.pageErrors.length === 0, `no page errors${page.pageErrors.length ? ': ' + page.pageErrors.join('; ') : ''}`);
@@ -2781,7 +2839,7 @@ async function testPurple() {
   await page.close();
 }
 
-const TESTS = { fire: testFire, wordbank: testWordbank, random: testRandom, layout: testLayout, back: testBack, tabs: testTabs, streak: testStreak, pairs: () => eachFixture('pairs', testPairs), list: () => eachFixture('list', testList), translation: testTranslationRetry, practice: testPractice, chooser: testChooser, header: testHeader, persist: testPersist, learn: testLearn, purple: testPurple, shop: testShop, box: testBox, phoneback: testPhoneBack, avatar: testAvatar, celebrate: testCelebrate, boxextra: testBoxExtra, keep: testKeep, wand: testWand, pictures: testPictures, name: testName, top: testTop, listlearn: testListLearn, games: testGames, shapes: testShapes, ice: testIce, games2: testGames2, update: testUpdate, friends: testFriends };
+const TESTS = { fire: testFire, wordbank: testWordbank, random: testRandom, layout: testLayout, back: testBack, tabs: testTabs, streak: testStreak, pairs: () => eachFixture('pairs', testPairs), list: () => eachFixture('list', testList), translation: testTranslationRetry, practice: testPractice, chooser: testChooser, header: testHeader, persist: testPersist, learn: testLearn, purple: testPurple, shop: testShop, box: testBox, phoneback: testPhoneBack, avatar: testAvatar, celebrate: testCelebrate, boxextra: testBoxExtra, keep: testKeep, wand: testWand, pictures: testPictures, name: testName, top: testTop, listlearn: testListLearn, games: testGames, shapes: testShapes, ice: testIce, games2: testGames2, update: testUpdate, friends: testFriends, house: testHouse };
 try {
   let ran = 0;
   for (const [name, run] of Object.entries(TESTS)) {
