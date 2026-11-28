@@ -1487,6 +1487,7 @@
         // (they count in the total and in the 🏆 list, like a quiz's).
         let curGame = null, gameToken = 0;   // the game being played (its id); a new token stops the old game's timers
         const TF_MAX = 3;                    // "true or false" gives 1-3 ⭐ (the other games 1-6)
+        const SMALL_MAX = 2;                 // "bubbles" and "picture" give 1-2 ⭐
         const TF_ROUNDS = 10;                // how many words the "true or false" game has
         const GAMES = [
             { id: "memory", pic: "🃏", name: "זיכרון", desc: "מוצאים זוגות של אותה מילה", color: "#9f7aea, #805ad5",
@@ -1502,9 +1503,9 @@
             { id: "missing", pic: "🧩", name: "אות חסרה", desc: "משלימים את האות שחסרה", color: "#4fd1c5, #319795",
               ok: w => /^[a-z]{3,8}$/i.test(w.en), min: 1, run: playMissing },
             { id: "picture", pic: "🖼️", name: "מה בתמונה?", desc: "רואים תמונה ובוחרים מילה", color: "#fc8181, #e53e3e",
-              ok: w => !!w.pic && /^[a-z][a-z' -]{1,14}$/i.test(w.en), min: 4, run: playPicture },
+              ok: w => !!w.pic && /^[a-z][a-z' -]{1,14}$/i.test(w.en), min: 4, good: SMALL_MAX, run: playPicture },   // (its top: 2 ⭐ counts as a good game)
             { id: "bubbles", pic: "🫧", name: "בועות", desc: "מפוצצים את הבועה הנכונה", color: "#7f9cf5, #5a67d8",
-              ok: w => w.en.length <= 12, min: 3, run: playBubbles },
+              ok: w => w.en.length <= 12, min: 3, good: SMALL_MAX, run: playBubbles },   // (its top: 2 ⭐ counts as a good game)
         ];
         const gBody = () => document.getElementById("games-body");
         const gameLevel = () => +document.getElementById("level-select").value || 1;
@@ -1533,7 +1534,7 @@
         function gamesBack() { if (curGame) gamesMenu(); else showStart(); }
 
         // how far to the next 🎁: a game with 4 ⭐ or more counts
-        const goodText = () => `🎁 ${goodLeft()}/${GOOD_GAMES} משחקים עם ${GOOD_MIN} ⭐ ומעלה (נכון או לא: ${TF_MAX} ⭐) – ובונוס של ${GOOD_BONUS} מטבעות`;
+        const goodText = () => `🎁 ${goodLeft()}/${GOOD_GAMES} משחקים עם ${GOOD_MIN} ⭐ ומעלה (נכון או לא: ${TF_MAX} ⭐, בועות ותמונה: ${SMALL_MAX} ⭐) – ובונוס של ${GOOD_BONUS} מטבעות`;
         function gamesMenu() {
             stopGame();
             document.getElementById("games-title").textContent = "🎮 משחקים";
@@ -1807,11 +1808,11 @@
             let round = 0, points = 0;
             const next = () => {
                 if (token !== gameToken) return;
-                if (round === words.length) return gameOver(token, g, gameStars(points / words.length), `זיהיתם ${points} מתוך ${words.length} תמונות בניסיון הראשון`);
+                if (round === words.length) return gameOver(token, g, gameStars(points / words.length, SMALL_MAX), `זיהיתם ${points} מתוך ${words.length} תמונות בניסיון הראשון`);
                 const w = words[round];
                 let first = true;
                 const box = gEl("div", "pic-box"); box.dataset.word = w.en;
-                const he = gEl("div", "spell-he pic-he", "");
+                const he = gEl("div", "spell-he pic-he", w.he);
                 const answers = gEl("div", "listen-answers");
                 for (const x of shuffle([w, ...gOthers(pool, w, 3)])) {
                     const bt = gEl("button", "btn-answer", x.en); bt.type = "button"; bt.dir = "ltr";
@@ -1820,14 +1821,14 @@
                         if (x !== w) { first = false; bt.classList.add("wrong"); bt.disabled = true; return; }
                         bt.classList.add("correct");
                         answers.querySelectorAll("button").forEach(y => y.disabled = true);
-                        he.textContent = w.he;   // and now its meaning too
                         if (first) points++;
                         round++;
                         setTimeout(next, 1000);
                     };
                     answers.append(bt);
                 }
-                box.append(gEl("div", "g-progress", `${round + 1}/${words.length}`), gEl("div", "pic-big", w.pic), he, answers);
+                const say = gEl("button", "g-speak", "🔊"); say.type = "button"; say.setAttribute("aria-label", "השמעת המילה"); say.onclick = () => speakText(w.en);
+                box.append(gEl("div", "g-progress", `${round + 1}/${words.length}`), gEl("div", "pic-big", w.pic), he, say, answers);
                 gBody().replaceChildren(box);
                 speakText(w.en);   // the English word is said at the start of the round
             };
@@ -1841,7 +1842,7 @@
             let round = 0, points = 0;
             const next = () => {
                 if (token !== gameToken) return;
-                if (round === ROUNDS) return gameOver(token, g, gameStars(points / ROUNDS), `פוצצתם נכון ${points} מתוך ${ROUNDS} בועות בניסיון הראשון`);
+                if (round === ROUNDS) return gameOver(token, g, gameStars(points / ROUNDS, SMALL_MAX), `פוצצתם נכון ${points} מתוך ${ROUNDS} בועות בניסיון הראשון`);
                 const w = words[round];
                 let first = true;
                 const box = gEl("div", "bub-box"); box.dataset.word = w.en;
@@ -1860,7 +1861,8 @@
                     };
                     sky.append(bt);
                 });
-                box.append(gEl("div", "g-progress", `${round + 1}/${ROUNDS}`), gEl("p", "games-note", "פוצצו את הבועה של המילה באנגלית"), gEl("div", "spell-he bub-he", w.he), sky);
+                const say = gEl("button", "g-speak", "🔊"); say.type = "button"; say.setAttribute("aria-label", "השמעת המילה"); say.onclick = () => speakText(w.en);
+                box.append(gEl("div", "g-progress", `${round + 1}/${ROUNDS}`), gEl("p", "games-note", "פוצצו את הבועה של המילה באנגלית"), gEl("div", "spell-he bub-he", w.he), say, sky);
                 gBody().replaceChildren(box);
                 speakText(w.en);   // the English word is said at the start of the round
             };
