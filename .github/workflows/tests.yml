@@ -19,9 +19,10 @@ on:
         required: false
         default: slow
 
+# one run at a time; a push while one runs waits for it (cancelling would let frequent pushes skip the tests)
 concurrency:
   group: tests-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   test:

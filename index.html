@@ -475,6 +475,11 @@
         .top-list .t-by { font-size: 1.1rem; }
         .top-list .t-other { opacity: 0.55; font-size: 0.85rem; }
         .top-tabs { display: flex; gap: 6px; margin: 0 0 10px; }
+        /* everyone / my friends: a two-part switch above the tabs */
+        .top-scope { display: flex; margin: 0 0 8px; padding: 3px; background: #edf2f7; border-radius: 14px; }
+        .top-scope button { flex: 1; padding: 7px 6px; font-size: 0.95rem; font-weight: bold; font-family: inherit; border: none; border-radius: 11px;
+                            background: none; color: #4a5568; cursor: pointer; }
+        .top-scope button[aria-checked="true"] { background: #805ad5; color: #fff; box-shadow: 0 2px 0 rgba(0,0,0,0.15); }
         .top-tab { flex: 1; padding: 9px 6px; font-size: 0.95rem; font-weight: bold; font-family: inherit; border: 2px solid #cbd5e0; border-radius: 12px;
                    background: #edf2f7; color: #4a5568; cursor: pointer; touch-action: manipulation; }
         .top-tab[aria-selected="true"] { background: #d69e2e; border-color: #d69e2e; color: #fff; }
@@ -900,9 +905,13 @@
                 <button type="button" id="top-back" class="action-btn" onclick="showStart()" aria-label="חזרה" style="padding:5px 10px;font-size:0.9rem;">→ חזרה</button>
                 <div id="top-title">🏆 10 השחקנים המובילים</div>
             </div>
+            <div class="top-scope" role="radiogroup" aria-label="של מי לראות">
+                <button type="button" role="radio" id="top-scope-all" aria-checked="true" onclick="showTop(topBy, 'all')">🌍 כולם</button>
+                <button type="button" role="radio" id="top-scope-friends" aria-checked="false" onclick="showTop(topBy, 'friends')">👫 החברים שלי</button>
+            </div>
             <div class="top-tabs" role="tablist">
-                <button type="button" role="tab" id="top-tab-earned" class="top-tab" aria-selected="true" onclick="showTop('earned')">⭐ נקודות</button>
-                <button type="button" role="tab" id="top-tab-topics" class="top-tab" aria-selected="false" onclick="showTop('topics')">✅ נושאים שהושלמו</button>
+                <button type="button" role="tab" id="top-tab-earned" class="top-tab" aria-selected="true" onclick="showTop('earned', topScope)">⭐ נקודות</button>
+                <button type="button" role="tab" id="top-tab-topics" class="top-tab" aria-selected="false" onclick="showTop('topics', topScope)">✅ נושאים שהושלמו</button>
             </div>
             <div id="top-body"><p id="top-msg"></p></div>
         </div>
@@ -1999,16 +2008,28 @@
 
         // 🏆 The top 10 players (from the cloud), on a page of its own with two tabs: by all the points ever earned
         // (the default) or by how many topics they finished; this player's line is marked
-        let topToken = 0;
-        async function showTop(by = "earned") {
+        // Above the tabs: everyone (the top 10 of all the players) or my friends (them and me, all of us, in order)
+        let topToken = 0, topBy = "earned", topScope = "all";
+        async function showTop(by = "earned", scope = "all") {
+            topBy = by; topScope = scope;
             document.getElementById("start-screen").style.display = "none";
             document.getElementById("top-screen").style.display = "flex";
             saveSession("top");
             for (const k of ["earned", "topics"]) document.getElementById("top-tab-" + k).setAttribute("aria-selected", String(k === by));
+            for (const k of ["all", "friends"]) document.getElementById("top-scope-" + k).setAttribute("aria-checked", String(k === scope));
+            document.getElementById("top-title").textContent = scope === "friends" ? "🏆 אני והחברים שלי" : "🏆 10 השחקנים המובילים";
             const body = document.getElementById("top-body"), token = ++topToken;
+            if (scope === "friends" && !friends.length) { body.innerHTML = '<p id="top-msg">עדיין אין חברים ברשימה – הוסיפו חברים בכפתור 👫</p>'; return; }
             body.innerHTML = '<p id="top-msg">⏳ טוען...</p>';
             let list = null;
-            try { list = window.cloud ? await cloud.top(by) : null; } catch (e) {}
+            try {
+                if (scope !== "friends") list = window.cloud ? await cloud.top(by) : null;
+                else if (window.cloud && cloud.friends) {
+                    list = await cloud.friends(playerName ? [...friends, playerName] : friends);
+                    const key = by === "topics" ? "topics" : "points";
+                    list.sort((a, b) => (b[key] || 0) - (a[key] || 0) || (b.points || 0) - (a.points || 0));
+                }
+            } catch (e) { list = null; }
             if (token !== topToken || !shownEl("top-screen")) return;   // another tab was chosen meanwhile, or the page was left
             const msg = document.getElementById("top-msg");
             if (!list) { msg.textContent = "אין חיבור לאינטרנט, נסו שוב אחר כך"; return; }
@@ -2521,6 +2542,7 @@
                     const he = isHe(cur[0].text);
                     const t = he
                         ? cur.slice().reverse().map(w => w.text).join(" ").replace(/[^\u0590-\u05FF' ,\-]/g, "").replace(/\s+/g, " ").replace(/^[ ,]+|[ ,]+$/g, "").trim()
+                            .replace(/([\u05D0-\u05EA]) (?![והבלמשכ])([\u05D0-\u05EA])(?=$|[ ,])/g, "$1$2")   // "קר ח" -> "קרח": a lone end letter goes back on its word
                         // a hair-thin gap is one word that was split in two ("anyo ne")
                         : cur.map((w, k) => (k && w.bbox.x0 - cur[k - 1].bbox.x1 > 0.15 * (w.bbox.y1 - w.bbox.y0) ? " " : "") + w.text).join("").replace(/[‘’`´]/g, "'").replace(POS_NOTE, "").replace(/[^A-Za-z' ]/g, "").replace(/\s+/g, " ").replace(/^[b-hj-zB-HJ-Z] /, "").trim();   // a stray letter before a word is noise (only "a"/"I" are real words)
                     if (t.length >= 2) all.push({ he, t, li, conf: Math.min(...cur.map(w => w.confidence)),
@@ -4864,7 +4886,7 @@
                 const snap = await getDocs(query(collection(db, "players"), where(documentId(), "in", ids.slice(i, i + 10)), limit(10)));
                 for (const d of snap.docs) {
                     const x = d.data(), a = x.apps?.[APP] || {}, at = x.updatedAt?.toMillis?.() || 0;
-                    out.push({ name: x.name, online: Date.now() - at < ONLINE_MS, points: a.earned || 0, avatar: typeof a.avatar === "string" ? a.avatar : "" });
+                    out.push({ name: x.name, online: Date.now() - at < ONLINE_MS, points: a.earned || 0, topics: a.topics || 0, purple: a.purple || 0, avatar: typeof a.avatar === "string" ? a.avatar : "" });
                 }
             }
             return out;

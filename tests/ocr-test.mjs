@@ -2250,6 +2250,30 @@ async function testTop() {
   await page.click('#top-btn');
   await page.waitForFunction(() => document.getElementById('top-msg')?.textContent.includes('עדיין אין'), { timeout: 3000 });
   check(true, 'an empty list says there are no players yet');
+  // everyone / my friends: the same two tabs, on me and my friends
+  check(await page.$eval('#top-scope-all', b => b.getAttribute('aria-checked')) === 'true', 'it opens on everyone');
+  await page.click('#top-scope-friends');
+  await page.waitForFunction(() => document.getElementById('top-msg')?.textContent.includes('עדיין אין חברים'), { timeout: 3000 });
+  check(await page.$eval('#top-scope-friends', b => b.getAttribute('aria-checked')) === 'true', 'my friends, with no friends yet: it says to add some with 👫');
+  await page.evaluate(() => {
+    setPlayerName('נועה'); friends = ['דני', 'נגה']; saveFriends();
+    window.asked = null;
+    window.cloud = { sync() {}, claim: async () => 'ok', top: async () => [],
+      friends: async names => { asked = names; return [{ name: 'דני', points: 50, topics: 30 }, { name: 'נגה', points: 900, topics: 2, avatar: 'dog' }, { name: 'נועה', points: 300, topics: 9 }]; } };
+  });
+  await page.click('#top-scope-friends');
+  await page.waitForSelector('#top-screen .top-list li', { timeout: 3000 });
+  let fr = await page.$$eval('#top-screen .top-list li', ls => ls.map(l => ({ name: l.querySelector('.t-name').textContent, me: l.classList.contains('me'), big: l.querySelector('.t-by').textContent })));
+  check(JSON.stringify(await page.evaluate(() => asked)) === '["דני","נגה","נועה"]' && fr.map(x => x.name).join() === 'נגה,נועה,דני' && fr[1].me && fr[0].big === '⭐ 900',
+    `my friends by points: my friends and me, in order, me marked (${fr.map(x => x.name + ' ' + x.big).join(' / ')})`);
+  check((await page.$eval('#top-title', e => e.textContent)).includes('החברים שלי'), 'the title says it is me and my friends');
+  await page.click('#top-tab-topics');
+  await page.waitForFunction(() => document.querySelector('#top-screen .top-list li .t-name')?.textContent === 'דני', { timeout: 3000 });
+  fr = await page.$$eval('#top-screen .top-list li', ls => ls.map(l => l.querySelector('.t-name').textContent + ' ' + l.querySelector('.t-by').textContent));
+  check(fr.join() === 'דני ✅ 30,נועה ✅ 9,נגה ✅ 2' && await page.$eval('#top-scope-friends', b => b.getAttribute('aria-checked')) === 'true', `the topics tab keeps my friends, by topics (${fr.join(' / ')})`);
+  await page.click('#top-scope-all');
+  await page.waitForFunction(() => document.getElementById('top-msg')?.textContent.includes('עדיין אין'), { timeout: 3000 });
+  check(await page.$eval('#top-tab-topics', b => b.getAttribute('aria-selected')) === 'true' && (await page.$eval('#top-title', e => e.textContent)).includes('10 השחקנים'), 'back to everyone keeps the topics tab');
   await page.evaluate(() => { localStorage.setItem('englishquiz-learn-progress', JSON.stringify({ 1: [0, 1, 2], 2: [4] })); });
   await page.reload({ waitUntil: 'load' });
   check(await page.$eval('#menu-topics', e => e.textContent) === '✅ 4', 'the main screen shows how many topics are green in all the levels (✅ 4)');
