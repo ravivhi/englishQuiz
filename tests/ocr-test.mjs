@@ -2201,7 +2201,7 @@ async function testGames() {
   await page.evaluate(() => { goodGames = 9; });
   [t0] = await money();
   await page.click('#game-menu');
-  check((await page.$eval('#games-body .g-good', e => e.textContent)).includes('9/10'), 'the games page shows how far to the bonus (9/10)');
+  check(!(await page.$('#games-body .g-good')), 'the games page has no bonus line');
   await play('memory');
   await page.evaluate(() => gameOver(gameToken, GAMES[0], 6, 'test'));   // a 6 ⭐ game
   await page.waitForSelector('.game-end', { timeout: 3000 });
