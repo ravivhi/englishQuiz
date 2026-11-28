@@ -981,6 +981,10 @@
         // comes back to the screen it asks for one. Once the new version has taken over, the page reloads itself - only
         // on the main menu, with no pop-up open and nothing being typed (never in the middle of a quiz or a game).
         // The progress is all in localStorage, so nothing is lost. The very first install (no old version) never reloads.
+        // 👋 the very first time the app is opened (nothing of it saved on the device yet - checked here, before the
+        // app saves anything): it suggests picking a name
+        let firstRun = false;
+        try { firstRun = !Object.keys(localStorage).some(k => /^englishquiz|^englishpractice/i.test(k)); } catch (e) {}
         let updateReady = false, updateTimer = 0;
         function reloadIfReady() {
             if (!updateReady) return;
@@ -1509,6 +1513,7 @@
         // In-app confirm dialog (the browser's confirm() shows the site's address)
         // 👋 the child's name: typed once (tap the greeting under the title), saved on the device, used in the praise
         const NAME_KEY = "englishquiz-player-name", NAME_MAX = 20;
+        const NAME_OK = /^[A-Za-z\u05D0-\u05EA ]*$/;   // a name has only Hebrew or English letters (and spaces between words)
         let playerName = "";
         try { playerName = (localStorage.getItem(NAME_KEY) || "").trim().slice(0, NAME_MAX); } catch (e) {}
         const praise = text => playerName ? `${text}, ${playerName}!` : `${text}!`;   // "כל הכבוד" → "כל הכבוד, נועה!"
@@ -1991,13 +1996,15 @@
         }
 
         // taken: the saved name belongs to another player (names are unique across all players)
-        function askName(taken) {
+        // first: the first time the app is opened - it says what the name is for
+        function askName(taken, first) {
             document.getElementById("name-dialog")?.remove();
             const bg = document.createElement("div");
             bg.id = "name-dialog"; bg.dataset.dialog = "1";
             bg.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:1000;padding:16px;";
             bg.innerHTML = `<form dir="rtl" style="background:#fff;color:#1a202c;border-radius:16px;padding:22px 20px 16px;max-width:320px;width:100%;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.3);">
                 <div style="font-size:1.25rem;font-weight:bold;margin-bottom:12px;">👋 איך קוראים לך?</div>
+                ${first ? '<div data-first style="margin:-4px 0 12px;color:#4a5568;">בחרו שם – הוא יופיע ברשימת 10 השחקנים המובילים 🏆</div>' : ""}
                 <input data-name type="text" maxlength="${NAME_MAX}" autocomplete="off" placeholder="השם שלך" aria-label="השם שלך"
                     style="width:100%;box-sizing:border-box;padding:10px;font-size:1.2rem;font-family:inherit;text-align:center;border:2px solid #b794f4;border-radius:10px;margin-bottom:14px;">
                 <div data-taken style="color:#e53e3e;font-weight:bold;margin:-6px 0 12px;"></div>
@@ -2008,11 +2015,13 @@
             const input = bg.querySelector("[data-name]");
             input.value = playerName;
             const takenMsg = bg.querySelector("[data-taken]"), save = bg.querySelector("[type=submit]");
-            const TAKEN = "השם הזה כבר תפוס, נסו שם אחר";
+            const TAKEN = "השם הזה כבר תפוס, נסו שם אחר", BAD = "אפשר רק אותיות בעברית או באנגלית";
             takenMsg.textContent = taken ? TAKEN : "";
+            input.oninput = () => { takenMsg.textContent = NAME_OK.test(input.value) ? "" : BAD; };   // says so as soon as it is typed
             bg.querySelector("form").onsubmit = async e => {
                 e.preventDefault();
                 const v = cleanName(input.value);
+                if (!NAME_OK.test(v)) { takenMsg.textContent = BAD; input.focus(); return; }   // not saved
                 // a new name is taken in the cloud first; without a network it is kept and taken later
                 if (v && window.cloud && (taken || v !== playerName)) {
                     save.disabled = true;
@@ -2028,6 +2037,15 @@
             input.focus();
         }
         showPlayerName();
+        // 👋 the first time the app is opened: suggest picking a name (it can be skipped with "ביטול")
+        // (waits until no other pop-up is open; once a name is set it doesn't ask)
+        if (firstRun && !playerName) {
+            const nameAsk = setInterval(() => {
+                if (playerName) return clearInterval(nameAsk);
+                if (document.querySelector("[data-dialog]") || document.getElementById("start-screen").style.display === "none") return;
+                clearInterval(nameAsk); try { localStorage.setItem("englishquiz-name-asked", "1"); } catch (e) {} askName(false, true);
+            }, 800);
+        }
 
         function askConfirm(text, okText, okColor = "#e53e3e") {
             return new Promise(resolve => {

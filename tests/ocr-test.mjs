@@ -138,9 +138,16 @@ const browser = await puppeteer.launch({ executablePath: chromePath, headless: '
 
 // Opens the page with both translation services stubbed (Google first, MyMemory as fallback).
 // mode(n, service) decides per request: 'ok' | 'fail'   (n counts all translation requests, service = 'google' | 'mm').
+// marks the device as having used the app before, so the first-run "pick a name" box doesn't open (firstRun: let it)
+async function newTestPage(ctx, firstRun = false) {
+  const page = await ctx.newPage();
+  if (!firstRun) await page.evaluateOnNewDocument(() => { try { if (/^http/.test(location.protocol)) localStorage.setItem('englishquiz-test', '1'); } catch (e) {} });
+  return page;
+}
+
 async function openPage(mode = () => 'ok', { fresh = false } = {}) {
   const ctx = await browser.createBrowserContext();       // fresh storage per test (the page saves the word list)
-  const page = await ctx.newPage();
+  const page = await newTestPage(ctx);
   const closePage = page.close.bind(page);
   page.close = async () => { await closePage(); await ctx.close(); };
   await page.setViewport({ width: 360, height: 800 });   // small phone
@@ -1540,7 +1547,7 @@ async function testAvatar() {
 async function testUpdate() {
   console.log('\n[update] a new version reloads the app on the main menu, never in the middle of something');
   const ctx = await browser.createBrowserContext();
-  const page = await ctx.newPage();
+  const page = await newTestPage(ctx);
   page.pageErrors = [];
   page.on('pageerror', e => page.pageErrors.push(e.message));
   await page.goto(url, { waitUntil: 'load' });
@@ -1574,7 +1581,7 @@ async function testUpdate() {
 async function testKeep() {
   console.log('\n[keep] progress survives app updates');
   const ctx = await browser.createBrowserContext();
-  const page = await ctx.newPage();
+  const page = await newTestPage(ctx);
   page.pageErrors = [];
   page.on('pageerror', e => page.pageErrors.push(e.message));
   // count the requests for "persistent storage" (Chrome answers on its own; the mock says no, so it asks every load)
@@ -2067,8 +2074,41 @@ async function testName() {
   await page.evaluate(() => { document.querySelector('#name-dialog input').value = ''; document.querySelector('#name-dialog [type=submit]').click(); });
   b = await btn();
   check(b.empty && (await page.evaluate(() => localStorage.getItem('englishquiz-player-name'))) === null && (await page.evaluate(() => praise('כל הכבוד'))) === 'כל הכבוד!', 'an empty name removes it (back to asking, praise without a name)');
+  // only Hebrew or English letters (and spaces): anything else is not saved, and the box says so
+  await page.click('#player-name');
+  await page.waitForSelector('#name-dialog input', { timeout: 3000 });
+  for (const bad of ['נועה😽', 'dan1', 'רון!', 'a.b', 'שיר_']) {
+    await page.$eval('#name-dialog input', i => { i.value = ''; });
+    await page.type('#name-dialog input', bad);
+    const live = await page.$eval('#name-dialog [data-taken]', e => e.textContent);
+    await page.click('#name-dialog [type=submit]');
+    await new Promise(r => setTimeout(r, 200));
+    const st = await page.evaluate(() => ({ open: !!document.getElementById('name-dialog'), msg: document.querySelector('#name-dialog [data-taken]')?.textContent, name: playerName }));
+    check(live.includes('רק אותיות') && st.open && st.msg.includes('רק אותיות בעברית או באנגלית') && st.name === '', `"${bad}" is not allowed: the box says so while typing and stays open, nothing saved`);
+  }
+  await page.$eval('#name-dialog input', i => { i.value = ''; });
+  await page.type('#name-dialog input', 'Noa כהן');
+  check((await page.$eval('#name-dialog [data-taken]', e => e.textContent)) === '', 'fixing it clears the message');
+  await page.click('#name-dialog [type=submit]');
+  b = await btn();
+  check(!(await page.$('#name-dialog')) && b.text === '👋 שלום, Noa כהן!', `Hebrew and English letters with a space are fine ("${b.text}")`);
   check(page.pageErrors.length === 0, `no page errors${page.pageErrors.length ? ': ' + page.pageErrors.join('; ') : ''}`);
   await page.close();
+  // the very first time the app is opened it suggests picking a name; it can be skipped, and isn't asked again
+  const firstCtx = await browser.createBrowserContext(), first = await newTestPage(firstCtx, true);   // nothing saved at all
+  await first.goto(url, { waitUntil: "load" });
+  await first.waitForSelector('#name-dialog [data-first]', { timeout: 5000 }).catch(() => {});
+  check(!!(await first.$('#name-dialog [data-first]')) && (await first.$eval('#name-dialog [data-first]', e => e.textContent)).includes('10 השחקנים המובילים'), 'first time the app is opened: a box suggests picking a name (for the top 10 list)');
+  await first.click('#name-dialog [data-cancel]');
+  await first.reload({ waitUntil: 'load' });
+  await new Promise(r => setTimeout(r, 2000));
+  check(!(await first.$('#name-dialog')), 'skipped: it is not asked again on the next opening');
+  await first.close(); await firstCtx.close();
+  // a player who already used the app (no name yet) is not asked by itself
+  const old = await openPage();
+  await new Promise(r => setTimeout(r, 2000));
+  check(!(await old.$('#name-dialog')), 'someone who already used the app is not asked by itself');
+  await old.close();
 }
 
 // 🏆 The top 10 players: a trophy button under the cart opens their page (the cloud is a stand-in: tests never reach Firebase)
