@@ -2116,7 +2116,7 @@ async function testGames() {
   await page.click('#games-btn');
   check((await shown('games-screen')) && !(await shown('start-screen')), 'it opens the games page');
   const cards = await page.$$eval('#games-body .game-card', bs => bs.map(b => b.dataset.game));
-  check(cards.join() === 'memory,spell,listen,truefalse', `4 games: ${cards.join(', ')}`);
+  check(cards.join() === 'memory,spell,listen,truefalse,match,missing,picture,bubbles', `8 games: ${cards.join(', ')}`);
   check((await page.$eval('#games-body', e => e.textContent)).includes('רמה 1'), 'it says which level the words come from');
   const play = async id => { await page.click(`.game-card[data-game="${id}"]`); await page.waitForFunction(id => curGame === id && !document.querySelector('#games-body').textContent.includes('טוען'), { timeout: 5000 }, id); };
 
@@ -2339,7 +2339,101 @@ async function testIce() {
   await page.close();
 }
 
-const TESTS = { fire: testFire, wordbank: testWordbank, random: testRandom, layout: testLayout, back: testBack, tabs: testTabs, streak: testStreak, pairs: () => eachFixture('pairs', testPairs), list: () => eachFixture('list', testList), translation: testTranslationRetry, practice: testPractice, chooser: testChooser, header: testHeader, persist: testPersist, learn: testLearn, shop: testShop, box: testBox, phoneback: testPhoneBack, avatar: testAvatar, celebrate: testCelebrate, boxextra: testBoxExtra, keep: testKeep, wand: testWand, pictures: testPictures, name: testName, top: testTop, listlearn: testListLearn, games: testGames, shapes: testShapes, ice: testIce };
+// 🎮 the 4 newer games: matching, missing letter, picture, bubbles
+async function testGames2() {
+  console.log('\n[games2] matching, missing letter, picture, bubbles');
+  const page = await openPage();
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  const money = () => page.evaluate(() => grandTotal);
+  await page.setViewport({ width: 360, height: 640 });
+  await page.evaluate(() => setMode('category'));
+  await page.click('#games-btn');
+  const cards = await page.$$eval('#games-body .game-card', bs => bs.map(b => b.dataset.game));
+  check(cards.join() === 'memory,spell,listen,truefalse,match,missing,picture,bubbles', `8 games: ${cards.join(', ')}`);
+  const fit = await page.evaluate(() => { const b = document.getElementById('games-body'); return { over: b.scrollHeight - b.clientHeight, page: document.documentElement.scrollWidth - innerWidth }; });
+  check(fit.over <= 0 && fit.page <= 0, `360x640: all 8 games fit with no scrolling (${fit.over}px)`);
+  const play = async id => { await page.click(`.game-card[data-game="${id}"]`); await page.waitForFunction(id => curGame === id && !document.querySelector('#games-body').textContent.includes('טוען'), { timeout: 5000 }, id); };
+  const end = async () => { await page.waitForSelector('.game-end', { timeout: 4000 }); };
+
+  // 🔗 matching: 2 boards of 5; one wrong pair, then all right
+  let t0 = await money();
+  await play('match');
+  const pairs = async () => page.$$eval('.match-cell', cs => cs.filter(c => !c.disabled).length / 2);
+  check((await pairs()) === 5, 'matching: a board of 5 words and 5 meanings');
+  await page.evaluate(() => { const en = document.querySelector('.match-cell[data-side="en"][data-k="0"]'), he = document.querySelector('.match-cell[data-side="he"][data-k="1"]'); en.click(); he.click(); });
+  check(await page.$$eval('.match-cell.done', c => c.length) === 0, 'a word and a wrong meaning do not connect');
+  for (let board = 0; board < 2; board++) {
+    await page.waitForFunction(() => document.querySelectorAll('.match-cell:not(.done)').length === 10, { timeout: 3000 });
+    await page.evaluate(() => { for (let k = 0; k < 5; k++) { document.querySelector(`.match-cell[data-side="en"][data-k="${k}"]`).click(); document.querySelector(`.match-cell[data-side="he"][data-k="${k}"]`).click(); } });
+    if (board === 0) check(await page.$$eval('.match-cell.done', c => c.length) === 10, 'a word and its meaning connect (green)');
+  }
+  await end();
+  let t1 = await money();
+  check(t1 - t0 === 6, `10 pairs with 1 mistake: +6 ⭐ (${t1 - t0})`);
+
+  // 🧩 missing letter: 8 words; the first one wrong first
+  await page.click('#game-menu');
+  t0 = await money();
+  await play('missing');
+  for (let n = 0; n < 8; n++) {
+    await page.waitForFunction(n => document.querySelector('.missing-box .g-progress')?.textContent === `${n + 1}/8`, { timeout: 3000 }, n);
+    const [word, letter] = await page.$eval('.missing-box', e => [e.dataset.word, e.dataset.letter]);
+    if (n === 0) {
+      check((await page.$eval('.missing-word', e => e.textContent)).includes('_') && (await page.$$eval('.missing-answers button', b => b.length)) === 4, `a word with a missing letter and 4 letters to pick (${word})`);
+      await page.evaluate(l => [...document.querySelectorAll('.missing-answers button')].find(b => b.textContent !== l).click(), letter);
+    }
+    await page.evaluate(l => [...document.querySelectorAll('.missing-answers button')].find(b => b.textContent === l).click(), letter);
+    if (n === 0) check((await page.$eval('.missing-word', e => e.textContent)) === word, 'the right letter completes the word');
+  }
+  await end();
+  t1 = await money();
+  check(t1 - t0 === 5, `8 words, the first after a mistake: +5 ⭐ (${t1 - t0})`);
+
+  // 🖼️ picture: 8 pictures, all right
+  await page.click('#game-menu');
+  t0 = await money();
+  await play('picture');
+  for (let n = 0; n < 8; n++) {
+    await page.waitForFunction(n => document.querySelector('.pic-box .g-progress')?.textContent === `${n + 1}/8`, { timeout: 3000 }, n);
+    const word = await page.$eval('.pic-box', e => e.dataset.word);
+    if (n === 0) check((await page.$eval('.pic-big', e => e.textContent)).length > 0 && (await page.$$eval('.pic-box .btn-answer', b => b.length)) === 4, `a picture and 4 words (${word})`);
+    await page.evaluate(w => [...document.querySelectorAll('.pic-box .btn-answer')].find(b => b.textContent === w).click(), word);
+  }
+  await end();
+  t1 = await money();
+  check(t1 - t0 === 6, `8 pictures all right: +6 ⭐ (${t1 - t0})`);
+
+  // 🫧 bubbles: 10 rounds, 5 bubbles; two wrong first tries
+  await page.click('#game-menu');
+  t0 = await money();
+  await play('bubbles');
+  for (let n = 0; n < 10; n++) {
+    await page.waitForFunction(n => document.querySelector('.bub-box .g-progress')?.textContent === `${n + 1}/10`, { timeout: 3000 }, n);
+    const word = await page.$eval('.bub-box', e => e.dataset.word);
+    if (n === 0) check((await page.$$eval('.bubble', b => b.length)) === 5, '5 bubbles with English words');
+    if (n < 2) {
+      await page.evaluate(w => [...document.querySelectorAll('.bubble')].find(b => b.textContent !== w).click(), word);
+      if (n === 0) check((await page.$$eval('.bubble.popped', b => b.length)) === 1, 'a wrong bubble pops away');
+    }
+    await page.evaluate(w => [...document.querySelectorAll('.bubble')].find(b => b.textContent === w).click(), word);
+  }
+  await end();
+  t1 = await money();
+  check(t1 - t0 === 5, `10 bubbles, 2 after a mistake: +5 ⭐ (${t1 - t0})`);
+
+  // a list with no pictures: the picture game says what it needs
+  await page.evaluate(() => { showStart(); setMode('random'); document.getElementById('words-input').value = 'apple\tתפוח\ndog\tכלב\ncat\tחתול\nsun\tשמש'; renderWords(); });
+  await page.click('#games-btn');
+  await play('picture');
+  check((await page.$eval('#game-few', e => e.textContent)).includes('תמונה'), 'on a list with no pictures the picture game says it needs words with pictures');
+  await page.click('#games-back');
+  await play('match');
+  check(await page.$$eval('.match-cell', c => c.length) === 8, 'matching on a list of 4 words: one board of 4 pairs');
+  check(page.pageErrors.length === 0, `no page errors${page.pageErrors.length ? ': ' + page.pageErrors.join('; ') : ''}`);
+  await page.close();
+}
+
+const TESTS = { fire: testFire, wordbank: testWordbank, random: testRandom, layout: testLayout, back: testBack, tabs: testTabs, streak: testStreak, pairs: () => eachFixture('pairs', testPairs), list: () => eachFixture('list', testList), translation: testTranslationRetry, practice: testPractice, chooser: testChooser, header: testHeader, persist: testPersist, learn: testLearn, shop: testShop, box: testBox, phoneback: testPhoneBack, avatar: testAvatar, celebrate: testCelebrate, boxextra: testBoxExtra, keep: testKeep, wand: testWand, pictures: testPictures, name: testName, top: testTop, listlearn: testListLearn, games: testGames, shapes: testShapes, ice: testIce, games2: testGames2 };
 try {
   let ran = 0;
   for (const [name, run] of Object.entries(TESTS)) {

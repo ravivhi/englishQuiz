@@ -352,13 +352,13 @@
         #games-title { flex: 1; font-weight: bold; color: #4a5568; font-size: 1.15rem; }
         #games-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; text-align: center; }
         .games-note { color: #718096; font-size: 0.9rem; margin: 4px 0 10px; }
-        .games-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .game-card { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 8px; border: none; border-radius: 16px;
+        .games-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .game-card { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 7px 6px; border: none; border-radius: 16px;
                      color: #fff; font-family: inherit; cursor: pointer; box-shadow: 0 4px 0 rgba(0,0,0,0.15); }
         .game-card:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,0.15); }
-        .game-card .g-pic { font-size: 2.3rem; line-height: 1.2; }
-        .game-card .g-name { font-weight: bold; font-size: 1.15rem; }
-        .game-card .g-desc { font-size: 0.8rem; opacity: 0.95; }
+        .game-card .g-pic { font-size: 1.9rem; line-height: 1.15; }
+        .game-card .g-name { font-weight: bold; font-size: 1.08rem; }
+        .game-card .g-desc { font-size: 0.76rem; opacity: 0.95; }
         .g-progress { color: #805ad5; font-weight: bold; margin-bottom: 4px; }
         .g-speak { border: none; background: #ebf8ff; border-radius: 50%; width: 46px; height: 46px; font-size: 1.4rem; cursor: pointer; margin: 6px 0; }
         .g-speak.big { width: 72px; height: 72px; font-size: 2.2rem; margin: 6px 0 14px; box-shadow: 0 3px 0 #90cdf4; }
@@ -381,6 +381,33 @@
                       font-size: 1.5rem; font-weight: bold; font-family: inherit; color: #744210; cursor: pointer; touch-action: manipulation; }
         .spell-tile:disabled { visibility: hidden; }
         .listen-answers { display: grid; gap: 8px; }
+        /* 🔗 matching */
+        .match-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .match-col { display: grid; gap: 8px; }
+        .match-cell { padding: 10px 6px; border: 2px solid #cbd5e0; border-radius: 12px; background: #fff; font-size: 1.05rem; font-weight: bold; color: #2d3748; cursor: pointer; min-height: 48px; }
+        .match-cell.sel { border-color: #805ad5; background: #faf5ff; box-shadow: 0 0 0 3px #d6bcfa; }
+        .match-cell.done { border-color: #38a169; background: #c6f6d5; color: #22543d; cursor: default; }
+        .match-cell.bad { border-color: #e53e3e; background: #fed7d7; }
+        /* 🧩 missing letter */
+        .missing-word { font-size: 2.2rem; font-weight: bold; letter-spacing: 4px; color: #2d3748; margin: 8px 0 14px; }
+        .missing-slot { color: #805ad5; display: inline-block; min-width: 0.7em; }
+        .missing-slot.ok { color: #38a169; }
+        .missing-answers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        .missing-answers .btn-answer { font-size: 1.6rem; padding: 10px 0; }
+        /* 🖼️ picture */
+        .pic-big { font-size: 5rem; line-height: 1.15; margin: 4px 0; }
+        .pic-he { min-height: 1.4em; color: #38a169; }
+        /* 🫧 bubbles */
+        .bub-he { font-size: 1.5rem; margin-bottom: 6px; }
+        .bub-sky { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; padding: 8px 0; }
+        .bubble { width: 104px; height: 104px; border-radius: 50%; border: 3px solid #90cdf4; cursor: pointer; font-weight: bold; font-size: 1rem; color: #2a4365; padding: 4px;
+                  background: radial-gradient(circle at 30% 28%, #fff 0 12%, #e6f6ff 30%, #bee3f8 75%, #90cdf4); box-shadow: 0 4px 10px rgba(49,130,206,0.25);
+                  animation: bubFloat 2.8s ease-in-out infinite; overflow-wrap: anywhere; transition: transform 0.25s, opacity 0.25s; }
+        .bubble.popped { transform: scale(0.2); opacity: 0; pointer-events: none; animation: none; }
+        .bubble.good { border-color: #38a169; background: radial-gradient(circle at 30% 28%, #fff 0 12%, #f0fff4 30%, #c6f6d5 75%, #68d391); animation: none; transform: scale(1.12); }
+        @keyframes bubFloat { 0%, 100% { translate: 0 0; } 50% { translate: 0 -10px; } }
+        @media (prefers-reduced-motion: reduce) { .bubble { animation: none; } }
+        @media (max-width: 380px) { .bubble { width: 92px; height: 92px; font-size: 0.92rem; } }
         .tf-bar { display: flex; justify-content: space-between; font-weight: bold; font-size: 1.1rem; color: #4a5568; margin-bottom: 4px; }
         .tf-word { font-size: 2.1rem; font-weight: bold; color: #2b6cb0; }
         .tf-he { font-size: 1.6rem; font-weight: bold; color: #2d3748; margin: 2px 0 20px; }
@@ -1454,7 +1481,7 @@
             showPlayerName();
             window.cloud && cloud.sync();
         }
-        // 🎮 Games: 4 short games on the words of the tab the games were opened from: the learning tab - its level's
+        // 🎮 Games: 8 short games on the words of the tab the games were opened from: the learning tab - its level's
         // words; the random words / picture tabs - the words in their list.
         // Each one gives 1-6 ⭐ points at its end by how well it went: 6 for a very good game, 1 for a very bad one
         // (they count in the total and in the 🏆 list, like a quiz's).
@@ -1470,6 +1497,14 @@
               ok: w => /^[a-z][a-z' -]{1,14}$/i.test(w.en), min: 4, run: playListen },
             { id: "truefalse", pic: "⚡", name: "נכון או לא?", desc: `${TF_ROUNDS} מילים: הפירוש נכון?`, color: "#68d391, #38a169",
               ok: w => w.he.length <= 22, min: 2, good: TF_MAX, run: playTrueFalse },   // (its top: 3 ⭐ counts as a good game)
+            { id: "match", pic: "🔗", name: "התאמה", desc: "מחברים מילה לפירוש שלה", color: "#f687b3, #d53f8c",
+              ok: w => w.en.length <= 12 && w.he.length <= 14, min: 3, run: playMatch },
+            { id: "missing", pic: "🧩", name: "אות חסרה", desc: "משלימים את האות שחסרה", color: "#4fd1c5, #319795",
+              ok: w => /^[a-z]{3,8}$/i.test(w.en), min: 1, run: playMissing },
+            { id: "picture", pic: "🖼️", name: "מה בתמונה?", desc: "רואים תמונה ובוחרים מילה", color: "#fc8181, #e53e3e",
+              ok: w => !!w.pic && /^[a-z][a-z' -]{1,14}$/i.test(w.en), min: 4, run: playPicture },
+            { id: "bubbles", pic: "🫧", name: "בועות", desc: "מפוצצים את הבועה הנכונה", color: "#7f9cf5, #5a67d8",
+              ok: w => w.en.length <= 12, min: 3, run: playBubbles },
         ];
         const gBody = () => document.getElementById("games-body");
         const gameLevel = () => +document.getElementById("level-select").value || 1;
@@ -1535,7 +1570,7 @@
                 seenEn.add(en); seenHe.add(w.he); return true;
             }));
             if (pool.length < g.min) {   // a short list: say how many words this game needs
-                const msg = gEl("p", "games-note", `למשחק הזה צריך לפחות ${g.min} ${g.min === 1 ? "מילה מתאימה" : "מילים מתאימות"} ברשימה${g.id === "spell" ? " (מילה של 3–7 אותיות)" : ""}. אפשר להוסיף מילים ברשימה במסך הראשי.`);
+                const msg = gEl("p", "games-note", `למשחק הזה צריך לפחות ${g.min} ${g.min === 1 ? "מילה מתאימה" : "מילים מתאימות"} ברשימה${g.id === "spell" ? " (מילה של 3–7 אותיות)" : g.id === "missing" ? " (מילה של 3–8 אותיות)" : g.id === "picture" ? " עם תמונה (יש תמונות במילים של לשונית הלימוד)" : ""}. אפשר להוסיף מילים ברשימה במסך הראשי.`);
                 msg.id = "game-few";
                 const back = gEl("button", "btn-restart", "🎮 משחקים"); back.type = "button"; back.onclick = () => gamesMenu();
                 gBody().replaceChildren(msg, back);
@@ -1688,6 +1723,146 @@
                 box.append(gEl("div", "g-progress", `${round + 1}/${words.length}`), gEl("p", "games-note", "הקשיבו ובחרו את המילה ששמעתם"), say, answers);
                 gBody().replaceChildren(box);
                 speakText(w.en);
+            };
+            next();
+        }
+
+        // a few other words of the pool for the wrong answers (n at most), each with its own English word
+        const gOthers = (pool, w, n) => shuffle(pool.filter(x => x !== w && x.en.toLowerCase() !== w.en.toLowerCase())).slice(0, n);
+
+        // 🔗 Matching: English words on one side, their meanings on the other (mixed); tap a word and its meaning to
+        // connect them. Up to 2 boards of 5 pairs. 6 ⭐ with no mistakes, 1 ⭐ with a mistake for every pair (or more).
+        function playMatch(pool, token, g) {
+            const all = pool.slice(0, 10), boards = all.length > 5 ? [all.slice(0, Math.ceil(all.length / 2)), all.slice(Math.ceil(all.length / 2))] : [all];
+            let b = 0, mistakes = 0;
+            const board = () => {
+                if (token !== gameToken) return;
+                if (b === boards.length) return gameOver(token, g, gameStars(1 - mistakes / all.length), mistakes ? `חיברתם ${all.length} זוגות עם ${mistakes} ${mistakes === 1 ? "טעות" : "טעויות"}` : `חיברתם ${all.length} זוגות בלי אף טעות!`);
+                const words = boards[b];
+                let picked = null, left = words.length;
+                const box = gEl("div", "match-box"), en = gEl("div", "match-col"), he = gEl("div", "match-col");
+                en.dir = "ltr";
+                const tap = cell => {
+                    if (token !== gameToken || cell.disabled) return;
+                    if (!picked || picked === cell) { picked && picked.classList.remove("sel"); picked = picked === cell ? null : cell; picked && picked.classList.add("sel"); if (picked && picked.dataset.side === "en") speakText(picked.textContent); return; }
+                    if (picked.dataset.side === cell.dataset.side) { picked.classList.remove("sel"); picked = cell; cell.classList.add("sel"); if (cell.dataset.side === "en") speakText(cell.textContent); return; }
+                    const a = picked; picked = null; a.classList.remove("sel");
+                    if (a.dataset.k === cell.dataset.k) {
+                        for (const x of [a, cell]) { x.classList.add("done"); x.disabled = true; }
+                        if (--left === 0) { b++; setTimeout(board, 700); }
+                    } else {
+                        mistakes++;
+                        for (const x of [a, cell]) { x.classList.add("bad"); gShake(x); setTimeout(() => x.classList.remove("bad"), 500); }
+                    }
+                };
+                words.forEach((w, k) => { const c = gEl("button", "match-cell", w.en); c.type = "button"; c.dataset.k = k; c.dataset.side = "en"; c.onclick = () => tap(c); en.append(c); });
+                shuffle(words.map((w, k) => [w, k])).forEach(([w, k]) => { const c = gEl("button", "match-cell he", w.he); c.type = "button"; c.dataset.k = k; c.dataset.side = "he"; c.onclick = () => tap(c); he.append(c); });
+                const cols = gEl("div", "match-cols"); cols.append(he, en);
+                box.append(gEl("div", "g-progress", boards.length > 1 ? `לוח ${b + 1}/${boards.length}` : ""), gEl("p", "games-note", "לוחצים על מילה ועל הפירוש שלה כדי לחבר אותם"), cols);
+                gBody().replaceChildren(box);
+            };
+            board();
+        }
+
+        // 🧩 Missing letter: a word with one letter missing (its meaning and picture above); pick the missing letter of 4.
+        // 8 words, ⭐ by how many were right on the first try (all: 6 ⭐, none: 1 ⭐).
+        function playMissing(pool, token, g) {
+            const words = pool.slice(0, 8);
+            let round = 0, points = 0;
+            const next = () => {
+                if (token !== gameToken) return;
+                if (round === words.length) return gameOver(token, g, gameStars(points / words.length), `השלמתם ${points} מתוך ${words.length} מילים בניסיון הראשון`);
+                const w = words[round], word = w.en.toLowerCase(), at = Math.floor(Math.random() * word.length), ch = word[at];
+                let first = true;
+                const box = gEl("div", "missing-box"); box.dataset.word = word; box.dataset.letter = ch;
+                const shown = gEl("div", "missing-word"); shown.dir = "ltr";
+                [...word].forEach((c, i) => shown.append(gEl("span", i === at ? "missing-slot" : "", i === at ? "_" : c)));
+                const letters = shuffle([ch, ...shuffle([..."abcdefghijklmnopqrstuvwxyz"].filter(x => x !== ch)).slice(0, 3)]);
+                const answers = gEl("div", "missing-answers");
+                for (const x of letters) {
+                    const bt = gEl("button", "btn-answer", x); bt.type = "button";
+                    bt.onclick = () => {
+                        if (token !== gameToken || bt.disabled) return;
+                        if (x !== ch) { first = false; bt.classList.add("wrong"); bt.disabled = true; gShake(bt); return; }
+                        bt.classList.add("correct");
+                        answers.querySelectorAll("button").forEach(y => y.disabled = true);
+                        const slot = shown.querySelector(".missing-slot"); slot.textContent = ch; slot.classList.add("ok");
+                        speakText(word);
+                        if (first) points++;
+                        round++;
+                        setTimeout(next, 1000);
+                    };
+                    answers.append(bt);
+                }
+                box.append(gEl("div", "g-progress", `${round + 1}/${words.length}`), gEl("div", "spell-pic", w.pic || ""), gEl("div", "spell-he", w.he), shown, answers);
+                gBody().replaceChildren(box);
+            };
+            next();
+        }
+
+        // 🖼️ Picture: a big picture; pick its English word of 4. 8 pictures, ⭐ by how many were right on the first try.
+        // (Only words with a picture: the learning tab's levels have them.)
+        function playPicture(pool, token, g) {
+            const words = pool.slice(0, 8);
+            let round = 0, points = 0;
+            const next = () => {
+                if (token !== gameToken) return;
+                if (round === words.length) return gameOver(token, g, gameStars(points / words.length), `זיהיתם ${points} מתוך ${words.length} תמונות בניסיון הראשון`);
+                const w = words[round];
+                let first = true;
+                const box = gEl("div", "pic-box"); box.dataset.word = w.en;
+                const he = gEl("div", "spell-he pic-he", "");
+                const answers = gEl("div", "listen-answers");
+                for (const x of shuffle([w, ...gOthers(pool, w, 3)])) {
+                    const bt = gEl("button", "btn-answer", x.en); bt.type = "button"; bt.dir = "ltr";
+                    bt.onclick = () => {
+                        if (token !== gameToken || bt.disabled) return;
+                        if (x !== w) { first = false; bt.classList.add("wrong"); bt.disabled = true; return; }
+                        bt.classList.add("correct");
+                        answers.querySelectorAll("button").forEach(y => y.disabled = true);
+                        he.textContent = w.he;   // and now its meaning too
+                        speakText(w.en);
+                        if (first) points++;
+                        round++;
+                        setTimeout(next, 1000);
+                    };
+                    answers.append(bt);
+                }
+                box.append(gEl("div", "g-progress", `${round + 1}/${words.length}`), gEl("div", "pic-big", w.pic), he, answers);
+                gBody().replaceChildren(box);
+            };
+            next();
+        }
+
+        // 🫧 Bubbles: a meaning on top, English words in floating bubbles; pop the bubble of its word. A wrong bubble
+        // pops away. 10 rounds, ⭐ by how many were right on the first try.
+        function playBubbles(pool, token, g) {
+            const ROUNDS = 10, words = shuffle(Array.from({ length: ROUNDS }, (_, k) => pool[k % pool.length]));   // a short list: its words again
+            let round = 0, points = 0;
+            const next = () => {
+                if (token !== gameToken) return;
+                if (round === ROUNDS) return gameOver(token, g, gameStars(points / ROUNDS), `פוצצתם נכון ${points} מתוך ${ROUNDS} בועות בניסיון הראשון`);
+                const w = words[round];
+                let first = true;
+                const box = gEl("div", "bub-box"); box.dataset.word = w.en;
+                const sky = gEl("div", "bub-sky");
+                shuffle([w, ...gOthers(pool, w, 4)]).forEach((x, i) => {
+                    const bt = gEl("button", "bubble", x.en); bt.type = "button"; bt.dir = "ltr";
+                    bt.style.animationDelay = `${-i * 0.7}s`;
+                    bt.onclick = () => {
+                        if (token !== gameToken || bt.disabled) return;
+                        if (x !== w) { first = false; bt.disabled = true; bt.classList.add("popped"); return; }
+                        bt.classList.add("good");
+                        sky.querySelectorAll("button").forEach(y => y.disabled = true);
+                        speakText(w.en);
+                        if (first) points++;
+                        round++;
+                        setTimeout(next, 900);
+                    };
+                    sky.append(bt);
+                });
+                box.append(gEl("div", "g-progress", `${round + 1}/${ROUNDS}`), gEl("p", "games-note", "פוצצו את הבועה של המילה באנגלית"), gEl("div", "spell-he bub-he", w.he), sky);
+                gBody().replaceChildren(box);
             };
             next();
         }
