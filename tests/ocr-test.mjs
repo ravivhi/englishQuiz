@@ -2516,6 +2516,7 @@ async function testGames2() {
 async function testPurple() {
   console.log('\n[purple] topics passed twice turn purple; the second level box needs all purple and 90 right');
   const page = await openPage();
+  check(await page.evaluate(() => document.documentElement.getAttribute('translate') === 'no' && document.querySelector('meta[name="google"]')?.content === 'notranslate'), 'the page asks browsers not to translate it (the Hebrew must stay Hebrew)');
   await page.evaluate(() => { speechSynthesis.speak = u => setTimeout(() => u.onend && u.onend(), 20); window.coinSound = () => {}; playUnlockSound = () => {}; });
   const play = n => page.evaluate(n => { for (let k = 0; currentIndex < wordsData.length; k++) { const c = wordsData[currentIndex].correct, bs = [...document.querySelectorAll('#answers-container .btn-answer')];
     if (k >= n) bs.find(x => x.innerText !== c).click(); bs.find(x => x.innerText === c).click(); clearTimeout(nextQuestionTimer); nextQuestionTimer = null; currentIndex++; loadQuestion(); } }, n);
