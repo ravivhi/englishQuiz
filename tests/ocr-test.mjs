@@ -2403,7 +2403,7 @@ async function testGames2() {
   }
   await end();
   t1 = await money();
-  check(t1 - t0 === 6, `8 pictures all right: +6 ⭐ (${t1 - t0})`);
+  check(t1 - t0 === 2, `8 pictures all right: +2 ⭐ (picture gives 1-2) (${t1 - t0})`);
 
   // 🫧 bubbles: 10 rounds, 5 bubbles; two wrong first tries
   await page.click('#game-menu');
@@ -2421,7 +2421,7 @@ async function testGames2() {
   }
   await end();
   t1 = await money();
-  check(t1 - t0 === 5, `10 bubbles, 2 after a mistake: +5 ⭐ (${t1 - t0})`);
+  check(t1 - t0 === 2, `10 bubbles, 2 after a mistake: +2 ⭐ (bubbles gives 1-2) (${t1 - t0})`);
 
   // a list with no pictures: the picture game says what it needs
   await page.evaluate(() => { showStart(); setMode('random'); document.getElementById('words-input').value = 'apple\tתפוח\ndog\tכלב\ncat\tחתול\nsun\tשמש'; renderWords(); });
