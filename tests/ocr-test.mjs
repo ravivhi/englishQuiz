@@ -1555,14 +1555,17 @@ async function testFriends() {
   const rect = id => page.$eval('#' + id, e => e.getBoundingClientRect().toJSON());
   // the top row: 🏪 🎮 ... 👫 🏆 🙂 (the shop and the character in the corners); no title; the name under the row, bigger
   await page.evaluate(() => { shop.owned.push('dog'); shop.avatar = 'dog'; applyShop(); setPlayerName('נועה'); });
+  await new Promise(r => setTimeout(r, 500));   // the screen comes in with a short animation (it scales the buttons)
   const [sh, gm, fr, tp, av, nm] = await Promise.all(['shop-btn', 'games-btn', 'friends-btn', 'top-btn', 'menu-avatar', 'player-name'].map(rect));
-  check([gm, fr, tp, av].every(x => Math.abs(x.top - sh.top) < 4) && sh.left < gm.left && fr.right <= tp.left + 1 && tp.right <= av.left + 1 && tp.left - fr.right < 2 && av.left - tp.right < 2 && gm.left - sh.right < 2,
-    'one row at the top: shop and 🎮 on the left, 👫 🏆 and the character on the right');
+  const gaps = [gm.left - sh.right, fr.left - gm.right, tp.left - fr.right, av.left - tp.right];
+  check([gm, fr, tp, av].every(x => Math.abs(x.top - sh.top) < 4) && gaps.every(g => g > 10) && Math.max(...gaps) - Math.min(...gaps) < 2,
+    `one row at the top: 🏪 🎮 👫 🏆 and the character, the same space between each two (${gaps.map(Math.round).join(', ')})`);
   check(!(await page.$('#app-title')) && nm.top >= sh.bottom - 2 && nm.right <= 360, 'no title; the name is in its own line under the row');
   check(parseFloat(await page.$eval('#player-name', e => getComputedStyle(e).fontSize)) >= 18, 'the name is bigger');
   await page.evaluate(() => { shop.avatar = ''; applyShop(); });
   const [tp2, fr2] = await Promise.all(['top-btn', 'friends-btn'].map(rect));
-  check(tp2.right > tp.right + 20 && fr2.right > fr.right + 20, 'no character: the 🏆 and 👫 move into the corner');
+  const [sh2, gm2] = await Promise.all(['shop-btn', 'games-btn'].map(rect)), gaps2 = [gm2.left - sh2.right, fr2.left - gm2.right, tp2.left - fr2.right];
+  check(tp2.right > tp.right + 20 && Math.abs(tp2.right - av.right) < 2 && Math.max(...gaps2) - Math.min(...gaps2) < 2, `no character: the four buttons spread over the row, the 🏆 in the corner (${gaps2.map(Math.round).join(', ')})`);
   // the cloud is a stand-in: names of all the players, and the friends' entries
   await page.evaluate(() => {
     window.searched = [];
@@ -2204,9 +2207,10 @@ async function testTop() {
   const page = await openPage();
   const shown = id => page.$eval('#' + id, e => getComputedStyle(e).display !== 'none');
   await page.evaluate(() => { shop.owned.push('dog'); shop.avatar = 'dog'; applyShop(); });   // a character in the corner
+  await new Promise(r => setTimeout(r, 500));   // the screen comes in with a short animation (it scales the buttons)
   const r = await page.$eval('#top-btn', b => b.getBoundingClientRect().toJSON());
   const av = await page.$eval('#menu-avatar', b => b.getBoundingClientRect().toJSON());
-  check(av.width > 0 && r.width > 0 && Math.abs(r.top - av.top) < 4 && r.right <= av.left + 1 && av.left - r.right < 2, 'the main screen has a 🏆 button in the top row, touching the character');
+  check(av.width > 0 && r.width > 0 && Math.abs(r.top - av.top) < 4 && r.right < av.left, 'the main screen has a 🏆 button in the top row, next to the character');
   // no cloud (no network): it says so
   await page.click('#top-btn');
   check((await shown('top-screen')) && !(await shown('start-screen')) && !(await page.$('[data-dialog]')), 'it opens a page of its own (not a pop-up), instead of the main screen');
@@ -2362,7 +2366,7 @@ async function testGames() {
   await wait(500);   // the screen comes in with a short animation (it scales the buttons)
   const r = await page.$eval('#games-btn', b => b.getBoundingClientRect().toJSON());
   const shopR = await page.$eval('#shop-btn', b => b.getBoundingClientRect().toJSON());
-  check(r.width > 0 && Math.abs(r.top - shopR.top) < 4 && r.left >= shopR.right - 1 && r.left - shopR.right < 2, 'the main screen has a 🎮 button in the top row, touching the store');
+  check(r.width > 0 && Math.abs(r.top - shopR.top) < 4 && r.left > shopR.right, 'the main screen has a 🎮 button in the top row, next to the store');
   await page.evaluate(() => setMode('category'));   // from the learning tab: the level's words
   await page.click('#games-btn');
   check((await shown('games-screen')) && !(await shown('start-screen')), 'it opens the games page');

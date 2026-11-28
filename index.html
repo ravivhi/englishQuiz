@@ -804,6 +804,13 @@
             .summary-screen #summary-stats { font-size: 1.05rem !important; }
             .summary-screen #summary-final-score { font-size: 1.25rem !important; }
         }
+        /* the top row: 🏪 🎮 👫 🏆 and the character spread over the whole row, with the same space between each two (the character last;
+           without one, the four buttons spread the same way). --k = the place in the row, --n = the number of spaces. Kept last: it wins over the places above. */
+        #shop-btn, #games-btn, #friends-btn, #top-btn, #menu-avatar { --edge: -8px; --size: 46px; --n: 4;
+            left: calc(var(--edge) + (100% - 2 * var(--edge) - var(--size)) * var(--k) / var(--n)) !important; right: auto !important; }
+        #shop-btn { --k: 0; } #games-btn { --k: 1; } #friends-btn { --k: 2; } #top-btn { --k: 3; } #menu-avatar { --k: 4; }
+        #start-screen:has(#menu-avatar:empty) :is(#shop-btn, #games-btn, #friends-btn, #top-btn) { --n: 3; }
+        @media (max-width: 360px) { #shop-btn, #games-btn, #friends-btn, #top-btn, #menu-avatar { --edge: -10px; --size: 36px; } }
     </style>
 </head>
 <body>
