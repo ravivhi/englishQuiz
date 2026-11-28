@@ -2070,12 +2070,14 @@ async function testTop() {
   check(await page.$eval('#top-screen .top-list li .t-pts', e => e.classList.contains('t-by')), 'on the points tab the points are the big number');
   // the categories tab: asks the cloud for the list by finished topics
   await page.evaluate(() => {
-    window.cloud.top = async by => by === 'topics' ? [{ name: 'דני', points: 40, topics: 30 }, { name: 'נועה', points: 900, topics: 12 }] : [];
+    window.cloud.top = async by => by === 'topics' ? [{ name: 'דני', points: 40, topics: 30, purple: 5, avatar: SHOP_AVATARS[0].id }, { name: 'נועה', points: 900, topics: 12, avatar: 'capybara' }] : [];
   });
   await page.click('#top-tab-topics');
   await page.waitForFunction(() => document.querySelectorAll('#top-screen .top-list li').length === 2, { timeout: 3000 });
-  const trows = await page.$$eval('#top-screen .top-list li', ls => ls.map(l => ({ text: l.textContent, me: l.classList.contains('me'), big: l.querySelector('.t-by').textContent })));
-  check(await page.$eval('#top-tab-topics', b => b.getAttribute('aria-selected')) === 'true' && trows[0].text.includes('דני') && trows[0].big === '✅ 30' && trows[1].me, 'the categories tab lists the players by finished topics (the ✅ number is the big one)');
+  const trows = await page.$$eval('#top-screen .top-list li', ls => ls.map(l => ({ text: l.textContent, me: l.classList.contains('me'), big: l.querySelector('.t-by').textContent, av: l.querySelector('.t-av').textContent, img: !!l.querySelector('.t-av img') })));
+  check(await page.$eval('#top-tab-topics', b => b.getAttribute('aria-selected')) === 'true' && trows[0].text.includes('דני') && trows[0].big === '✅ 30 💜 5' && trows[1].big === '✅ 12' && trows[1].me, `the categories tab lists the players by finished topics, with the purple ones when there are any (${trows.map(t => t.big).join(' / ')})`);
+  check(trows[0].av === (await page.evaluate(() => SHOP_AVATARS[0].pic)) && trows[1].img, `each line shows the player's character (${trows[0].av}, a drawn one as a picture)`);
+  check(rows.every(x => !x.text.includes('💜')), 'no purple topics: no 💜 on the line');
   await page.evaluate(() => {
     window.cloud.top = async () => Array.from({ length: 10 }, (_, i) => ({ name: i === 3 ? 'נועה' : `שחקן${i + 1}`, points: 1000 - i * 50, topics: 20 - i }));
   });

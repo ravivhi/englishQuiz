@@ -443,6 +443,8 @@
         .top-list li:nth-child(odd) { background: #f7fafc; }
         .top-list li.me { background: #faf089; font-weight: bold; }
         .top-list .t-rank { width: 2rem; text-align: center; flex-shrink: 0; }
+        .top-list .t-av { width: 1.8rem; height: 1.8rem; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; line-height: 1; }
+        .top-list .t-av .pic-img { width: 100%; height: 100%; object-fit: contain; }
         .top-list .t-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .top-list .t-pts { flex-shrink: 0; color: #b7791f; font-weight: bold; direction: ltr; }
         .top-list .t-topics { flex-shrink: 0; color: #2f855a; font-weight: bold; font-size: 0.9rem; direction: ltr; }
@@ -1952,15 +1954,16 @@
             list.forEach((p, i) => {
                 const li = document.createElement("li");
                 if (playerName && p.name.toLowerCase() === playerName.toLowerCase()) li.className = "me";
-                const r = document.createElement("span"), n = document.createElement("span"), pts = document.createElement("span"), tp = document.createElement("span");
+                const r = document.createElement("span"), av = document.createElement("span"), n = document.createElement("span"), pts = document.createElement("span"), tp = document.createElement("span");
                 r.className = "t-rank"; r.textContent = medal[i] || `${i + 1}.`;
+                av.className = "t-av"; putPic(av, SHOP_AVATARS.find(x => x.id === p.avatar));   // the player's character (none: empty)
                 n.className = "t-name"; n.textContent = p.name;
                 pts.className = "t-pts"; pts.textContent = `⭐ ${p.points}`;
-                tp.className = "t-topics"; tp.textContent = `✅ ${p.topics}`; tp.title = "נושאים שהושלמו";
+                tp.className = "t-topics"; tp.textContent = `✅ ${p.topics}` + (p.purple ? ` 💜 ${p.purple}` : ""); tp.title = "נושאים שהושלמו (💜 בפעם השנייה)";
                 // the number the list is sorted by is big; the other one small, beside it
                 (by === "topics" ? tp : pts).classList.add("t-by");
                 (by === "topics" ? pts : tp).classList.add("t-other");
-                li.append(r, n, by === "topics" ? pts : tp, by === "topics" ? tp : pts);
+                li.append(r, av, n, by === "topics" ? pts : tp, by === "topics" ? tp : pts);
                 ol.append(li);
             });
             body.replaceChildren(ol);
@@ -2860,6 +2863,7 @@
         let learnPurple = {};
         try { learnPurple = JSON.parse(localStorage.getItem(PURPLE_KEY)) || {}; } catch (e) {}
         const purpleSet = level => new Set(Array.isArray(learnPurple[level]) ? learnPurple[level] : []);
+        const purpleDone = () => Object.keys(learnPurple).reduce((n, lv) => n + purpleSet(lv).size, 0);   // 💜 in all the levels (the 🏆 list shows it)
         // ✅ how many topics are green, in all the levels together (shown in the 🏆 list)
         const topicsDone = () => Object.keys(learnProgress).reduce((n, lv) => n + passedSet(lv).size, 0);
         showGrandTotal();   // now the ✅ count on the main screen can be shown
@@ -3404,6 +3408,7 @@
                 purple.add(index);
                 learnPurple[level] = [...purple].sort((a, b) => a - b);
                 try { localStorage.setItem(PURPLE_KEY, JSON.stringify(learnPurple)); } catch (e) {}
+                window.cloud && cloud.sync();
                 playUnlockSound();
             }
             const allPassed = steps.every((s, i) => passedSteps.has(i)), allPurple = steps.every((s, i) => purple.has(i));
@@ -3878,7 +3883,7 @@
                 sky.appendChild(el);
             });
         }
-        function saveShop() { try { localStorage.setItem(SHOP_KEY, JSON.stringify(shop)); } catch (e) {} }
+        function saveShop() { try { localStorage.setItem(SHOP_KEY, JSON.stringify(shop)); } catch (e) {} window.cloud && cloud.sync(); }   // (the 🏆 list shows the character)
         function applyShop() {
             const a = SHOP_AVATARS.find(x => x.id === shop.avatar), t = SHOP_THEMES.find(x => x.id === (themePreview || shop.theme)) || SHOP_THEMES[0];
             putPic(document.getElementById("menu-avatar"), a);
@@ -4650,7 +4655,8 @@
             name, uid: u.uid, updatedAt: serverTimestamp(),
             // earned = all the points ever earned (the 🏆 list is by these); topics = how many topics are green.
             // What is left to spend is not kept in the cloud (an entry saved before has it removed)
-            apps: { ...apps, [APP]: { points: deleteField(), earned: Math.max(0, Math.floor(earnedTotal) || 0), topics: topicsDone(), updatedAt: serverTimestamp() } }
+            // purple = how many topics are purple (passed twice); avatar = the chosen character's id ("" for none)
+            apps: { ...apps, [APP]: { points: deleteField(), earned: Math.max(0, Math.floor(earnedTotal) || 0), topics: topicsDone(), purple: purpleDone(), avatar: String(shop.avatar || ""), updatedAt: serverTimestamp() } }
         }, { merge: true });
         // takes the name: "ok", "taken" (another player has it) or "offline" (try again later)
         async function claim(name) {
@@ -4682,7 +4688,8 @@
             await user();
             const field = by === "topics" ? "topics" : "earned";
             const snap = await getDocs(query(collection(db, "players"), orderBy(`apps.${APP}.${field}`, "desc"), limit(10)));
-            return snap.docs.map(d => ({ name: d.data().name, points: d.data().apps?.[APP]?.earned || 0, topics: d.data().apps?.[APP]?.topics || 0 }));
+            return snap.docs.map(d => { const a = d.data().apps?.[APP] || {};
+                return { name: d.data().name, points: a.earned || 0, topics: a.topics || 0, purple: a.purple || 0, avatar: typeof a.avatar === "string" ? a.avatar : "" }; });
         }
         window.cloud = { claim, sync, top };
         sync();   // on start: take the name typed before this version, and send the points
