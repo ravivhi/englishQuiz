@@ -303,6 +303,8 @@
         .cat-step .cat-state { flex: none; font-size: 1.3rem; }
         .cat-step.done { background: linear-gradient(135deg, #38a169, #68d391); border-color: #2f855a; color: #fff; }
         .cat-step.done .cat-emoji { background: rgba(255,255,255,0.35); }
+        /* 💜 a topic passed a second time */
+        .cat-step.done.purple { background: linear-gradient(135deg, #6b46c1, #9f7aea); border-color: #553c9a; }
         /* 🎁 the 1000-coin box at the end of each level: grey and locked, then gold and pulsing, then taken */
         .cat-prize { display: flex; align-items: center; gap: 8px; flex: none; width: 100%; padding: 10px 12px; margin-top: 4px;
                      border: 2px dashed #a0aec0; border-radius: 18px; background: #edf2f7; color: #718096;
@@ -318,6 +320,9 @@
         .cat-prize.taken { border: 2px solid #d69e2e; background: linear-gradient(135deg, #fefcbf, #fbd38d); color: #975a16; cursor: default; }
         @keyframes prize-glow { 0%, 100% { transform: scale(1); box-shadow: 0 0 0 rgba(236,201,75,0); } 50% { transform: scale(1.03); box-shadow: 0 0 18px rgba(236,201,75,0.9); } }
         @media (prefers-reduced-motion: reduce) { .cat-prize.open { animation: none; } }
+        /* 💜 the second box (all topics purple) */
+        .cat-prize.tier2.open { border-color: #553c9a; background: linear-gradient(135deg, #b794f4, #6b46c1); color: #fff; }
+        .cat-prize.tier2.taken { border-color: #9f7aea; background: linear-gradient(135deg, #faf5ff, #d6bcfa); color: #553c9a; }
         /* 👋 the child's name under the title (dashed until it is typed) */
         #player-name { display: block; margin: 0 auto 6px; padding: 2px 12px; border: 1px solid transparent; border-radius: 14px; background: none;
                        color: #553c9a; font-family: inherit; font-size: 0.95rem; font-weight: bold; cursor: pointer; touch-action: manipulation; }
@@ -2848,6 +2853,11 @@
             const v = learnProgress[level];
             return new Set(Array.isArray(v) ? v : Array.from({ length: Math.max(0, +v || 0) }, (_, i) => i));
         }
+        // 💜 a green topic whose quiz is passed again (no mistakes) turns purple: { level: [indexes] }
+        const PURPLE_KEY = "englishquiz-learn-purple";
+        let learnPurple = {};
+        try { learnPurple = JSON.parse(localStorage.getItem(PURPLE_KEY)) || {}; } catch (e) {}
+        const purpleSet = level => new Set(Array.isArray(learnPurple[level]) ? learnPurple[level] : []);
         // ✅ how many topics are green, in all the levels together (shown in the 🏆 list)
         const topicsDone = () => Object.keys(learnProgress).reduce((n, lv) => n + passedSet(lv).size, 0);
         showGrandTotal();   // now the ✅ count on the main screen can be shown
@@ -2890,7 +2900,7 @@
             try { words = await loadLevel(level); }
             catch (e) { if (token === pathToken) { list.innerHTML = ""; status.textContent = "לא הצלחנו לטעון את מאגר המילים – בדקו את החיבור לאינטרנט."; } return; }
             if (token !== pathToken) return;   // the level was changed meanwhile
-            const steps = learnSteps(words), passed = passedSet(level);
+            const steps = learnSteps(words), passed = passedSet(level), purple = purpleSet(level);
             list.innerHTML = "";
             // each row: the part (green with ✅ once its quiz was passed), a 📖 learn button and a 📝 quiz button
             const rowButton = (cls, icon, label, aria, onclick) => {
@@ -2905,14 +2915,14 @@
                 return btn;
             };
             steps.forEach((s, i) => {
-                const done = passed.has(i);
+                const done = passed.has(i), pur = done && purple.has(i);
                 const card = document.createElement("div");
-                card.className = "cat-step" + (done ? " done" : "");
+                card.className = "cat-step" + (done ? " done" : "") + (pur ? " purple" : "");
                 card.innerHTML = '<span class="cat-emoji"></span><span class="cat-text"><span class="cat-name"></span><span class="cat-meta"></span></span><span class="cat-state"></span>';
                 card.querySelector(".cat-emoji").textContent = catEmoji(s.name);
                 card.querySelector(".cat-name").textContent = `${i + 1}. ${s.name}`;
                 card.querySelector(".cat-meta").textContent = (s.part ? `חלק ${s.part} מתוך ${s.parts} · ` : "") + `${s.words.length} מילים`;
-                card.querySelector(".cat-state").textContent = done ? "✅" : "";
+                card.querySelector(".cat-state").textContent = pur ? "💜" : done ? "✅" : "";
                 const row = document.createElement("div");
                 row.className = "cat-row";
                 row.append(card,
@@ -2920,9 +2930,10 @@
                     rowButton("cat-quiz", "📝", "בוחן", `בוחן: ${s.name}`, () => quizStep(level, i)));
                 list.appendChild(row);
             });
-            const count = steps.filter((s, i) => passed.has(i)).length;
-            list.appendChild(prizeCard(level, count === steps.length));
-            document.getElementById("path-progress").textContent = `✅ ${count}/${steps.length}`;
+            const count = steps.filter((s, i) => passed.has(i)).length, pcount = steps.filter((s, i) => passed.has(i) && purple.has(i)).length;
+            list.appendChild(prizeCard(level, count === steps.length, 1));
+            if (levelBonusGiven.includes(level)) list.appendChild(prizeCard(level, pcount === steps.length, 2));   // 💜 the second box: after the first one was won
+            document.getElementById("path-progress").textContent = `✅ ${count}/${steps.length}` + (pcount ? ` · 💜 ${pcount}/${steps.length}` : "");
             const first = steps.findIndex((s, i) => !passed.has(i));   // the first part not passed yet, in view
             const cur = list.children[first < 0 ? steps.length - 1 : first];
             if (cur) list.scrollTop = Math.max(0, cur.offsetTop - list.offsetTop - list.clientHeight / 3);
@@ -2931,32 +2942,34 @@
         // 🎁 the last box of every level's path: 1000 coins. Locked until all the level's topics are green; then a tap starts
         // the level's big quiz (EXAM_SIZE words of the level), and EXAM_PASS right answers on the first try give the coins
         // (once per level; levels that already gave the bonus show it as taken).
-        function prizeCard(level, open) {
-            const taken = levelBonusGiven.includes(level);
+        // A second box (tier 2) comes after the first one was won: it opens when all the level's topics are purple (💜), and its
+        // quiz needs EXAM_PASS[2] right.
+        function prizeCard(level, open, tier = 1) {
+            const taken = bonusGiven(tier).includes(level), need = EXAM_PASS[tier];
             const btn = document.createElement("button");
             btn.type = "button";
-            btn.className = "cat-prize " + (taken ? "taken" : open ? "open" : "locked");
+            btn.className = "cat-prize " + (taken ? "taken" : open ? "open" : "locked") + (tier === 2 ? " tier2" : "");
             btn.innerHTML = '<span class="cat-emoji"></span><span class="cat-text"><span class="cat-name"></span><span class="cat-meta"></span></span><span class="cat-state"></span>';
             btn.querySelector(".cat-emoji").textContent = taken ? "💰" : open ? "🎁" : "🔒";
             const x2 = !taken && pointsDoubled();
             btn.querySelector(".cat-name").textContent = `${x2 ? LEVEL_BONUS * 2 : LEVEL_BONUS} מטבעות` + (x2 ? " 🔥" : "");
-            btn.querySelector(".cat-meta").textContent = taken ? "קיבלתם את הפרס של הרמה הזאת!" : (open ? `בוחן של ${EXAM_SIZE} שאלות – צדקו ב-${EXAM_PASS} לפחות וקבלו את הפרס!` : "נפתח כשכל הנושאים ברמה ירוקים") + (x2 ? " · כפול בזכות הימים ברצף!" : "");
+            btn.querySelector(".cat-meta").textContent = taken ? "קיבלתם את הפרס של הרמה הזאת!" : (open ? `בוחן של ${EXAM_SIZE} שאלות – צדקו ב-${need} לפחות וקבלו את הפרס!` : tier === 2 ? "נפתח כשכל הנושאים ברמה סגולים 💜 (עוברים כל נושא בפעם השנייה)" : "נפתח כשכל הנושאים ברמה ירוקים") + (x2 ? " · כפול בזכות הימים ברצף!" : "");
             btn.querySelector(".cat-state").textContent = taken ? "✅" : open ? "👆" : "🔒";
             btn.setAttribute("aria-label", btn.querySelector(".cat-name").textContent + " – " + btn.querySelector(".cat-meta").textContent);
             btn.onclick = () => {
                 if (taken) return;
                 if (!open) {   // locked: a little shake and a hint
                     btn.animate([{ transform: "translateX(0)" }, { transform: "translateX(-6px)" }, { transform: "translateX(6px)" }, { transform: "translateX(0)" }], { duration: 300 });
-                    document.getElementById("cat-status").textContent = "🔒 השלימו את כל הנושאים ברמה (כולם ירוקים) כדי לפתוח את 1000 המטבעות";
+                    document.getElementById("cat-status").textContent = tier === 2 ? "🔒 עברו כל נושא ברמה בפעם השנייה (כולם סגולים 💜) כדי לפתוח את הבוחן השני" : "🔒 השלימו את כל הנושאים ברמה (כולם ירוקים) כדי לפתוח את 1000 המטבעות";
                     return;
                 }
-                startLevelExam(level);
+                startLevelExam(level, tier);
             };
             return btn;
         }
         // 📝 the level's big quiz: EXAM_SIZE random words of the level (each once), wrong answers from the same topic first
-        const EXAM_SIZE = 100, EXAM_PASS = 70;
-        async function startLevelExam(level) {
+        const EXAM_SIZE = 100, EXAM_PASS = { 1: 70, 2: 90 };   // how many right answers each box's quiz needs
+        async function startLevelExam(level, tier = 1) {
             let words;
             try { words = await loadLevel(level); } catch (e) { return; }
             const steps = learnSteps(words), seen = new Set();
@@ -2968,7 +2981,7 @@
                 }
                 return { word: w.en, correct: w.he, dynamics: wrong };
             });
-            stepQuiz = { level, index: -1, steps, exam: true };
+            stepQuiz = { level, index: -1, steps, exam: tier };
             learn = null;
             document.getElementById("start-screen").style.display = "none";
             beginGame(game);
@@ -3361,16 +3374,16 @@
             res.style.display = nextBtn.style.display = "none";
             if (!stepQuiz) return;
             if (stepQuiz.exam) {   // 📝 the level's big quiz: EXAM_PASS right on the first try (a whole round) gives the 1000 coins
-                const { level } = stepQuiz, n = correctFirstTryCount, won = fullRound && n >= EXAM_PASS;
+                const { level } = stepQuiz, tier = stepQuiz.exam === 2 ? 2 : 1, need = EXAM_PASS[tier], n = correctFirstTryCount, won = fullRound && n >= need;
                 res.style.display = "";
-                if (won && !levelBonusGiven.includes(level)) {
+                if (won && !bonusGiven(tier).includes(level)) {
                     res.style.color = "#2f855a";
-                    res.textContent = `🏆 צדקתם ב-${n} מתוך ${wordsData.length} שאלות! קיבלתם ${levelPrize()} מטבעות!`;
-                    levelBonus(level);
+                    res.textContent = `🏆 צדקתם ב-${n} מתוך ${wordsData.length} שאלות! קיבלתם ${levelPrize()} מטבעות!` + (tier === 1 ? " 💜 עכשיו עברו כל נושא בפעם השנייה – וייפתח בוחן נוסף!" : "");
+                    levelBonus(level, 1200, tier);
                 } else if (won) res.style.display = "none";
                 else {
                     res.style.color = "#c05621";
-                    res.textContent = `צדקתם ב-${n} מתוך ${wordsData.length}. כדי לקבל את ${levelPrize()} המטבעות צריך לצדוק ב-${EXAM_PASS} לפחות – אפשר לנסות שוב מהמסלול! 💪`;
+                    res.textContent = `צדקתם ב-${n} מתוך ${wordsData.length}. כדי לקבל את ${levelPrize()} המטבעות צריך לצדוק ב-${need} לפחות – אפשר לנסות שוב מהמסלול! 💪`;
                 }
                 return;
             }
@@ -3384,13 +3397,21 @@
                 window.cloud && cloud.sync(); showGrandTotal();
                 playUnlockSound();   // the step just turned green
             }
-            const allPassed = steps.every((s, i) => passedSteps.has(i));
+            const purple = purpleSet(level), becamePurple = passed && wasPassed && !purple.has(index);
+            if (becamePurple) {   // 💜 passed a second time
+                purple.add(index);
+                learnPurple[level] = [...purple].sort((a, b) => a - b);
+                try { localStorage.setItem(PURPLE_KEY, JSON.stringify(learnPurple)); } catch (e) {}
+                playUnlockSound();
+            }
+            const allPassed = steps.every((s, i) => passedSteps.has(i)), allPurple = steps.every((s, i) => purple.has(i));
             res.style.display = "";
             if (passed) {
                 fireworks();   // 🎆 the topic's quiz is done
                 res.style.color = "#2f855a";
                 // 🏆 the last topic of the level just turned green: the 🎁 1000-coin box at the end of the path opens
-                res.textContent = wasPassed ? "✅ עברתם את הבוחן!" : allPassed ? `🏆 עברתם את כל הנושאים ברמה ${level}!` + (levelBonusGiven.includes(level) ? "" : ` 🎁 בסוף המסלול נפתח בוחן של ${EXAM_SIZE} שאלות על ${levelPrize()} מטבעות!`) : "✅ עברתם את הנושא! הוא מסומן עכשיו בירוק";
+                res.textContent = becamePurple ? (allPurple && levelBonusGiven.includes(level) && !levelBonus2Given.includes(level) ? `💜 כל הנושאים ברמה ${level} סגולים! 🎁 בסוף המסלול נפתח בוחן שני על ${levelPrize()} מטבעות!` : "💜 עברתם את הנושא בפעם השנייה! הוא סגול עכשיו")
+                    : wasPassed ? "✅ עברתם את הבוחן!" : allPassed ? `🏆 עברתם את כל הנושאים ברמה ${level}!` + (levelBonusGiven.includes(level) ? "" : ` 🎁 בסוף המסלול נפתח בוחן של ${EXAM_SIZE} שאלות על ${levelPrize()} מטבעות!`) : "✅ עברתם את הנושא! הוא מסומן עכשיו בירוק";
             } else if (wasPassed) res.style.display = "none";   // already green: nothing to add
             else {
                 res.style.color = "#c05621";
@@ -3404,20 +3425,24 @@
         // 🏆 A whole level green opens the 🎁 box at the end of its path (prizeCard); passing its big quiz gives LEVEL_BONUS points (🔥 on a streak: double), once per
         // level (saved), added right away, shown with a golden pop-up, coins raining, fireworks and the points counting up.
         const LEVEL_BONUS = 1000, levelPrize = () => LEVEL_BONUS * (pointsDoubled() ? 2 : 1), LEVEL_BONUS_KEY = "englishquiz-level-bonus";   // [levels that already gave it]
-        let levelBonusGiven = [];
+        let levelBonusGiven = [], levelBonus2Given = [];   // the second box (all topics purple): its own list
+        const LEVEL_BONUS2_KEY = "englishquiz-level-bonus2";
         try { const v = JSON.parse(localStorage.getItem(LEVEL_BONUS_KEY)); if (Array.isArray(v)) levelBonusGiven = v; } catch (e) {}
-        function levelBonus(level, delay = 1200) {
-            if (levelBonusGiven.includes(level)) return;
-            levelBonusGiven.push(level);
-            try { localStorage.setItem(LEVEL_BONUS_KEY, JSON.stringify(levelBonusGiven)); } catch (e) {}
+        try { const v = JSON.parse(localStorage.getItem(LEVEL_BONUS2_KEY)); if (Array.isArray(v)) levelBonus2Given = v; } catch (e) {}
+        const bonusGiven = tier => tier === 2 ? levelBonus2Given : levelBonusGiven;
+        function levelBonus(level, delay = 1200, tier = 1) {
+            const given = bonusGiven(tier);
+            if (given.includes(level)) return;
+            given.push(level);
+            try { localStorage.setItem(tier === 2 ? LEVEL_BONUS2_KEY : LEVEL_BONUS_KEY, JSON.stringify(given)); } catch (e) {}
             const prize = levelPrize();
             grandTotal += prize;
             addEarned(prize);
             try { localStorage.setItem(TOTAL_KEY, String(grandTotal)); } catch (e) {} window.cloud && cloud.sync();
             showGrandTotal();
-            setTimeout(() => showLevelBonus(level, prize), delay);
+            setTimeout(() => showLevelBonus(level, prize, tier), delay);
         }
-        function showLevelBonus(level, prize = LEVEL_BONUS) {
+        function showLevelBonus(level, prize = LEVEL_BONUS, tier = 1) {
             document.getElementById("level-bonus")?.remove();
             const pop = document.createElement("div");
             pop.id = "level-bonus";
@@ -3426,7 +3451,7 @@
                 <div class="lb-trophy">🏆</div><div class="lb-title"></div>
                 <div class="lb-sub">בונוס מיוחד${prize > LEVEL_BONUS ? " · 🔥 כפול בזכות הימים ברצף!" : ""}</div><div class="lb-coins">+<span class="lb-n">0</span> 💰</div>
                 <div class="lb-tap">לחצו להמשך</div></div>`;
-            pop.querySelector(".lb-title").textContent = (playerName ? `${playerName}, ` : "") + `כל הנושאים ברמה ${level} ירוקים!`;
+            pop.querySelector(".lb-title").textContent = (playerName ? `${playerName}, ` : "") + (tier === 2 ? `כל הנושאים ברמה ${level} סגולים! 💜` : `כל הנושאים ברמה ${level} ירוקים!`);
             const rain = pop.querySelector(".lb-rain");
             if (!matchMedia("(prefers-reduced-motion: reduce)").matches) for (let k = 0; k < 36; k++) {
                 const c = document.createElement("span");
@@ -4480,7 +4505,7 @@
                     full: fullWords, sub: wordsData === fullWords ? null : wordsData.map(pos), missed: missed.map(pos),
                     i: currentIndex + (pending ? 1 : 0), score: totalScore, firstTry: correctFirstTryCount,
                     q: pending ? null : { answers: currentAnswers, wrong: wrongPicks, wand: wandUsed },
-                    step: stepQuiz ? { level: stepQuiz.level, index: stepQuiz.index, exam: !!stepQuiz.exam } : null
+                    step: stepQuiz ? { level: stepQuiz.level, index: stepQuiz.index, exam: stepQuiz.exam || 0 } : null
                 });
                 // the summary is saved as it is shown: showing it again would add its points to the total a second time
                 if (screen === "summary") s.html = document.getElementById("summary-screen").innerHTML;
@@ -4528,7 +4553,7 @@
                 totalScore = s.score || 0;
                 correctFirstTryCount = s.firstTry || 0;
                 stepQuiz = null;
-                if (s.step && s.step.exam && steps) stepQuiz = { level: lv, index: -1, steps, exam: true };   // 📝 the level's big quiz
+                if (s.step && s.step.exam && steps) stepQuiz = { level: lv, index: -1, steps, exam: s.step.exam === 2 ? 2 : 1 };   // 📝 the level's big quiz
                 else if (s.step && steps && steps[s.step.index]) {
                     stepQuiz = { level: lv, index: s.step.index, steps };
                     learn = { level: lv, index: s.step.index, steps, step: steps[s.step.index], i: 0 };

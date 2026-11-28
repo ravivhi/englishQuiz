@@ -930,11 +930,13 @@ async function testLearn() {
   st = await steps();
   check(st[0].done && !st[1].done && !st[2].done && st[3].done && (await text('path-progress')) === `✅ 2/${want.length}`, 'the path: parts 1 and 4 green, 2 and 3 white, ✅ 2');
 
-  // a passed part can be learned and quizzed again: it stays green, fireworks again, nothing new saved
+  // a passed part can be learned and quizzed again: passing it a second time turns it purple (💜, with the sound); a third time adds nothing
   await page.click(`${row(0)} .cat-learn`);
   check(await vis('learn-screen'), 'a passed part can be learned again');
   await doStep(0);
-  check((await text('step-result')) === '✅ עברתם את הבוחן!' && JSON.stringify((await progress())[1]) === '[0,3]' && await sounds() === 2 && await fireworks(), 'passing its quiz again: "passed", fireworks, no sound, nothing new');
+  check((await text('step-result')).includes('סגול') && JSON.stringify((await progress())[1]) === '[0,3]' && (await page.evaluate(() => [...purpleSet(1)].join())) === '0' && await sounds() === 3 && await fireworks(), 'passing its quiz a second time: it turns purple, fireworks, the sound');
+  await doStep(0);
+  check((await text('step-result')) === '✅ עברתם את הבוחן!' && (await page.evaluate(() => [...purpleSet(1)].join())) === '0' && await sounds() === 3, 'a third time: "passed", no sound, nothing new');
   await page.click('#change-words-btn');
   check(await vis('start-screen') && await page.$eval('#tab-category', e => e.getAttribute('aria-selected')) === 'true', '"back to the path" from the summary shows the path');
 
@@ -2510,7 +2512,60 @@ async function testGames2() {
   await page.close();
 }
 
-const TESTS = { fire: testFire, wordbank: testWordbank, random: testRandom, layout: testLayout, back: testBack, tabs: testTabs, streak: testStreak, pairs: () => eachFixture('pairs', testPairs), list: () => eachFixture('list', testList), translation: testTranslationRetry, practice: testPractice, chooser: testChooser, header: testHeader, persist: testPersist, learn: testLearn, shop: testShop, box: testBox, phoneback: testPhoneBack, avatar: testAvatar, celebrate: testCelebrate, boxextra: testBoxExtra, keep: testKeep, wand: testWand, pictures: testPictures, name: testName, top: testTop, listlearn: testListLearn, games: testGames, shapes: testShapes, ice: testIce, games2: testGames2 };
+// 💜 a green topic passed again turns purple; after the first level box is won, a second box opens when all topics are purple (90 right)
+async function testPurple() {
+  console.log('\n[purple] topics passed twice turn purple; the second level box needs all purple and 90 right');
+  const page = await openPage();
+  await page.evaluate(() => { speechSynthesis.speak = u => setTimeout(() => u.onend && u.onend(), 20); window.coinSound = () => {}; playUnlockSound = () => {}; });
+  const play = n => page.evaluate(n => { for (let k = 0; currentIndex < wordsData.length; k++) { const c = wordsData[currentIndex].correct, bs = [...document.querySelectorAll('#answers-container .btn-answer')];
+    if (k >= n) bs.find(x => x.innerText !== c).click(); bs.find(x => x.innerText === c).click(); clearTimeout(nextQuestionTimer); nextQuestionTimer = null; currentIndex++; loadQuestion(); } }, n);
+  const res = () => page.$eval('#step-result', e => e.textContent);
+  const cards = async () => { await page.evaluate(() => { showStart(); setMode('category'); document.getElementById('cat-level-select').value = '3'; }); await page.evaluate(() => renderPath());
+    return page.$$eval('#cat-list .cat-prize', bs => bs.map(b => b.className)); };
+  const n = await page.evaluate(async () => { document.getElementById('cat-level-select').value = '3'; const st = learnSteps(await loadLevel(3)); learnProgress[3] = [1]; localStorage.setItem(LEARN_KEY, JSON.stringify(learnProgress)); return st.length; });
+  await page.evaluate(() => quizStep(3, 0)); await play(999);
+  check(!(await page.evaluate(() => purpleSet(3).has(0))), 'a topic passed the first time is green, not purple');
+  await page.evaluate(() => quizStep(3, 1)); await play(999);
+  check((await page.evaluate(() => [...purpleSet(3)].join())) === '1' && (await res()).includes('סגול'), `passing a green topic again turns it purple ("${await res()}")`);
+  await page.evaluate(() => quizStep(3, 2)); await play(0);
+  check(!(await page.evaluate(() => purpleSet(3).has(2))), 'a quiz with mistakes turns nothing purple');
+  let c = await cards();
+  const row = await page.$eval('#cat-list .cat-row:nth-child(2) .cat-step', e => ({ cls: e.className, state: e.querySelector('.cat-state').textContent }));
+  check(row.cls.includes('purple') && row.state === '💜' && (await page.$eval('#path-progress', e => e.textContent)).includes('💜 1/'), `the path shows it purple with 💜 (${row.cls})`);
+  check(c.length === 1, 'before the first box is won there is no second box');
+  await page.evaluate(n => { learnProgress[3] = Array.from({ length: n }, (_, i) => i); localStorage.setItem(LEARN_KEY, JSON.stringify(learnProgress)); }, n);
+  await page.evaluate(() => startLevelExam(3, 1)); await play(70);
+  await new Promise(r => setTimeout(r, 1500)); await page.evaluate(() => document.getElementById('level-bonus')?.remove());
+  c = await cards();
+  check(c.length === 2 && c[0].includes('taken') && c[1].includes('locked') && c[1].includes('tier2'), `after winning the first box a second, locked box appears (${c.join(' / ')})`);
+  await page.evaluate(n => { learnPurple[3] = Array.from({ length: n - 1 }, (_, i) => i); localStorage.setItem(PURPLE_KEY, JSON.stringify(learnPurple)); }, n);
+  c = await cards();
+  check(c[1].includes('locked'), 'one topic not purple: still locked');
+  await page.evaluate(n => quizStep(3, n - 1), n); await play(999);
+  check((await res()).includes('בוחן שני'), `the last topic turning purple opens it ("${await res()}")`);
+  c = await cards();
+  check(c[1].includes('open'), 'all purple: the second box is open');
+  await page.evaluate(() => document.querySelector('#cat-list .cat-prize.tier2').click());
+  await page.waitForFunction(() => stepQuiz && stepQuiz.exam === 2 && wordsData.length === 100, { timeout: 5000 });
+  await play(89);
+  check(!(await page.evaluate(() => levelBonus2Given.includes(3))) && (await res()).includes('90'), `89 right: no prize, 90 are needed ("${await res()}")`);
+  await page.reload({ waitUntil: 'load' });
+  await page.evaluate(() => startLevelExam(3, 2)); await new Promise(r => setTimeout(r, 300));
+  await page.evaluate(() => { for (let k = 0; k < 5; k++) { const c = wordsData[currentIndex].correct; [...document.querySelectorAll('#answers-container .btn-answer')].find(x => x.innerText === c).click(); clearTimeout(nextQuestionTimer); nextQuestionTimer = null; currentIndex++; loadQuestion(); } });
+  await page.reload({ waitUntil: 'load' }); await new Promise(r => setTimeout(r, 800));
+  check(await page.evaluate(() => stepQuiz && stepQuiz.exam === 2 && wordsData.length === 100 && currentIndex === 5 && correctFirstTryCount === 5), 'reopening the app in the middle keeps it the second box\'s quiz, at the same question');
+  await play(100);
+  await page.waitForSelector('#level-bonus', { timeout: 4000 });
+  const title = await page.$eval('#level-bonus .lb-title', e => e.textContent);
+  check(await page.evaluate(() => levelBonus2Given.includes(3) && JSON.parse(localStorage.getItem('englishquiz-level-bonus2')).includes(3)) && title.includes('סגולים'), `90+ right: the second prize, saved ("${title}")`);
+  await page.evaluate(() => document.getElementById('level-bonus')?.remove());
+  c = await cards();
+  check(c[1].includes('taken'), 'then the second box shows it was taken (once per level)');
+  check(page.pageErrors.length === 0, `no page errors${page.pageErrors.length ? ': ' + page.pageErrors.join('; ') : ''}`);
+  await page.close();
+}
+
+const TESTS = { fire: testFire, wordbank: testWordbank, random: testRandom, layout: testLayout, back: testBack, tabs: testTabs, streak: testStreak, pairs: () => eachFixture('pairs', testPairs), list: () => eachFixture('list', testList), translation: testTranslationRetry, practice: testPractice, chooser: testChooser, header: testHeader, persist: testPersist, learn: testLearn, purple: testPurple, shop: testShop, box: testBox, phoneback: testPhoneBack, avatar: testAvatar, celebrate: testCelebrate, boxextra: testBoxExtra, keep: testKeep, wand: testWand, pictures: testPictures, name: testName, top: testTop, listlearn: testListLearn, games: testGames, shapes: testShapes, ice: testIce, games2: testGames2 };
 try {
   let ran = 0;
   for (const [name, run] of Object.entries(TESTS)) {
