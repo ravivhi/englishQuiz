@@ -1889,7 +1889,7 @@ async function testBoxExtra() {
   const plain = await play(0);
   await setRound(0, 1);
   r = await play(0);
-  check(plain.points === 22 && r.points === 22 && r.pending === r.points + 100, `🔥 days in a row: the quiz's points are doubled (11 → ${r.points}) and the box bonus too (+100: ${r.pending})`);
+  check(plain.points === 20 && r.points === 20 && r.pending === r.points + 100, `🔥 days in a row: the quiz's points are doubled (10 → ${r.points}) and the box bonus too (+100: ${r.pending})`);
   // 🪄 a wand round: the lucky quiz's box holds a magic wand (🔥 two), given at once; no extra coins
   await page.evaluate(() => { shop.wands = 0; saveShop(); daily = { last: dayStr(), days: 1 }; localStorage.setItem(DAILY_KEY, JSON.stringify(daily)); });
   await setRound(0, 1, true);
@@ -1948,6 +1948,11 @@ async function testCelebrate() {
   check(!(await page.evaluate(() => window.spoken)).includes("You're a champion!"), 'written only: it is not said aloud');
   check((await page.$$eval('#avatar-fx span', s => s.map(x => x.textContent))).some(t => ['🦴', '🐾'].includes(t)), 'its bones and paw prints burst out');
   check(await page.$eval('#summary-say', b => { const r = b.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth && r.top >= 0; }), 'its bubble is on the screen');
+  // 💃 all right on the first try: after the cheer, the dog does a dance party
+  const danced = await page.waitForFunction(() => document.querySelector('#summary-say .ss-en')?.textContent.includes('Dance party!'), { timeout: 6000 }).then(() => true, () => false);
+  check(danced && (await page.$eval('#summary-say .ss-he', e => e.textContent)) === 'מושלם! מסיבת ריקודים!' && await page.$eval('#summary-avatar', e => e.getAnimations().length > 0)
+        && (await page.$$eval('#avatar-fx span', s => s.map(x => x.textContent))).some(t => ['💃', '🕺', '🎵', '🎶'].includes(t)), '100%: then it dances ("Perfect! Dance party!", 💃🎵 burst out)');
+  check(await page.evaluate(() => summaryBusy), 'a tap on it waits until the dance is over');
   // open the box
   await page.evaluate(() => { document.getElementById('avatar-fx').innerHTML = ''; window.coins = 0; });
   await page.click('#coin-box');
@@ -2001,6 +2006,8 @@ async function testCelebrate() {
   r = await play(2);
   check(await canvas('confetti') && !(await canvas('fireworks')), '80%: confetti (no fireworks)');
   check((await sayOn()).includes('Great job!') && !(await page.evaluate(() => window.spoken)).includes('Great job!'), 'the dog shows "Great job!" (not said aloud)');
+  await page.waitForFunction(() => !summaryBusy, { timeout: 8000 }).catch(() => {});
+  check(!(await page.$$eval('#avatar-fx span', s => s.map(x => x.textContent))).some(t => ['💃', '🕺'].includes(t)), '80%: no dance (only for all right)');
 
   // 5 of 10 wrong (50%): a small cheer and "Nice try! Keep going!"
   await clearFx();

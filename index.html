@@ -1077,8 +1077,7 @@
         let totalScore = 0;
         let correctFirstTryCount = 0;
         
-        // Scoring: +1 for a word answered right on the first try, -1 for a word missed on the first try,
-        // +1 bonus for a round of 10+ words with no mistakes.
+        // Scoring: +1 for a word answered right on the first try, -1 for a word missed on the first try (no extra point for a quiz with no mistakes).
         // A round never ends below 0, and the points add up from game to game (saved on the device).
         const TOTAL_KEY = 'englishquiz-total-points';
         let grandTotal = 0;
@@ -1365,14 +1364,6 @@
 
             const bonusContainer = document.getElementById("bonus-container");
             bonusContainer.innerHTML = "";
-            // Bonus only for a quiz of at least 10 words, all answered right on the first try
-            if (totalWords >= 10 && correctFirstTryCount === totalWords) {
-                totalScore += 1;
-                const bonusBadge = document.createElement("div");
-                bonusBadge.className = "bonus-badge";
-                bonusBadge.innerText = "💥 מטורף! נקודת בונוס על בוחן בלי טעויות!";
-                bonusContainer.appendChild(bonusBadge);
-            }
             totalScore = Math.max(0, totalScore);
             // 🔥 a day of playing; from 10 days in a row the quiz's points are doubled
             if (countDailyPlay()) {
@@ -1399,7 +1390,7 @@
 
             document.getElementById("summary-emoji").innerText = emoji;
             document.getElementById("summary-title").innerText = title;
-            document.getElementById("summary-stats").innerText = `צדקתם בניסיון ראשון ב-${correctFirstTryCount} מתוך ${totalWords} מילים`;
+            document.getElementById("summary-stats").innerText = `צדקתם ב-${correctFirstTryCount} מתוך ${totalWords} מילים`;
             const scoreEl = document.getElementById("summary-final-score"), box = document.getElementById("coin-box");
             // until the box is opened the total is the one from before; opening it counts the quiz's points into it
             scoreEl.innerText = `נקודות בבוחן: ${totalScore} · סה״כ: ${grandTotal}`;
@@ -1870,7 +1861,7 @@
             let round = 0, points = 0;
             const next = () => {
                 if (token !== gameToken) return;
-                if (round === words.length) return gameOver(token, g, gameStars(points / words.length), `השלמתם ${points} מתוך ${words.length} מילים בניסיון הראשון`);
+                if (round === words.length) return gameOver(token, g, gameStars(points / words.length), `השלמתם ${points} מתוך ${words.length} מילים`);
                 const w = words[round], word = w.en.toLowerCase(), at = Math.floor(Math.random() * word.length), ch = word[at];
                 let first = true;
                 const box = gEl("div", "missing-box"); box.dataset.word = word; box.dataset.letter = ch;
@@ -1906,7 +1897,7 @@
             let round = 0, points = 0;
             const next = () => {
                 if (token !== gameToken) return;
-                if (round === words.length) return gameOver(token, g, gameStars(points / words.length, SMALL_MAX), `זיהיתם ${points} מתוך ${words.length} תמונות בניסיון הראשון`);
+                if (round === words.length) return gameOver(token, g, gameStars(points / words.length, SMALL_MAX), `זיהיתם ${points} מתוך ${words.length} תמונות`);
                 const w = words[round];
                 let first = true;
                 const box = gEl("div", "pic-box"); box.dataset.word = w.en;
@@ -1940,7 +1931,7 @@
             let round = 0, points = 0;
             const next = () => {
                 if (token !== gameToken) return;
-                if (round === ROUNDS) return gameOver(token, g, gameStars(points / ROUNDS, SMALL_MAX), `פוצצתם נכון ${points} מתוך ${ROUNDS} בועות בניסיון הראשון`);
+                if (round === ROUNDS) return gameOver(token, g, gameStars(points / ROUNDS, SMALL_MAX), `פוצצתם נכון ${points} מתוך ${ROUNDS} בועות`);
                 const w = words[round];
                 let first = true;
                 const box = gEl("div", "bub-box"); box.dataset.word = w.en;
@@ -3482,6 +3473,20 @@
             }
         }
 
+        // 💃 every question right on the first try: after its cheer, the character does a little dance party
+        // (sways, jumps into a spin, wiggles and takes a bow). Every frame lists the same transforms, so they blend smoothly.
+        function perfectDance(el, av) {
+            const f = (x, y, r, sx, sy, k, offset) => ({ transform: `translate(${x}px, ${y}px) rotate(${r}deg) scale(${sx}, ${sy}) skewX(${k}deg)`, offset });
+            const keys = [f(0, 0, 0, 1, 1, 0, 0),
+                f(-16, 0, -14, 1, 1, 0, 0.09), f(16, 0, 14, 1, 1, 0, 0.18), f(-16, 0, -14, 1, 1, 0, 0.27), f(16, 0, 14, 1, 1, 0, 0.36),   // sway
+                f(0, 6, 0, 1.2, 0.8, 0, 0.44), f(0, -46, 180, 1.1, 1.1, 0, 0.56), f(0, 0, 360, 1, 1, 0, 0.66),                        // squat, jump, spin
+                f(0, 4, 360, 1.25, 0.8, 0, 0.71), f(0, 0, 360, 1, 1, -18, 0.76), f(0, 0, 360, 1, 1, 18, 0.81), f(0, 0, 360, 1, 1, -18, 0.86), // wiggle
+                f(0, 0, 360, 1, 1, 0, 0.9), f(0, 8, 380, 1, 0.9, 0, 0.95), f(0, 0, 360, 1, 1, 0, 1)];                                  // a bow
+            avatarBurst(["💃", "🕺", "🎵", "🎶", "⭐"], 18, el, true);
+            summarySay(`${picPrefix(av)}Perfect! Dance party!`, "מושלם! מסיבת ריקודים!");
+            return el.animate(keys, { duration: 2600, easing: "ease-in-out" }).finished.catch(() => {});
+        }
+
         let celebrateRun = 0;
         function celebrate(rate, points, av) {
             const run = ++celebrateRun, here = () => run === celebrateRun && shownEl("summary-screen");
@@ -3508,7 +3513,8 @@
                     avatarBurst(fx.fx, tier * 5, el, true);
                     summarySay(`${picPrefix(av)}${say}`);   // written only (no voice for "Nice try" / "Great job" / "Champion")
                     return new Promise(r => setTimeout(r, 1200));
-                  }).catch(() => {}).finally(() => { if (run === celebrateRun) { summaryBusy = false; summarySayLater(); } });
+                  }).then(() => rate === 100 && here() ? perfectDance(el, av) : null)   // 💃 all right on the first try
+                  .catch(() => {}).finally(() => { if (run === celebrateRun) { summaryBusy = false; summarySayLater(); } });
             }
 
         }
