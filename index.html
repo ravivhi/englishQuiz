@@ -450,49 +450,110 @@
         #friends-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.18); }
         #start-screen:has(#menu-avatar:empty) #friends-btn { right: 38px; }
         #friends-title { font-weight: bold; font-size: 1.15rem; }
-        /* 🏠 the characters' house: a roof, a room for every 4 characters collected, and a garden where the next ones wait as shadows */
-        #house-title { flex: 1; font-weight: bold; color: #4a5568; font-size: 1.15rem; }
-        #house-count { text-align: center; font-weight: bold; color: #553c9a; margin: 0 0 6px; }
-        #house-count .hc-bar { height: 10px; border-radius: 6px; background: #e9d8fd; overflow: hidden; margin: 4px auto 0; max-width: 260px; }
-        #house-count .hc-fill { height: 100%; background: linear-gradient(90deg, #9f7aea, #ed64a6); border-radius: 6px; }
-        #house-say { display: none; margin: 0 auto 6px; width: max-content; max-width: 92%; box-sizing: border-box; padding: 6px 12px; border-radius: 14px; background: #fffaf0;
-                     border: 3px solid #f6ad55; color: #975a16; font-weight: bold; font-size: 0.9rem; text-align: center; cursor: pointer; }
+        /* 🌍 the characters' world: lands side by side (scrolls sideways); every character has a home in its land:
+           the ones collected walk around (and can be dragged anywhere), the others wait there as shadows with their price */
+        #house-screen { position: relative; }
+        #house-title { flex: 1; font-weight: bold; color: #4a5568; font-size: 1.1rem; text-align: center; }
+        #house-me { width: 46px; height: 46px; flex: 0 0 46px; border: 0; background: radial-gradient(circle, #fefcbf 0, #fbd38d 70%); border-radius: 50%;
+                    font-size: 1.9rem; line-height: 1; padding: 0; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.2); touch-action: manipulation; }
+        #house-me:empty { display: none; }
+        #house-me:disabled { opacity: 1; cursor: default; }
+        #house-stars { font-weight: bold; color: #b7791f; background: #fffbeb; border: 2px solid #f6e05e; border-radius: 12px; padding: 2px 8px; font-size: 0.9rem; white-space: nowrap; }
+        #house-count { text-align: center; font-weight: bold; color: #553c9a; margin: 2px 0 4px; font-size: 0.95rem; }
+        #house-count .hc-bar { height: 10px; border-radius: 6px; background: #e9d8fd; overflow: hidden; margin: 3px auto; max-width: 280px; }
+        #house-count .hc-fill { height: 100%; background: linear-gradient(90deg, #9f7aea, #ed64a6, #f6ad55); border-radius: 6px; }
+        #house-count .hc-goal { font-size: 0.85rem; color: #2f855a; }
+        #house-count .hc-goal.can { color: #c05621; animation: wPulse 1.2s ease-in-out infinite; }
+        #house-tools { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+        #house-party, #house-tidy { flex: 0 0 auto; border: 0; border-radius: 14px; padding: 6px 10px; font-weight: bold; font-family: inherit; cursor: pointer; touch-action: manipulation; }
+        #house-party { background: linear-gradient(135deg, #f687b3, #9f7aea); color: #fff; box-shadow: 0 2px 6px rgba(159,122,234,0.5); }
+        #house-tidy { background: #edf2f7; font-size: 1rem; }
+        #house-lands { flex: 1; min-width: 0; display: flex; gap: 5px; overflow-x: auto; scrollbar-width: none; padding: 2px; }
+        #house-lands::-webkit-scrollbar { display: none; }
+        .w-chip { flex: 0 0 auto; border: 2px solid #e2e8f0; background: #fff; border-radius: 12px; padding: 2px 7px; font-size: 0.8rem; font-weight: bold; font-family: inherit; color: #4a5568; cursor: pointer; white-space: nowrap; }
+        .w-chip.can { border-color: #f6ad55; background: #fffaf0; }
+        .w-chip.done { border-color: #ecc94b; background: linear-gradient(135deg, #fefcbf, #fbd38d); }
+        #house-say { display: none; position: absolute; top: 58px; right: 6px; z-index: 30; max-width: 80%; box-sizing: border-box; padding: 6px 12px; border-radius: 14px; background: #fffaf0;
+                     border: 3px solid #f6ad55; color: #975a16; font-weight: bold; font-size: 0.9rem; text-align: center; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
         #house-say.on { display: block; animation: cardPop 0.3s ease-out; }
         #house-say .ab-he { font-size: 0.95rem; color: #4a5568; margin-top: 2px; }
-        #house-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 0 12px 8px; }
-        .h-house { position: relative; max-width: 420px; margin: 0 auto; padding-top: 6px; }
-        .h-chimney { position: absolute; top: 22px; right: 20%; width: 22px; height: 40px; background: #742a2a; border-radius: 3px 3px 0 0; }
-        .h-smoke { position: absolute; top: -10px; left: 0; font-size: 1.2rem; animation: hSmoke 2.6s ease-out infinite; }
-        .h-roof { position: relative; height: 92px; margin: 0 -10px; background: linear-gradient(180deg, #f56565, #9b2c2c); clip-path: polygon(50% 0, 100% 100%, 0 100%);
-                  display: flex; align-items: flex-end; justify-content: center; padding-bottom: 10px; box-sizing: border-box; color: #fff; font-weight: bold; font-size: 0.95rem; }
-        .h-room { position: relative; height: 128px; border: 6px solid #8b5a2b; border-top-width: 0; background: var(--wall); overflow: hidden; }
-        .h-room::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 16px; background: var(--floor); }
-        .h-label { position: absolute; top: 4px; right: 8px; z-index: 3; font-size: 0.75rem; font-weight: bold; color: rgba(0,0,0,0.45); }
-        .h-decor { position: absolute; z-index: 1; font-size: 1.6rem; line-height: 1; pointer-events: none; }
-        .h-chars { position: absolute; left: 0; right: 0; bottom: 12px; z-index: 2; display: flex; justify-content: space-around; align-items: flex-end; }
-        .h-char { position: relative; background: none; border: 0; padding: 0; font-size: 2.6rem; line-height: 1; cursor: pointer; font-family: inherit; color: inherit;
-                  touch-action: manipulation; animation: var(--idle) var(--dur) ease-in-out infinite; animation-delay: var(--delay); }
-        .h-char:disabled { cursor: default; opacity: 1; }
-        .h-char.me::before { content: "👑"; position: absolute; top: -0.5em; left: 50%; transform: translateX(-50%); font-size: 0.45em; }
-        .h-act { position: absolute; top: -0.3em; right: -0.35em; font-size: 0.45em; pointer-events: none; animation: hAct 2.4s ease-in-out infinite; animation-delay: var(--delay); }
-        .h-garden { position: relative; margin: 0 -10px; padding: 24px 10px 12px; background: linear-gradient(180deg, #9ae6b4, #48bb78); border-radius: 0 0 18px 18px; text-align: center; }
-        .h-garden .h-label { color: #22543d; right: 18px; }
-        .h-garden .h-decor { font-size: 1.8rem; }
-        .h-slot { background: none; border: 0; padding: 0; margin: 4px 6px 0; font-family: inherit; cursor: pointer; display: inline-flex; flex-direction: column; align-items: center; }
-        .h-ghost { font-size: 2.2rem; line-height: 1; filter: brightness(0); opacity: 0.35; }
-        .h-price { font-size: 0.75rem; font-weight: bold; color: #22543d; }
-        .h-done { font-weight: bold; color: #22543d; margin: 6px 0; }
-        .h-garden .action-btn { margin-top: 10px; position: relative; z-index: 2; }
-        @keyframes hBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
-        @keyframes hSway { 0%, 100% { transform: rotate(-7deg); } 50% { transform: rotate(7deg); } }
-        @keyframes hHop { 0%, 60%, 100% { transform: translateY(0) scale(1); } 70% { transform: translateY(2px) scale(1.12, 0.88); } 82% { transform: translateY(-16px) scale(0.95, 1.06); } 92% { transform: translateY(0) scale(1.05, 0.95); } }
-        @keyframes hLook { 0%, 40% { transform: scaleX(1); } 50%, 90% { transform: scaleX(-1); } 100% { transform: scaleX(1); } }
-        @keyframes hBreathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.09); } }
-        @keyframes hFloat { 0%, 100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-10px) rotate(4deg); } }
-        @keyframes hAct { 0% { transform: translateY(0) scale(0.7); opacity: 0; } 20%, 75% { opacity: 1; } 100% { transform: translateY(-22px) scale(1.1); opacity: 0; } }
-        @keyframes hSmoke { 0% { transform: translate(0, 0) scale(0.6); opacity: 0.9; } 100% { transform: translate(-16px, -44px) scale(1.5); opacity: 0; } }
-        @media (max-width: 360px) { .h-room { height: 112px; } .h-char { font-size: 2.15rem; } .h-decor { font-size: 1.35rem; } }
-        @media (prefers-reduced-motion: reduce) { .h-char, .h-act, .h-smoke { animation: none !important; } }
+        #house-body { position: relative; z-index: 0; flex: 0 0 auto; height: clamp(340px, calc(100dvh - 300px), 640px); overflow-x: auto; overflow-y: hidden; border-radius: 16px; box-shadow: inset 0 0 0 3px rgba(0,0,0,0.08); overscroll-behavior: contain; }
+        #house-hint { position: absolute; left: 50%; top: 50%; transform: translateX(-50%); z-index: 20; background: rgba(26,32,44,0.75); color: #fff; font-size: 0.8rem; font-weight: bold;
+                      padding: 5px 12px; border-radius: 12px; width: max-content; max-width: 86%; box-sizing: border-box; text-align: center; pointer-events: none; animation: wHint 6s ease-in forwards; }
+        .w-world { position: relative; overflow: hidden; user-select: none; -webkit-user-select: none; }
+        .w-land { position: absolute; top: 0; height: 100%; overflow: hidden; background: var(--sky); }
+        .w-ground { position: absolute; left: -6%; right: -6%; bottom: 0; height: 47%; background: var(--ground); border-radius: 50% 50% 0 0 / 34px 34px 0 0; }
+        .w-land + .w-land { box-shadow: inset 4px 0 0 rgba(255,255,255,0.35); }
+        .w-sign { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 3; white-space: nowrap; direction: rtl; background: linear-gradient(#c08552, #8b5a2b);
+                  color: #fff; font-weight: bold; font-size: 0.95rem; padding: 4px 12px; border-radius: 10px; border: 2px solid #5c3a1a; box-shadow: 0 3px 0 #5c3a1a; text-shadow: 0 1px 1px rgba(0,0,0,0.4); }
+        .w-sign small { font-size: 0.8rem; opacity: 0.95; margin-right: 6px; }
+        .w-land.done .w-sign { background: linear-gradient(#f6e05e, #d69e2e); border-color: #975a16; box-shadow: 0 3px 0 #975a16, 0 0 14px #faf089; }
+        .w-decor { position: absolute; line-height: 1; pointer-events: none; z-index: 1; }
+        .w-decor.float { animation: wFloat 4s ease-in-out infinite; }
+        .w-decor.spin { animation: wSpin 14s linear infinite; }
+        .w-decor.rock { animation: wRock 3s ease-in-out infinite; }
+        .w-decor.glow { animation: wTwinkle 2.4s ease-in-out infinite; }
+        .w-cloud { position: absolute; font-size: 2.2rem; opacity: 0.9; pointer-events: none; z-index: 1; animation: wDrift var(--dur) linear infinite; animation-delay: var(--delay); }
+        .w-amb { position: absolute; pointer-events: none; z-index: 2; font-size: 1rem; animation: var(--anim) var(--dur) linear infinite; animation-delay: var(--delay); }
+        .w-char { position: absolute; transform: translateX(-50%) scale(calc(var(--depth, 1) * var(--lift, 1))); transform-origin: 50% 100%; background: none; border: 0; padding: 0; margin: 0;
+                  font-family: inherit; color: inherit; cursor: grab; touch-action: none; display: flex; flex-direction: column; align-items: center; }
+        .w-char.locked { cursor: pointer; touch-action: manipulation; }
+        .w-walk { animation: wWalk var(--wd) ease-in-out infinite; animation-delay: var(--delay); }
+        .w-face { display: block; animation: wFace var(--wd) linear infinite; animation-delay: var(--delay); }
+        .w-pic { display: block; font-size: 2.8rem; line-height: 1; animation: var(--idle) var(--dur) ease-in-out infinite; animation-delay: var(--delay); filter: drop-shadow(0 3px 2px rgba(0,0,0,0.25)); }
+        .w-char.still .w-walk, .w-char.still .w-face { animation: none; }
+        .w-char.me .w-walk::before { content: "👑"; position: absolute; top: -0.6em; left: 50%; transform: translateX(-50%); font-size: 1.2rem; z-index: 1; }
+        .w-walk { position: relative; }
+        .w-name { margin-top: 1px; font-size: 0.68rem; font-weight: bold; color: #2d3748; background: rgba(255,255,255,0.85); border-radius: 8px; padding: 0 5px; white-space: nowrap; direction: rtl; }
+        .w-char.dragging { cursor: grabbing; z-index: 999 !important; --lift: 1.2; }
+        .w-char.dragging .w-walk, .w-char.dragging .w-face, .w-char.dragging .w-pic { animation-play-state: paused; }
+        .w-char.dragging .w-pic { filter: drop-shadow(0 14px 8px rgba(0,0,0,0.35)); }
+        .w-char.locked .w-pic { filter: brightness(0); opacity: 0.45; animation: none; }
+        .w-char.locked.can .w-pic { opacity: 0.7; animation: wWobble 1.6s ease-in-out infinite; }
+        .w-q { position: absolute; top: 4px; left: 50%; transform: translateX(-50%); font-size: 1.4rem; font-weight: 900; color: #fff; text-shadow: 0 0 6px #000; pointer-events: none; }
+        .w-tag { margin-top: 1px; font-size: 0.7rem; font-weight: bold; color: #744210; background: #fefcbf; border: 1px solid #d69e2e; border-radius: 8px; padding: 0 5px; white-space: nowrap; direction: rtl; }
+        .w-char.can .w-tag { background: #f6ad55; color: #fff; border-color: #c05621; animation: wPulse 1s ease-in-out infinite; }
+        .w-char.can .w-q { color: #f6ad55; animation: wPulse 1s ease-in-out infinite; }
+        .w-bubble { position: absolute; z-index: 1000; transform: translate(-50%, -100%); background: #fff; border: 3px solid #9f7aea; border-radius: 14px; padding: 5px 10px;
+                    font-weight: bold; font-size: 0.85rem; color: #44337a; text-align: center; white-space: nowrap; box-shadow: 0 4px 10px rgba(0,0,0,0.2); animation: cardPop 0.25s ease-out; }
+        .w-bubble::after { content: ""; position: absolute; left: 50%; bottom: -10px; margin-left: -8px; border: 8px solid transparent; border-top-color: #9f7aea; border-bottom: 0; }
+        .w-bubble .wb-he { direction: rtl; color: #4a5568; font-size: 0.85rem; }
+        .w-bubble button { margin-top: 4px; border: 0; border-radius: 10px; background: #faf089; font-weight: bold; font-family: inherit; padding: 3px 8px; cursor: pointer; }
+        #house-card { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; background: rgba(26,32,44,0.6); animation: cardPop 0.25s ease-out; }
+        .hk-box { position: relative; width: min(330px, 90vw); background: linear-gradient(180deg, #faf5ff, #fff); border-radius: 22px; padding: 18px 16px 16px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.35); border: 4px solid #d6bcfa; }
+        .hk-x { position: absolute; top: 8px; left: 10px; border: 0; background: none; font-size: 1.3rem; cursor: pointer; }
+        .hk-pic { font-size: 6rem; line-height: 1.1; display: inline-block; filter: brightness(0); opacity: 0.6; animation: wWobble 1.6s ease-in-out infinite; }
+        .hk-pic.reveal { animation: wReveal 1.2s ease-out forwards; }
+        .hk-who { font-size: 1.3rem; font-weight: bold; color: #553c9a; margin: 4px 0; }
+        .hk-land { color: #718096; font-size: 0.9rem; }
+        .hk-bar { height: 14px; background: #e2e8f0; border-radius: 8px; overflow: hidden; margin: 10px 0 4px; }
+        .hk-fill { height: 100%; background: linear-gradient(90deg, #f6e05e, #ed8936); border-radius: 8px; }
+        .hk-msg { font-weight: bold; color: #4a5568; font-size: 0.95rem; min-height: 1.3em; }
+        .hk-btn { position: relative; overflow: hidden; margin-top: 10px; width: 100%; border: 0; border-radius: 16px; padding: 12px; font-size: 1.1rem; font-weight: bold; font-family: inherit; cursor: pointer;
+                  color: #fff; background: linear-gradient(135deg, #48bb78, #2f855a); box-shadow: 0 4px 0 #276749; touch-action: none; -webkit-user-select: none; user-select: none; }
+        .hk-btn.play { background: linear-gradient(135deg, #63b3ed, #3182ce); box-shadow: 0 4px 0 #2c5282; touch-action: manipulation; }
+        .hk-btn .hk-hold { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: rgba(255,255,255,0.35); }
+        .hk-btn.holding .hk-hold { width: 100%; transition: width 1s linear; }
+        .hk-btn span { position: relative; }
+        @keyframes wWalk { 0% { transform: translateX(calc(var(--wx) * -1)); } 45%, 50% { transform: translateX(var(--wx)); } 95%, 100% { transform: translateX(calc(var(--wx) * -1)); } }
+        @keyframes wFace { 0%, 46% { transform: scaleX(-1); } 49%, 96% { transform: scaleX(1); } 99%, 100% { transform: scaleX(-1); } }
+        @keyframes wBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+        @keyframes wSway { 0%, 100% { transform: rotate(-8deg); } 50% { transform: rotate(8deg); } }
+        @keyframes wHop { 0%, 55%, 100% { transform: translateY(0) scale(1); } 65% { transform: translateY(2px) scale(1.12, 0.88); } 78% { transform: translateY(-18px) scale(0.95, 1.06); } 90% { transform: translateY(0) scale(1.05, 0.95); } }
+        @keyframes wBreathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        @keyframes wFly { 0%, 100% { transform: translateY(0) rotate(-5deg); } 50% { transform: translateY(-14px) rotate(5deg); } }
+        @keyframes wFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        @keyframes wSpin { to { transform: rotate(360deg); } }
+        @keyframes wRock { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
+        @keyframes wTwinkle { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.15); } }
+        @keyframes wDrift { from { transform: translateX(-60px); } to { transform: translateX(var(--w)); } }
+        @keyframes wFall { from { transform: translateY(-30px) rotate(0); } to { transform: translateY(var(--h)) rotate(200deg); } }
+        @keyframes wRise { from { transform: translateY(0); opacity: 0.9; } to { transform: translateY(calc(var(--h) * -0.6)); opacity: 0; } }
+        @keyframes wWobble { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg) scale(1.05); } }
+        @keyframes wPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        @keyframes wReveal { 0% { filter: brightness(0); opacity: 0.6; transform: scale(1) rotate(0); } 50% { filter: brightness(3); opacity: 1; transform: scale(1.4) rotate(360deg); } 100% { filter: none; opacity: 1; transform: scale(1) rotate(720deg); } }
+        @keyframes wHint { 0%, 80% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
+        @media (prefers-reduced-motion: reduce) { .w-walk, .w-face, .w-pic, .w-amb, .w-cloud, .w-decor { animation: none !important; } }
         #fr-add { position: relative; margin: 0 0 10px; }
         #fr-search { width: 100%; box-sizing: border-box; padding: 10px 12px; font-size: 1.05rem; font-family: inherit; border: 2px solid #68d391; border-radius: 12px; }
         #fr-drop { position: absolute; top: 100%; left: 0; right: 0; z-index: 20; list-style: none; margin: 4px 0 0; padding: 4px; background: #fff;
@@ -984,12 +1045,21 @@
 
         <div id="house-screen" style="display:none;">
             <div class="learn-head">
+                <button type="button" id="house-me" onclick="houseMeTap()" aria-label="הדמות שלי"></button>
+                <div id="house-title">🌍 עולם הדמויות</div>
+                <div id="house-stars"></div>
                 <button type="button" id="house-back" class="action-btn" onclick="showStart()" aria-label="חזרה" style="padding:5px 10px;font-size:0.9rem;">→ חזרה</button>
-                <div id="house-title">🏠 הבית של הדמויות</div>
             </div>
             <div id="house-count"></div>
+            <div id="house-tools">
+                <button type="button" id="house-party" onclick="houseParty()">🎉 מסיבה!</button>
+                <div id="house-lands"></div>
+                <button type="button" id="house-tidy" onclick="houseTidy()" aria-label="להחזיר את כולם הביתה">🔄</button>
+            </div>
             <div id="house-say" role="status" onclick="this.classList.remove('on')"></div>
-            <div id="house-body"></div>
+            <div id="house-body" dir="ltr"></div>
+            <div id="house-hint">👆 גררו את הדמויות לאן שבא לכם &nbsp;•&nbsp; 👈 גללו לעוד ארצות 👉</div>
+            <div id="house-card" style="display:none;"></div>
         </div>
 
         <div id="shop-screen" style="display:none;">
@@ -4583,7 +4653,7 @@
         function closeGif() { const p = document.getElementById("gif-pop"); if (p) p.closeGif(); }
 
         // A tap is a "turn": the character's button stays off until the GIF closed and it stopped talking.
-        // tapping the character on the main page opens its house (🏠 showHouse); the funny turns happen when a character in the house is tapped
+        // tapping the character on the main page opens the characters' world (🌍 showHouse); its funny turns happen there, from the top corner
         function avatarTap() { showHouse(); }
 
         async function avatarTurn(a, el, bubble = showAvatarBubble) {   // el: the character tapped; bubble(say, he): where its words show
@@ -4620,83 +4690,267 @@
             await Promise.all([moved(move), openGif(a, scene, fx.say + " " + say, 5000, (AVATAR_SAY_HE[a.id] ? AVATAR_SAY_HE[a.id] + " " : "") + GIF_SCENES[scene].he), speakTexts([fx.say, say])]);
         }
 
-        // 🏠 The characters' house: every character collected lives in it, 4 to a room, each busy with something nice
-        // (a little move of its own, and the room's thing floating over it: popcorn in the living room, notes in the music room...).
-        // Now and then one of them does its own trick. The garden shows the next characters to buy as shadows, with their price.
-        // Tapping a character in the house: its funny turn (the GIF; 5 taps in a row: dizzy), like the main page's character used to do.
-        const HOUSE_ROOMS = [   // decor: [emoji, left %, top px]
-            { name: "🛋️ סלון", wall: "#fefcbf", floor: "#b7791f", decor: [["🛋️", 3, 58], ["📺", 82, 36], ["🖼️", 42, 10], ["🪴", 90, 70]], act: ["📺", "🍿", "😂"] },
-            { name: "🍳 מטבח", wall: "#e6fffa", floor: "#a0aec0", decor: [["🍳", 4, 44], ["🫖", 86, 24], ["🍕", 46, 10], ["🧁", 84, 66]], act: ["🍕", "🧁", "🍪", "🍦"] },
-            { name: "🎵 חדר מוזיקה", wall: "#faf5ff", floor: "#6b46c1", decor: [["🎹", 3, 56], ["🥁", 84, 58], ["🎸", 46, 8]], act: ["🎵", "🎶", "🎤"] },
-            { name: "🧸 חדר משחקים", wall: "#fff5f7", floor: "#ed8936", decor: [["🧸", 3, 60], ["🪀", 86, 20], ["🎈", 44, 6], ["⚽", 88, 68]], act: ["⚽", "🎈", "🪁", "🎲"] },
-            { name: "🎨 סטודיו", wall: "#ebf8ff", floor: "#4299e1", decor: [["🖼️", 6, 12], ["🎨", 86, 50], ["🖌️", 48, 12]], act: ["🎨", "✏️", "🖍️"] },
-            { name: "🛏️ חדר שינה", wall: "#ebf4ff", floor: "#5a67d8", decor: [["🛏️", 3, 58], ["🌙", 84, 8], ["🧸", 88, 66]], act: ["💤", "⭐", "📖"] },
-            { name: "🏋️ חדר כושר", wall: "#fffaf0", floor: "#718096", decor: [["🏋️", 4, 50], ["🥊", 86, 22], ["🏀", 46, 10]], act: ["💪", "🏀", "💦"] },
-            { name: "🛁 אמבטיה", wall: "#e6fffa", floor: "#81e6d9", decor: [["🛁", 3, 56], ["🧼", 88, 66], ["🪞", 46, 10]], act: ["🫧", "🧼", "✨"] },
-            { name: "🎮 חדר גיימינג", wall: "#f0fff4", floor: "#2f855a", decor: [["🖥️", 4, 44], ["🕹️", 86, 60], ["👾", 46, 10]], act: ["🎮", "🕹️", "🏆"] },
+        // 🌍 The characters' world (tapping the character on the main page opens it): lands side by side, scrolled sideways.
+        // Every shop character has a home in one land. The ones collected walk around there: drag one anywhere (even up into
+        // the sky; where it was put is kept), drop it next to another and they are friends; tap one: its own trick and its line
+        // (every 3rd tap a dance) and "👑 choose me". The ones not collected wait at home as shadows with their price; when there
+        // are enough ⭐ they glow (❗), and tapping one opens a card to buy it right there (hold the button for a second).
+        // 🎉 makes everyone in sight dance; 🔄 sends everyone back home. Your own character sits in the top corner:
+        // tapping it does its funny GIFs (the 5th tap in a row: dizzy, then a headache).
+        const WORLD_KEY = "englishquiz-world";   // where each character was put: { id: [x px, height above the bottom as a part of the world's height] }
+        const WORLD_LANDS = [   // decor: [emoji, left %, top %, size rem, animation]; amb: [emoji, animation, how many]
+            { name: "🏡 החווה", chars: "dog cat hamster rabbit pig chick cow horse llama", sky: "linear-gradient(#7ec8f0, #e0f6ff 55%)", ground: "linear-gradient(#8ad66f, #4fa83d)", clouds: 2,
+              decor: [["🏡", 4, 25, 4.6], ["🌳", 84, 24, 4.4], ["🚜", 60, 38, 2.6, "rock"], ["🌻", 36, 43, 1.6], ["☀️", 74, 12, 2.6, "spin"]] },
+            { name: "🌲 היער", chars: "fox owl bear raccoon hedgehog frog ladybug bee butterfly", sky: "linear-gradient(#9ee6c4, #e6f7d9 55%)", ground: "linear-gradient(#5fae4f, #3d7a34)", clouds: 1,
+              decor: [["🌲", 2, 18, 5], ["🌲", 40, 24, 4], ["🌳", 76, 16, 5.2], ["🍄", 26, 44, 1.6], ["🍄", 62, 45, 1.3], ["🪵", 92, 42, 2]], amb: ["🍃", "wFall", 6] },
+            { name: "🌊 הים", chars: "crab turtle dolphin octopus shark whale mermaid otter flamingo swan", sky: "linear-gradient(#5cc3f5, #d6f0ff 50%)",
+              ground: "linear-gradient(#2b9fe0 0, #4cc0f0 42%, #fde68a 43%, #f6d27a)", clouds: 2,
+              decor: [["⛵", 14, 32, 2.8, "rock"], ["🏝️", 68, 22, 4.2], ["☀️", 86, 12, 2.4, "spin"]], amb: ["🫧", "wRise", 7] },
+            { name: "🌴 הג׳ונגל", chars: "monkey tiger panda koala sloth parrot peacock capybara", sky: "linear-gradient(#6fdcae, #d8f8e8 55%)", ground: "linear-gradient(#5b8f1b, #3a5f10)", clouds: 1,
+              decor: [["🌴", 2, 16, 5.2], ["🌿", 30, 40, 2.4], ["🌴", 70, 14, 5.6], ["🍌", 50, 28, 1.6, "rock"], ["🌺", 90, 42, 1.8]], amb: ["🌸", "wFall", 5] },
+            { name: "🦒 הסוואנה", chars: "lion giraffe zebra elephant hippo kangaroo", sky: "linear-gradient(#fbc94a, #fff3c9 55%)", ground: "linear-gradient(#dcae55, #b7832f)", clouds: 1,
+              decor: [["🌳", 6, 22, 4.4], ["☀️", 78, 12, 3.4, "spin"], ["🪨", 56, 42, 1.8], ["🌾", 32, 43, 1.8], ["🌾", 92, 44, 1.6]] },
+            { name: "❄️ ארץ השלג", chars: "penguin snowman eagle wolf", sky: "linear-gradient(#a9cdfb, #f0f9ff 55%)", ground: "linear-gradient(#ffffff, #d6e6fb)", clouds: 1,
+              decor: [["🏔️", 2, 14, 5.8], ["🏔️", 60, 20, 4.6], ["🌲", 88, 30, 3], ["⛸️", 40, 44, 1.6]], amb: ["❄️", "wFall", 10] },
+            { name: "🏙️ העיר", chars: "superhero ninja clown messi", sky: "linear-gradient(#b9a7fb, #efeaff 55%)", ground: "linear-gradient(#a0a7b3, #6b7280)", clouds: 2,
+              decor: [["🏙️", 2, 16, 5.6], ["🏟️", 52, 26, 4], ["🎡", 80, 14, 4.4, "spin"], ["🎈", 34, 16, 1.6, "float"]] },
+            { name: "🚀 החלל", chars: "robot alien astronaut monster", sky: "linear-gradient(#0b1027, #2e2a7a)", ground: "linear-gradient(#9ca3af, #4b5563)",
+              decor: [["🪐", 6, 14, 3.2, "float"], ["🌍", 76, 14, 2.6, "spin"], ["🚀", 44, 22, 3, "float"], ["🛸", 88, 30, 2.4, "float"]], amb: ["✨", "wTwinkle", 10] },
+            { name: "🌋 עמק הדינוזאורים", chars: "dino sauropod dragon", sky: "linear-gradient(#fb9a5b, #ffe1c4 55%)", ground: "linear-gradient(#9a4a14, #6b3410)", clouds: 1,
+              decor: [["🌋", 4, 12, 5.8], ["🌴", 66, 18, 4.6], ["🥚", 90, 43, 1.6, "rock"], ["🦴", 40, 45, 1.4]], amb: ["🔥", "wRise", 4] },
+            { name: "🌙 יער הרפאים", chars: "ghost vampire pumpkin", sky: "linear-gradient(#3b1a7a, #15123a)", ground: "linear-gradient(#46464f, #1c1c22)",
+              decor: [["🏚️", 6, 20, 4.6], ["🌕", 78, 14, 3], ["🦇", 40, 16, 1.6, "float"], ["🦇", 58, 24, 1.2, "float"], ["🕸️", 90, 30, 2], ["🪦", 30, 43, 1.6]], amb: ["✨", "wTwinkle", 6] },
+            { name: "🏰 הממלכה הקסומה", chars: "unicorn wizard fairy prince princess genie", sky: "linear-gradient(#f7a3d0, #fde8f4 55%)", ground: "linear-gradient(#b294fb, #7c3aed)", clouds: 2,
+              decor: [["🏰", 4, 12, 5.8], ["🌈", 62, 16, 4.4], ["💎", 88, 42, 1.6, "glow"], ["🍭", 34, 40, 2]], amb: ["✨", "wTwinkle", 8] },
         ];
-        const HOUSE_IDLE = { hop: "hHop", bighop: "hHop", wag: "hSway", wiggle: "hSway", zigzag: "hSway", spin: "hLook", flip: "hLook",
-                             grow: "hBreathe", tall: "hBreathe", float: "hFloat", fly: "hFloat", flutter: "hFloat", fade: "hFloat" };
-        const ownedAvatars = () => [...new Set(shop.owned)].map(id => SHOP_AVATARS.find(a => a.id === id)).filter(Boolean);   // in the order they were bought
-        let houseTimer = 0, houseSayTimer = 0;
+        const LAND_OF = {};   // character id -> its land (one no land names lives on the farm)
+        WORLD_LANDS.forEach((l, k) => l.chars.split(" ").forEach(id => LAND_OF[id] = k));
+        const WORLD_IDLE = { hop: "wHop", bighop: "wHop", wag: "wSway", wiggle: "wSway", zigzag: "wSway", spin: "wBob", flip: "wBob",
+                             grow: "wBreathe", tall: "wBreathe", float: "wFly", fly: "wFly", flutter: "wFly", fade: "wFly" };
+        let worldSpots = null, worldH = 400, houseTimer = 0, houseSayTimer = 0;
+        const worldScale = () => Math.max(0.9, Math.min(1.3, worldH / 440));   // a taller world: bigger characters and things
+        function worldSaved() { if (!worldSpots) { try { worldSpots = JSON.parse(localStorage.getItem(WORLD_KEY)) || {}; } catch (e) { worldSpots = {}; } } return worldSpots; }
+        function saveWorld() { try { localStorage.setItem(WORLD_KEY, JSON.stringify(worldSpots || {})); } catch (e) {} }
+        function worldPlan() {   // each land: its characters (cheapest first), where it starts, how wide it is, and each character's home in it
+            const lands = WORLD_LANDS.map(l => ({ ...l, list: [] }));
+            for (const a of SHOP_AVATARS) lands[LAND_OF[a.id] ?? 0].list.push(a);
+            let x = 0;
+            for (const l of lands) {
+                const rows = worldH > 470 ? 3 : 2, cols = Math.ceil(l.list.length / rows), used = cols * 96 + 80, ys = rows === 3 ? [0.05, 0.19, 0.33] : [0.06, 0.25];   // a tall screen: 3 rows
+                l.x = x; l.w = Math.max(340, used); x += l.w;
+                l.homes = l.list.map((a, i) => [l.x + (l.w - used) / 2 + 50 + Math.floor(i / rows) * 96 + (i % rows) * 96 / rows, ys[i % rows]]);
+            }
+            return { lands, width: x };
+        }
+        const visibleChars = () => { const body = document.getElementById("house-body"), br = body.getBoundingClientRect();
+            return [...body.querySelectorAll(".w-char:not(.locked)")].filter(b => { const r = b.getBoundingClientRect(); return r.right > br.left && r.left < br.right; }); };
+
         function showHouse() {
             document.getElementById("start-screen").style.display = "none";
             document.getElementById("house-screen").style.display = "flex";
             document.getElementById("house-say").classList.remove("on");
-            renderHouse();
+            closeHouseCard();
+            const hint = document.getElementById("house-hint");
+            hint.style.animation = "none"; void hint.offsetWidth; hint.style.animation = "";
+            renderHouse(true);
             saveSession("house");
             clearInterval(houseTimer);   // every few seconds one of them does its own trick
-            houseTimer = setInterval(() => { if (!shownEl("house-screen")) return clearInterval(houseTimer); houseTrick(); }, 3500);
+            houseTimer = setInterval(() => { if (!shownEl("house-screen")) return clearInterval(houseTimer); houseTrick(); }, 4000);
         }
-        function renderHouse() {
-            const mine = ownedAvatars(), body = document.getElementById("house-body");
-            const count = document.getElementById("house-count");
-            count.innerHTML = '<div class="hc-text"></div><div class="hc-bar"><div class="hc-fill"></div></div>';
-            count.querySelector(".hc-text").textContent = `🏠 ${mine.length} מתוך ${SHOP_AVATARS.length} דמויות גרות בבית`;
+        function renderHouse(scrollHome = false) {
+            const body = document.getElementById("house-body"), keep = body.scrollLeft;
+            worldH = Math.max(340, Math.min(640, body.clientHeight || 400));
+            const plan = worldPlan(), spots = worldSaved(), ws = worldScale();
+            const owned = new Set(shop.owned), me = SHOP_AVATARS.find(a => a.id === shop.avatar);
+            const mine = SHOP_AVATARS.filter(a => owned.has(a.id)), can = SHOP_AVATARS.filter(a => !owned.has(a.id) && a.price <= grandTotal);
+            putPic(document.getElementById("house-me"), me);
+            document.getElementById("house-stars").textContent = `⭐ ${grandTotal}`;
+            // how many collected, and the next goal
+            const count = document.getElementById("house-count"), next = SHOP_AVATARS.find(a => !owned.has(a.id));
+            count.innerHTML = '<div class="hc-text"></div><div class="hc-bar"><div class="hc-fill"></div></div><div class="hc-goal"></div>';
+            count.querySelector(".hc-text").textContent = `🏠 אספתם ${mine.length} מתוך ${SHOP_AVATARS.length} דמויות`;
             count.querySelector(".hc-fill").style.width = (100 * mine.length / SHOP_AVATARS.length) + "%";
-            const house = gEl("div", "h-house"), chimney = gEl("div", "h-chimney"), roof = gEl("div", "h-roof", playerName ? `הבית של ${playerName}` : "הבית של הדמויות");
-            chimney.append(gEl("span", "h-smoke", "☁️"));
-            house.append(chimney, roof);
-            const rooms = Math.max(1, Math.ceil(mine.length / 4));
-            for (let r = 0; r < rooms; r++) {
-                const t = HOUSE_ROOMS[r % HOUSE_ROOMS.length], room = gEl("div", "h-room"), chars = gEl("div", "h-chars");
-                room.style.setProperty("--wall", t.wall); room.style.setProperty("--floor", t.floor);
-                room.append(gEl("div", "h-label", t.name));
-                for (const [e, x, y] of t.decor) { const d = gEl("span", "h-decor", e); d.style.left = x + "%"; d.style.top = y + "px"; room.append(d); }
-                mine.slice(r * 4, r * 4 + 4).forEach((a, k) => {
-                    const i = r * 4 + k, b = gEl("button", "h-char" + (a.id === shop.avatar ? " me" : ""));
-                    b.type = "button"; b.dataset.id = a.id; b.setAttribute("aria-label", a.name);
-                    putPic(b, a);
-                    b.style.setProperty("--idle", HOUSE_IDLE[(AVATAR_FX[a.id] || {}).move] || "hBob");
-                    b.style.setProperty("--dur", (2 + (i % 5) * 0.35) + "s");
-                    b.style.setProperty("--delay", (-0.7 * i) + "s");
-                    b.append(gEl("span", "h-act", t.act[i % t.act.length]));
-                    b.onclick = () => houseTap(b);
-                    chars.append(b);
-                });
-                room.append(chars);
-                house.append(room);
-            }
-            // 🌳 the garden: the next characters (the cheapest not collected yet) wait outside as shadows
-            const garden = gEl("div", "h-garden"), next = SHOP_AVATARS.filter(a => !mine.includes(a)).slice(0, 4);
-            garden.append(gEl("div", "h-label", next.length ? "🌳 מחכים בחוץ להיכנס:" : "🌳 הגינה"));
-            for (const [e, x, y] of [["🌳", 2, 4], ["🌷", 90, 8], ["🌻", 92, 64]]) { const d = gEl("span", "h-decor", e); d.style.left = x + "%"; d.style.top = y + "px"; garden.append(d); }
-            for (const a of next) {
-                const b = gEl("button", "h-slot"), g = gEl("span", "h-ghost");
-                b.type = "button"; b.dataset.id = a.id; b.setAttribute("aria-label", `${a.name}: ${a.price} ⭐ בחנות`);
-                putPic(g, a);
-                b.append(g, gEl("span", "h-price", `⭐ ${a.price}`));
-                b.onclick = () => houseSay("", `🔒 ${a.name} – ${a.price} ⭐ בחנות`);
-                garden.append(b);
-            }
-            if (!next.length) garden.append(gEl("div", "h-done", "🎉 אספתם את כל הדמויות! הבית מלא!"));
-            const toShop = gEl("button", "action-btn", "🏪 לחנות – עוד דמויות לבית");
-            toShop.type = "button"; toShop.id = "house-shop";
-            toShop.onclick = () => { showStart(); openShop(); };
-            garden.append(gEl("br"), toShop);
-            house.append(garden);
-            body.replaceChildren(house);
+            const goal = count.querySelector(".hc-goal");
+            if (can.length) { goal.classList.add("can"); goal.textContent = can.length === 1 ? "❗ יש לכם ⭐ לדמות חדשה! חפשו את הצל שזוהר" : `❗ יש לכם ⭐ ל-${can.length} דמויות חדשות! חפשו את הזוהרים`; }
+            else if (next) goal.textContent = `🎯 עוד ${next.price - grandTotal} ⭐ ותוכלו להביא את ${next.name}!`;
+            else goal.textContent = "🎉 אספתם את כל הדמויות! העולם מלא!";
+            // the lands, and a button for each one in the row above
+            const world = gEl("div", "w-world"), chips = document.getElementById("house-lands");
+            world.style.width = plan.width + "px"; world.style.height = worldH + "px";
+            chips.textContent = "";
+            plan.lands.forEach((l, k) => {
+                const n = l.list.filter(a => owned.has(a.id)).length, done = n === l.list.length, canHere = l.list.some(a => can.includes(a));
+                const land = gEl("div", "w-land" + (done ? " done" : ""));
+                land.dataset.land = k;
+                land.style.left = l.x + "px"; land.style.width = l.w + "px";
+                land.style.setProperty("--sky", l.sky); land.style.setProperty("--ground", l.ground);
+                land.append(gEl("div", "w-ground"));
+                const sign = gEl("div", "w-sign", l.name + " ");
+                sign.append(gEl("small", "", (done ? "🏆 " : "") + `${n}/${l.list.length}`));
+                land.append(sign);
+                const decor = (e, x, y, size, anim) => { const d = gEl("span", "w-decor" + (anim ? " " + anim : ""), e); d.style.left = x + "%"; d.style.top = y + "%"; d.style.fontSize = (size * ws).toFixed(2) + "rem"; land.append(d); };
+                for (const d of l.decor) decor(...d);
+                if (done) for (const [x, y] of [[18, 16], [48, 32], [82, 10]]) decor("✨", x, y, 1.4, "glow");   // a land with everyone in it sparkles
+                for (let c = 0; c < (l.clouds || 0); c++) {
+                    const d = gEl("span", "w-cloud", "☁️");
+                    d.style.top = (10 + c * 12) + "%";
+                    d.style.setProperty("--w", (l.w + 60) + "px"); d.style.setProperty("--dur", (26 + c * 9) + "s"); d.style.setProperty("--delay", (-9 - c * 13) + "s");
+                    land.append(d);
+                }
+                if (l.amb) {
+                    const [e, anim, m] = l.amb;
+                    for (let c = 0; c < m; c++) {
+                        const d = gEl("span", "w-amb", e);
+                        d.style.left = ((c * 37 + 11) % 97) + "%";
+                        d.style.top = anim === "wFall" ? "0" : anim === "wRise" ? "92%" : ((c * 23 + 7) % 50) + "%";
+                        d.style.setProperty("--anim", anim); d.style.setProperty("--h", worldH + "px");
+                        d.style.setProperty("--dur", (anim === "wTwinkle" ? 2 + c % 3 : 6 + (c % 4) * 1.5) + "s"); d.style.setProperty("--delay", (-c * 1.3) + "s");
+                        land.append(d);
+                    }
+                }
+                world.append(land);
+                const chip = gEl("button", "w-chip" + (done ? " done" : canHere ? " can" : ""), `${l.name.split(" ")[0]} ${n}/${l.list.length}${canHere ? " ❗" : ""}`);
+                chip.type = "button"; chip.dataset.land = k; chip.setAttribute("aria-label", l.name);
+                chip.onclick = () => body.scrollTo({ left: l.x, behavior: "smooth" });
+                chips.append(chip);
+            });
+            // the characters: the ones collected where they were put (or at home), the others at home as shadows
+            let i = 0;
+            plan.lands.forEach(l => l.list.forEach((a, k) => {
+                const have = owned.has(a.id), [hx, hb] = l.homes[k], spot = have && spots[a.id];
+                const b = gEl("button", "w-char" + (have ? "" : " locked") + (!have && can.includes(a) ? " can" : "") + (have && me && a.id === me.id ? " me" : ""));
+                b.type = "button"; b.dataset.id = a.id;
+                b.style.setProperty("--delay", (-1.3 * i) + "s");
+                const walk = gEl("span", "w-walk"), face = gEl("span", "w-face"), pic = gEl("span", "w-pic");
+                putPic(pic, a); face.append(pic); walk.append(face);
+                if (have) {
+                    const fx = AVATAR_FX[a.id] || {};
+                    walk.append(gEl("span", "w-name", a.name));
+                    b.setAttribute("aria-label", a.name);
+                    pic.style.setProperty("--idle", WORLD_IDLE[fx.move] || "wBob");
+                    pic.style.setProperty("--dur", (1.8 + (i % 5) * 0.35) + "s");
+                    walk.style.setProperty("--wx", (16 + (i % 4) * 5) + "px"); walk.style.setProperty("--wd", (7 + (i % 5)) + "s");
+                    if (i % 3 === 2 || ["sloth", "turtle", "snowman", "owl"].includes(a.id)) b.classList.add("still");   // some just stay and do their thing
+                    worldDrag(b, a);
+                } else {
+                    walk.append(gEl("span", "w-q", can.includes(a) ? "❗" : "?"), gEl("span", "w-tag", `⭐ ${a.price}`));
+                    b.setAttribute("aria-label", `${a.name}: ${a.price} ⭐`);
+                    b.onclick = () => openHouseCard(a);
+                }
+                b.append(walk);
+                placeChar(b, spot ? spot[0] : hx, spot ? spot[1] : hb, plan.width);
+                world.append(b);
+                i++;
+            }));
+            body.replaceChildren(world);
+            document.getElementById("house-hint").style.top = (body.offsetTop + worldH * 0.3) + "px";   // the hint shows in the sky
+            if (scrollHome) { const l = plan.lands[me ? LAND_OF[me.id] ?? 0 : 0]; body.scrollLeft = Math.max(0, l.x + l.w / 2 - body.clientWidth / 2); }
+            else body.scrollLeft = keep;
         }
+        // x: the middle of the character in the world; bf: how high its feet are (a part of the world's height). Lower = nearer = bigger, in front.
+        function placeChar(b, x, bf, w = Infinity) {
+            x = Math.max(26, Math.min(w - 26, x)); bf = Math.max(0.02, Math.min(0.8, bf));
+            b.style.left = x + "px"; b.style.bottom = Math.round(bf * worldH) + "px";
+            b.style.setProperty("--depth", ((bf < 0.45 ? 1.08 - bf * 0.6 : 0.85) * worldScale()).toFixed(3));
+            b.style.zIndex = 100 + Math.round((1 - bf) * 100);
+            b.dataset.x = Math.round(x); b.dataset.b = bf.toFixed(3);
+        }
+        // ✋ press and move: the character is carried (near an edge the world scrolls); press and let go without moving: a tap
+        function worldDrag(b, a) {
+            let start = null, moved = false;
+            b.addEventListener("pointerdown", e => {
+                if (e.button !== 0 || start) return;
+                const r = b.getBoundingClientRect();
+                start = { id: e.pointerId, x: e.clientX, y: e.clientY, gx: e.clientX - (r.left + r.width / 2), gy: r.bottom - e.clientY };
+                moved = false;
+                try { b.setPointerCapture(e.pointerId); } catch (err) {}
+            });
+            b.addEventListener("pointermove", e => {
+                if (!start || e.pointerId !== start.id) return;
+                if (!moved && Math.hypot(e.clientX - start.x, e.clientY - start.y) < 8) return;
+                if (!moved) { moved = true; b.classList.add("dragging"); document.querySelectorAll(".w-bubble").forEach(x => x.remove()); }
+                const body = document.getElementById("house-body"), br = body.getBoundingClientRect();
+                if (e.clientX < br.left + 36) body.scrollLeft -= 14; else if (e.clientX > br.right - 36) body.scrollLeft += 14;
+                const w = b.parentElement.getBoundingClientRect();
+                placeChar(b, e.clientX - start.gx - w.left, (w.bottom - e.clientY - start.gy) / worldH, w.width);
+            });
+            const end = e => {
+                if (!start || e.pointerId !== start.id) return;
+                start = null;
+                if (!moved) { if (e.type === "pointerup") worldTap(b, a); return; }
+                b.classList.remove("dragging");
+                worldSaved()[a.id] = [+b.dataset.x, +b.dataset.b]; saveWorld();
+                worldFriends(b, a);
+            };
+            b.addEventListener("pointerup", end);
+            b.addEventListener("pointercancel", end);
+            b.addEventListener("click", e => { if (e.detail === 0) worldTap(b, a); });   // Enter / space on a keyboard
+        }
+        // a tap: its own move, its emojis and its line (said aloud); every 3rd tap a dance
+        function worldTap(b, a) {
+            const fx = AVATAR_FX[a.id] || { move: "hop", fx: ["✨"], say: "Hi!" }, pic = b.querySelector(".w-pic");
+            b.taps = (b.taps || 0) + 1;
+            if (b.taps % 3 === 0) {
+                worldBubble(b, a, "Dance time! 💃", "זמן לרקוד!");
+                speakTexts(["Dance time!"]);
+                danceMoves(pic);
+                return;
+            }
+            const [en, he] = fx.says ? fx.says[Math.floor(Math.random() * fx.says.length)] : [fx.say, AVATAR_SAY_HE[a.id] || ""];
+            worldBubble(b, a, en, he);
+            speakTexts([en]);
+            pic.animate(AVATAR_MOVES[fx.move] || AVATAR_MOVES.hop, { duration: 900, easing: "ease-in-out" });
+            avatarBurst(fx.fx, 8, pic, true);
+        }
+        function worldBubble(b, a, en, he) {
+            document.querySelectorAll(".w-bubble").forEach(x => x.remove());
+            const bub = gEl("div", "w-bubble"), w = b.parentElement;
+            bub.append(gEl("div", "", en));
+            if (he) bub.append(gEl("div", "wb-he", he));
+            if (a.id !== shop.avatar) {   // 👑 make it the character in use
+                const pick = gEl("button", "", "👑 תבחרו בי!");
+                pick.type = "button";
+                pick.onclick = () => { shop.avatar = a.id; saveShop(); applyShop(); renderHouse(); houseSay("", `👑 עכשיו ${a.name} הדמות שלכם!`); };
+                bub.append(pick);
+            }
+            const r = b.getBoundingClientRect(), wr = w.getBoundingClientRect();
+            bub.style.left = Math.max(80, Math.min(wr.width - 80, r.left + r.width / 2 - wr.left)) + "px";
+            bub.style.top = Math.max(96, r.top - wr.top - 4) + "px";
+            w.append(bub);
+            clearTimeout(worldBubble.t);
+            worldBubble.t = setTimeout(() => bub.remove(), 3500);
+        }
+        // dropped right next to another one: they're friends! (both jump, hearts)
+        function worldFriends(b, a) {
+            const x = +b.dataset.x, bf = +b.dataset.b;
+            const near = [...document.querySelectorAll("#house-body .w-char:not(.locked)")].filter(o => o !== b)
+                .map(o => ({ o, d: Math.hypot(+o.dataset.x - x, (+o.dataset.b - bf) * worldH) })).filter(o => o.d < 70).sort((p, q) => p.d - q.d)[0];
+            if (!near) return;
+            const other = SHOP_AVATARS.find(z => z.id === near.o.dataset.id);
+            for (const el of [b, near.o]) el.querySelector(".w-pic").animate(AVATAR_MOVES.bighop, { duration: 700, easing: "ease-out" });
+            avatarBurst(["💕", "🙌", "✨", "🤝"], 10, b.querySelector(".w-pic"), true);
+            worldBubble(b, a, "Best friends! 💕", `${a.name} ו${other.name} חברים!`);
+            speakTexts(["Best friends!"]);
+        }
+        // ✨ now and then one of them (in sight) does its own trick
+        function houseTrick() {
+            if (document.getElementById("gif-pop") || document.querySelector(".w-char.dragging") || document.getElementById("house-card").style.display !== "none") return;
+            const seen = visibleChars();
+            if (!seen.length) return;
+            const b = seen[Math.floor(Math.random() * seen.length)], fx = AVATAR_FX[b.dataset.id] || { move: "hop", fx: ["✨"] }, pic = b.querySelector(".w-pic");
+            pic.animate(AVATAR_MOVES[fx.move] || AVATAR_MOVES.hop, { duration: 900, easing: "ease-in-out" });
+            avatarBurst(fx.fx, 5, pic, true);
+        }
+        // 🎉 everyone in sight dances
+        function houseParty() {
+            const seen = visibleChars();
+            if (!seen.length) return houseSay("", "עוד אין פה דמויות – הביאו דמות ראשונה! 🛍️");
+            confetti(2500);
+            houseSay("Party time! 🎉", "מסיבה! כולם רוקדים!");
+            speakTexts(["Party time!"]);
+            seen.forEach((b, k) => setTimeout(() => danceMoves(b.querySelector(".w-pic")), k * 120));
+        }
+        function houseTidy() { worldSpots = {}; saveWorld(); renderHouse(); houseSay("", "🔄 כולם חזרו הביתה!"); }
         function houseSay(en, he) {
             const b = document.getElementById("house-say");
             b.innerHTML = (en ? '<div class="ab-say" dir="ltr"></div>' : "") + '<div class="ab-he"></div>';
@@ -4706,28 +4960,76 @@
             clearTimeout(houseSayTimer);
             houseSayTimer = setTimeout(() => b.classList.remove("on"), 3500);
         }
-        // a character tapped in the house: its funny turn (one at a time)
-        async function houseTap(el) {
-            const a = SHOP_AVATARS.find(x => x.id === el.dataset.id), chars = [...document.querySelectorAll("#house-body .h-char")];
+        // your own character in the top corner: its funny turn (a GIF; the 5th tap in a row: dizzy, then a headache)
+        async function houseMeTap() {
+            const el = document.getElementById("house-me"), a = SHOP_AVATARS.find(x => x.id === shop.avatar);
             if (!a || el.disabled) return;
-            chars.forEach(b => b.disabled = true);
-            try { await avatarTurn(a, el, (say, he) => { clearTimeout(houseSayTimer); houseSay(say, he); clearTimeout(houseSayTimer); }); } finally {
-                chars.forEach(b => b.disabled = false);
+            el.disabled = true;
+            try { await avatarTurn(a, el, (say, he) => { houseSay(say, he); clearTimeout(houseSayTimer); }); } finally {
+                el.disabled = false;
                 avatarLastTap = Date.now();   // the 6 seconds (for 5 taps in a row) count from the end of the turn
-                el.style.animation = "none"; void el.offsetWidth; el.style.animation = "";   // its own little move starts again
                 clearTimeout(houseSayTimer);
                 houseSayTimer = setTimeout(() => document.getElementById("house-say").classList.remove("on"), 3000);
             }
         }
-        // ✨ now and then a character in the house does its own trick (not while one is being tapped)
-        function houseTrick() {
-            const chars = [...document.querySelectorAll("#house-body .h-char")];
-            if (!chars.length || chars.some(b => b.disabled) || document.getElementById("gif-pop")) return;
-            const b = chars[Math.floor(Math.random() * chars.length)], fx = AVATAR_FX[b.dataset.id] || { move: "hop", fx: ["✨"] };
-            if (b.getBoundingClientRect().bottom < 0 || b.getBoundingClientRect().top > innerHeight) return;   // only one you can see
-            b.animate(AVATAR_MOVES[fx.move] || AVATAR_MOVES.hop, { duration: 900, easing: "ease-in-out", composite: "add" });
-            avatarBurst(fx.fx, 5, b, true);
+        // a shadow tapped: who it is, its price, the ⭐ you have; enough: hold the button to buy it right here
+        function openHouseCard(a) {
+            const card = document.getElementById("house-card"), land = WORLD_LANDS[LAND_OF[a.id] ?? 0], can = grandTotal >= a.price;
+            const box = gEl("div", "hk-box"), x = gEl("button", "hk-x", "✕"), pic = gEl("div", "hk-pic"), bar = gEl("div", "hk-bar"), fill = gEl("div", "hk-fill");
+            x.type = "button"; x.setAttribute("aria-label", "סגירה"); x.onclick = closeHouseCard;
+            putPic(pic, a);
+            bar.append(fill);
+            fill.style.width = Math.min(100, 100 * grandTotal / a.price) + "%";
+            const msg = gEl("div", "hk-msg", can ? `יש לכם ⭐ ${grandTotal} – מספיק! 🎉` : `יש לכם ⭐ ${grandTotal} – חסרים עוד ${a.price - grandTotal} ⭐`);
+            const btn = gEl("button", "hk-btn" + (can ? "" : " play"));
+            btn.type = "button";
+            if (can) { btn.append(gEl("span", "hk-hold"), gEl("span", "", `✋ החזיקו לחוץ – לקנות ב-⭐ ${a.price}`)); holdButton(btn, () => houseBuy(a)); }
+            else { btn.append(gEl("span", "", "🎮 לשחק ולאסוף עוד ⭐")); btn.onclick = () => { closeHouseCard(); showStart(); }; }
+            box.append(x, pic, gEl("div", "hk-who", `מי זה? ${a.name}!`), gEl("div", "hk-land", `הבית: ${land.name}`), bar, msg, btn);
+            card.replaceChildren(box);
+            card.onclick = e => { if (e.target === card) closeHouseCard(); };
+            card.style.display = "flex";
         }
+        function closeHouseCard() { const c = document.getElementById("house-card"); c.style.display = "none"; c.textContent = ""; }
+        function holdButton(btn, done) {   // like the shop: buying needs a 1-second hold, so a quick tap never buys
+            let t = null;
+            const start = e => { if (t || (e.type === "pointerdown" && e.button !== 0)) return; btn.classList.add("holding"); t = setTimeout(() => { t = null; done(); }, HOLD_MS); };
+            const stop = () => { if (!t) return; clearTimeout(t); t = null; btn.classList.remove("holding"); };
+            btn.addEventListener("pointerdown", start);
+            for (const ev of ["pointerup", "pointerleave", "pointercancel"]) btn.addEventListener(ev, stop);
+            btn.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); start(e); } });
+            btn.addEventListener("keyup", e => { if (e.key === "Enter" || e.key === " ") stop(); });
+            btn.addEventListener("contextmenu", e => e.preventDefault());
+        }
+        // bought in the world: the shadow lights up (confetti), it moves in and becomes the character in use
+        function houseBuy(a) {
+            const card = document.getElementById("house-card");
+            if (shop.owned.includes(a.id) || grandTotal < a.price) return;
+            grandTotal -= a.price;
+            try { localStorage.setItem(TOTAL_KEY, String(grandTotal)); } catch (e) {} window.cloud && cloud.sync();
+            shop.owned.push(a.id);
+            shop.avatar = a.id;   // bought = in use (as in the shop)
+            saveShop(); applyShop(); showGrandTotal();
+            playUnlockSound(); confetti(2500);
+            card.querySelector(".hk-pic").classList.add("reveal");
+            card.querySelector(".hk-who").textContent = `🎉 ברוכים הבאים, ${a.name}!`;
+            card.querySelector(".hk-msg").textContent = "👑 ועכשיו זו הדמות שלכם!";
+            card.querySelector(".hk-bar").remove();
+            const go = gEl("button", "hk-btn", "🌍 לעולם!");
+            go.type = "button";
+            go.onclick = () => {
+                closeHouseCard();
+                const b = document.querySelector(`#house-body .w-char[data-id="${a.id}"]`);
+                if (!b) return;
+                document.getElementById("house-body").scrollTo({ left: +b.dataset.x - document.getElementById("house-body").clientWidth / 2 });
+                danceMoves(b.querySelector(".w-pic"));
+                worldBubble(b, a, "Hello, new home! 🏠", "שלום, בית חדש!");
+            };
+            card.querySelector(".hk-btn").replaceWith(go);
+            renderHouse();
+        }
+        let houseResize = 0;
+        addEventListener("resize", () => { clearTimeout(houseResize); houseResize = setTimeout(() => { if (shownEl("house-screen") && Math.abs(document.getElementById("house-body").clientHeight - worldH) > 30) renderHouse(); }, 250); });
 
         function avatarBubbleTap() {
             document.getElementById("avatar-bubble").classList.remove("on");

@@ -1426,12 +1426,12 @@ async function testPhoneBack() {
 
 // 🐶 Tapping the character on the main screen: its own move, emojis and English phrase, then a word of the chosen
 // level in a speech bubble (read aloud, tap the bubble to hear it again). 5 taps in a row make it dizzy. Not the shop.
-// tap the character in use, in the characters' house (tapping it on the main page opens the house)
+// tap the character in use: in the top corner of the characters' world (tapping it on the main page opens the world)
 async function tapMe(page) {
   await page.evaluate(() => { if (document.getElementById('house-screen').style.display !== 'flex') showHouse(); else renderHouse(); });
-  await page.click('#house-body .h-char.me');
+  await page.click('#house-me');
 }
-const meFree = page => page.waitForFunction(() => { const b = document.querySelector('#house-body .h-char.me'); return !b || !b.disabled; }, { timeout: 15000 });
+const meFree = page => page.waitForFunction(() => !document.getElementById('house-me').disabled, { timeout: 15000 });
 
 async function testAvatar() {
   console.log('\n[avatar] tapping the character: one of its own 4 funny GIFs; the 5th tap in a row: dizzy, then a headache');
@@ -1466,7 +1466,7 @@ async function testAvatar() {
         `tapping the dog opens one of its GIFs (${g.scene}): the dog with its bones / paws, moving, its own "Woof woof!" and the cartoon's own line (${sceneSay}) and a Hebrew line (${g.he})`);
   check(g.fits && await page.$eval('#gif-pop .gp-badge', e => e.textContent === 'GIF'), 'the GIF pop-up is fully on the screen');
   check(!(await page.$eval('#avatar-bubble', e => e.classList.contains('on'))) && !(await page.evaluate(() => typeof avatarWord !== 'undefined')), 'no word to learn any more');
-  check(await page.$$eval('#house-body .h-char', bs => bs.every(b => b.disabled)), 'while the GIF is open the characters in the house can\'t be tapped');
+  check(await page.$eval('#house-me', e => e.disabled), 'while the GIF is open the character\'s button is off');
   await new Promise(r => setTimeout(r, 300));
   check(JSON.stringify(await spoken()) === JSON.stringify(['Woof woof!', sceneSay]), `it says "Woof woof!" and "${sceneSay}" aloud`);
   await page.waitForFunction(() => !document.getElementById('gif-pop'), { timeout: 8000 });
@@ -1557,51 +1557,101 @@ async function testAvatar() {
 
 // 👫 friends: the top row of buttons, a search box with names from the cloud, who is playing now
 async function testHouse() {
-  console.log("\n[house] tapping the character on the main page opens the characters' house");
+  console.log("\n[house] tapping the character on the main page opens the characters' world");
   const page = await openPage();
-  await page.evaluate(() => { shop.owned = ['dog', 'cat', 'unicorn', 'capybara', 'messi']; shop.avatar = 'cat'; saveShop(); applyShop(); showStart(); });
+  await page.evaluate(() => { localStorage.removeItem('englishquiz-world'); speechSynthesis.speak = u => setTimeout(() => u.onend && u.onend(), 50); speechSynthesis.cancel = () => {};
+    shop.owned = ['dog', 'cat', 'unicorn', 'capybara', 'messi']; shop.avatar = 'cat'; grandTotal = 40; saveShop(); applyShop(); showStart(); });
   await new Promise(r => setTimeout(r, 500));
   await page.click('#menu-avatar');
-  await page.waitForSelector('#house-body .h-char', { timeout: 5000 });
-  const h = await page.evaluate(() => ({
-    shown: document.getElementById('house-screen').style.display === 'flex', start: document.getElementById('start-screen').style.display,
-    chars: [...document.querySelectorAll('#house-body .h-char')].map(b => b.dataset.id), me: document.querySelector('#house-body .h-char.me')?.dataset.id,
-    rooms: document.querySelectorAll('#house-body .h-room').length, moving: [...document.querySelectorAll('#house-body .h-char')].every(b => b.getAnimations().length > 0),
-    acts: document.querySelectorAll('#house-body .h-char .h-act').length, imgs: document.querySelectorAll('#house-body .h-char img.pic-img').length,
-    count: document.getElementById('house-count').textContent, fill: document.querySelector('#house-count .hc-fill').style.width,
-    ghosts: [...document.querySelectorAll('#house-body .h-slot')].map(b => ({ id: b.dataset.id, price: b.querySelector('.h-price').textContent, dark: getComputedStyle(b.querySelector('.h-ghost')).filter })),
-    cheapest: SHOP_AVATARS.filter(a => !shop.owned.includes(a.id)).slice(0, 4).map(a => a.id), total: SHOP_AVATARS.length,
-    fits: document.getElementById('house-body').scrollWidth <= document.getElementById('house-body').clientWidth + 1,
-  }));
-  check(h.shown && h.start === 'none', 'tapping the character on the main page opens the house');
-  check(JSON.stringify(h.chars) === JSON.stringify(['dog', 'cat', 'unicorn', 'capybara', 'messi']) && h.rooms === 2, `the 5 characters collected live in it, 4 to a room (${h.rooms} rooms: ${h.chars.join(', ')})`);
-  check(h.moving && h.acts === 5 && h.imgs === 2, 'each one moves and does something (its room\'s emoji over it); the drawn ones show as pictures');
-  check(h.me === 'cat', 'the character in use has the 👑');
-  check(h.count.includes(`5 מתוך ${h.total}`) && parseFloat(h.fill) > 0, `it says how many were collected (${h.count})`);
-  check(h.ghosts.length === 4 && JSON.stringify(h.ghosts.map(g => g.id)) === JSON.stringify(h.cheapest) && h.ghosts.every(g => g.dark.includes('brightness(0)') && /⭐ \d+/.test(g.price)),
-    `the garden: the next 4 to buy, as shadows with their price (${h.ghosts.map(g => g.id + ' ' + g.price).join(', ')})`);
-  check(h.fits, 'nothing sticks out sideways');
-  await page.click('#house-body .h-slot');
-  check(await page.$eval('#house-say', e => e.classList.contains('on') && e.textContent.includes('🔒') && e.textContent.includes('⭐')),'tapping a shadow says what it is and its price (🔒 … ⭐ בחנות)');
-  // tapping another character in the house: its own funny turn
-  await page.evaluate(() => { speechSynthesis.speak = u => setTimeout(() => u.onend && u.onend(), 50); });
-  await page.click('#house-body .h-char[data-id="dog"]');
-  await page.waitForSelector('#gif-pop', { timeout: 5000 });
-  check(await page.evaluate(() => AVATAR_GIFS.dog.includes(document.getElementById('gif-pop').dataset.scene)), 'tapping the dog in the house: one of its GIFs');
-  await page.click('#gif-pop');
-  await meFree(page);
-  // after a reload, still in the house
+  await page.waitForSelector('#house-body .w-char', { timeout: 5000 });
+  await new Promise(r => setTimeout(r, 400));
+  const w = await page.evaluate(() => {
+    const chars = [...document.querySelectorAll('#house-body .w-char')], me = document.getElementById('house-me').getBoundingClientRect(), body = document.getElementById('house-body');
+    return {
+      shown: document.getElementById('house-screen').style.display === 'flex', start: document.getElementById('start-screen').style.display,
+      all: chars.map(b => b.dataset.id).sort().join() === SHOP_AVATARS.map(a => a.id).sort().join(), landed: SHOP_AVATARS.every(a => a.id in LAND_OF),
+      owned: chars.filter(b => !b.classList.contains('locked')).map(b => b.dataset.id).sort().join(),
+      moving: chars.filter(b => !b.classList.contains('locked')).every(b => b.querySelector('.w-pic').getAnimations().length > 0),
+      locked: chars.filter(b => b.classList.contains('locked')).every(b => /⭐ \d+/.test(b.querySelector('.w-tag').textContent) && getComputedStyle(b.querySelector('.w-pic')).filter.includes('brightness(0)')),
+      can: chars.filter(b => b.classList.contains('can')).map(b => b.dataset.id).sort().join(), canWant: SHOP_AVATARS.filter(a => !shop.owned.includes(a.id) && a.price <= 40).map(a => a.id).sort().join(),
+      lands: document.querySelectorAll('#house-body .w-land').length, chips: document.querySelectorAll('#house-lands .w-chip').length, landsWant: WORLD_LANDS.length,
+      me: document.getElementById('house-me').textContent, meCorner: me.width > 0 && me.right > innerWidth - 90 && me.bottom < body.getBoundingClientRect().top,
+      crown: document.querySelector('#house-body .w-char.me')?.dataset.id, count: document.getElementById('house-count').textContent,
+      wide: body.scrollWidth > body.clientWidth * 3, page: document.documentElement.scrollWidth <= innerWidth,
+    };
+  });
+  check(w.shown && w.start === 'none', 'tapping the character on the main page opens the world');
+  check(w.all && w.landed && w.lands === w.landsWant && w.chips === w.landsWant, `every shop character has a home in one of the ${w.landsWant} lands, and there is a button for each land`);
+  check(w.wide && w.page, 'the world scrolls sideways (the page itself does not)');
+  check(w.owned === 'capybara,cat,dog,messi,unicorn' && w.moving, 'the characters collected are there, moving');
+  check(w.locked, 'the others wait at home as shadows with their price');
+  check(w.can === w.canWant && w.can.length > 0 && w.count.includes('❗'), `with enough ⭐ the shadows glow ❗ (${w.can}) and the top says so`);
+  check(w.me === '🐱' && w.meCorner && w.crown === 'cat', 'your own character sits in the top corner, and has the 👑 in the world');
+  // tapping a character: its line in a bubble and its trick; the 3rd tap: a dance
+  const dog = () => page.$('#house-body .w-char[data-id="dog"]');
+  await page.evaluate(() => { const b = document.querySelector('#house-body .w-char[data-id="dog"]'); document.getElementById('house-body').scrollLeft = +b.dataset.x - 150; });
+  await (await dog()).click();
+  check(await page.$eval('.w-bubble', e => e.textContent.includes('Woof woof!')), 'tapping the dog: "Woof woof!" in a bubble');
+  check(await page.evaluate(() => document.querySelector('#house-body .w-char[data-id="dog"] .w-pic').getAnimations().length > 1), 'and it does its trick');
+  await (await dog()).click(); await (await dog()).click();
+  check(await page.$eval('.w-bubble', e => e.textContent.includes('Dance time')), 'the 3rd tap: a dance');
+  await page.click('.w-bubble button');
+  check(await page.evaluate(() => shop.avatar === 'dog' && document.getElementById('house-me').textContent === '🐶' && document.querySelector('#house-body .w-char.me').dataset.id === 'dog'), '"👑 choose me" makes it your character');
+  // dragging: it stays where it was put (also after leaving and coming back); dropped next to another one: friends
+  const center = async id => page.$eval(`#house-body .w-char[data-id="${id}"]`, b => { const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, left: +b.dataset.x, b: +b.dataset.b }; });
+  const drag = async (id, dx, dy) => { const c = await center(id); await page.mouse.move(c.x, c.y); await page.mouse.down();
+    for (let k = 1; k <= 8; k++) await page.mouse.move(c.x + dx * k / 8, c.y + dy * k / 8); await page.mouse.up(); };
+  const c0 = await center('dog');
+  await drag('dog', 40, -150);
+  const c1 = await center('dog'), saved = await page.evaluate(() => JSON.parse(localStorage.getItem('englishquiz-world') || '{}').dog);
+  check(c1.b > c0.b + 0.15 && Math.abs(c1.left - c0.left - 40) < 6 && saved && saved[0] === c1.left, `dragging the dog moves it (up into the sky too) and keeps the spot (${JSON.stringify(saved)})`);
+  check(!(await page.$('.w-bubble')) || !(await page.$eval('.w-bubble', e => e.textContent.includes('Woof'))), 'a drag is not a tap');
+  await page.evaluate(() => showHouse());
+  await new Promise(r => setTimeout(r, 300));
+  check((await center('dog')).left === c1.left, 'coming back: it is still where it was put');
+  await page.evaluate(() => { const b = document.querySelector('#house-body .w-char[data-id="cat"]'); document.getElementById('house-body').scrollLeft = +b.dataset.x - 150; });
+  const cat = await center('cat'), dg = await center('dog');
+  await page.evaluate((x, bf) => { worldSaved().dog = [x + 30, bf]; renderHouse(); }, cat.left, cat.b);
+  const dg2 = await center('dog');
+  await page.mouse.move(dg2.x, dg2.y); await page.mouse.down();
+  for (let k = 1; k <= 4; k++) await page.mouse.move(dg2.x - 3 * k, dg2.y); await page.mouse.up();
+  check(await page.$eval('.w-bubble', e => e.textContent.includes('Best friends')), 'dropped next to the cat: they are friends 💕');
+  await page.click('#house-tidy');
+  check(await page.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('englishquiz-world'))).length === 0), '🔄 sends everyone back home');
+  // 🎉 a party: everyone in sight dances
+  await page.click('#house-party');
+  check(await page.evaluate(() => document.getElementById('house-say').textContent.includes('Party') && document.querySelectorAll('#house-body .w-char:not(.locked) .w-pic').length > 0), '🎉 a party');
+  // a shadow: a card; not enough ⭐: to play; enough: hold to buy it right there
+  await page.evaluate(() => { grandTotal = 5; renderHouse(); });
+  await page.evaluate(() => document.querySelector('#house-body .w-char.locked[data-id="hamster"]').click());
+  check(await page.evaluate(() => { const c = document.getElementById('house-card'); return c.style.display === 'flex' && c.textContent.includes('אוגר') && c.textContent.includes('חסרים עוד 10') && !!c.querySelector('.hk-btn.play'); }),
+    'tapping a shadow: who it is, and how many ⭐ are still missing');
+  await page.click('.hk-x');
+  await page.evaluate(() => { grandTotal = 100; renderHouse(); document.querySelector('#house-body .w-char.locked[data-id="hamster"]').click(); });
+  const btn = await page.$('#house-card .hk-btn');
+  await btn.click();
+  check(await page.evaluate(() => !shop.owned.includes('hamster')), 'a quick tap does not buy');
+  const bb = await btn.boundingBox();
+  await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2); await page.mouse.down();
+  await new Promise(r => setTimeout(r, 1200));
+  await page.mouse.up();
+  const bought = await page.evaluate(() => ({ owned: shop.owned.includes('hamster'), total: grandTotal, saved: localStorage.getItem('englishquiz-total-points'), avatar: shop.avatar,
+    reveal: !!document.querySelector('#house-card .hk-pic.reveal'), inWorld: !document.querySelector('#house-body .w-char[data-id="hamster"]').classList.contains('locked') }));
+  check(bought.owned && bought.total === 85 && bought.saved === '85' && bought.avatar === 'hamster' && bought.reveal && bought.inWorld, `holding the button buys it: 15 ⭐ paid, it lights up and moves in (${JSON.stringify(bought)})`);
+  await page.click('#house-card .hk-btn');
+  check(await page.evaluate(() => document.getElementById('house-card').style.display === 'none'), 'then to the world');
+  // after a reload, still in the world; back to the main page
   await page.reload({ waitUntil: 'networkidle0' });
-  await page.waitForSelector('#house-body .h-char', { timeout: 5000 });
-  check(await page.evaluate(() => document.getElementById('house-screen').style.display === 'flex'), 'after a reload the house is still open');
+  await page.waitForSelector('#house-body .w-char', { timeout: 5000 });
+  check(await page.evaluate(() => document.getElementById('house-screen').style.display === 'flex'), 'after a reload the world is still open');
   await page.click('#house-back');
   check(await page.evaluate(() => document.getElementById('house-screen').style.display === 'none' && document.getElementById('start-screen').style.display !== 'none'), 'the back button goes to the main page');
-  // all of them collected
   await page.evaluate(() => { shop.owned = SHOP_AVATARS.map(a => a.id); saveShop(); showHouse(); });
-  const full = await page.evaluate(() => ({ slots: document.querySelectorAll('#house-body .h-slot').length, done: !!document.querySelector('#house-body .h-done'), n: document.querySelectorAll('#house-body .h-char').length }));
-  check(full.slots === 0 && full.done && full.n === await page.evaluate(() => SHOP_AVATARS.length), `all collected: all ${full.n} live in the house, and it says so`);
-  await page.click('#house-shop');
-  check(await page.evaluate(() => document.getElementById('shop-screen').style.display !== 'none'), 'the 🏪 button opens the shop');
+  check(await page.evaluate(() => !document.querySelector('#house-body .w-char.locked') && document.querySelectorAll('#house-body .w-land.done').length === WORLD_LANDS.length && document.getElementById('house-count').textContent.includes('אספתם את כל')),
+    'all collected: no shadows, every land 🏆, and it says so');
+  await page.setViewport({ width: 320, height: 568 });
+  await page.evaluate(() => showHouse());
+  check(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth && document.getElementById('house-body').getBoundingClientRect().bottom <= innerHeight + 2), '320x568: it fits on a small phone');
   check(page.pageErrors.length === 0, `no page errors${page.pageErrors.length ? ': ' + page.pageErrors.join('; ') : ''}`);
   await page.close();
 }
