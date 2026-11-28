@@ -351,7 +351,7 @@
                     padding: 0 4px; box-sizing: border-box; border-radius: 9px; background: #e53e3e; color: #fff; font-size: 0.7rem;
                     font-weight: bold; line-height: 18px; font-family: sans-serif; }
         /* 🎮 games: a round button under the shop button, and a page with 4 games */
-        #games-btn { position: absolute; top: -8px; left: 46px; width: 46px; height: 46px; padding: 0; border: none; border-radius: 50%;
+        #games-btn { position: absolute; top: -8px; left: 38px; width: 46px; height: 46px; padding: 0; border: none; border-radius: 50%;
                      font-size: 1.5rem; line-height: 46px; cursor: pointer; background: linear-gradient(135deg, #90cdf4, #4299e1);
                      box-shadow: 0 3px 0 rgba(0,0,0,0.18); }
         #games-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.18); }
@@ -434,17 +434,17 @@
         .games-note.g-good { margin-top: 12px; font-weight: bold; color: #805ad5; }
         .game-end .g-end-points { font-size: 1.6rem; font-weight: bold; color: #d69e2e; margin: 6px 0 14px; }
         /* 🏆 the top 10 players: a round button under the character, in the top-right corner */
-        #top-btn { position: absolute; top: -8px; right: 46px; width: 46px; height: 46px; padding: 0; border: none; border-radius: 50%;
+        #top-btn { position: absolute; top: -8px; right: 38px; width: 46px; height: 46px; padding: 0; border: none; border-radius: 50%;
                    font-size: 1.5rem; line-height: 46px; cursor: pointer; background: linear-gradient(135deg, #faf089, #ecc94b);
                    box-shadow: 0 3px 0 rgba(0,0,0,0.18); }
         #top-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.18); }
         #start-screen:has(#menu-avatar:empty) #top-btn { right: -8px; }   /* no character: the 🏆 in the corner */
         /* 👫 friends: next to the 🏆 */
-        #friends-btn { position: absolute; top: -8px; right: 100px; width: 46px; height: 46px; padding: 0; border: none; border-radius: 50%;
+        #friends-btn { position: absolute; top: -8px; right: 84px; width: 46px; height: 46px; padding: 0; border: none; border-radius: 50%;
                        font-size: 1.5rem; line-height: 46px; cursor: pointer; background: linear-gradient(135deg, #c6f6d5, #68d391);
                        box-shadow: 0 3px 0 rgba(0,0,0,0.18); }
         #friends-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.18); }
-        #start-screen:has(#menu-avatar:empty) #friends-btn { right: 46px; }
+        #start-screen:has(#menu-avatar:empty) #friends-btn { right: 38px; }
         #friends-title { font-weight: bold; font-size: 1.15rem; }
         #fr-add { position: relative; margin: 0 0 10px; }
         #fr-search { width: 100%; box-sizing: border-box; padding: 10px 12px; font-size: 1.05rem; font-family: inherit; border: 2px solid #68d391; border-radius: 12px; }
@@ -767,11 +767,11 @@
         /* Small screens. Keep these LAST: they must come after the base rules above to override them. */
         @media (max-width: 360px) {
             #shop-btn { width: 36px; height: 36px; line-height: 36px; font-size: 1.2rem; top: -10px; left: -10px; }
-            #top-btn { width: 36px; height: 36px; line-height: 36px; font-size: 1.15rem; top: -10px; right: 32px; }
+            #top-btn { width: 36px; height: 36px; line-height: 36px; font-size: 1.15rem; top: -10px; right: 26px; }
             #start-screen:has(#menu-avatar:empty) #top-btn { right: -10px; }
-            #friends-btn { width: 36px; height: 36px; line-height: 36px; font-size: 1.15rem; top: -10px; right: 74px; }
-            #start-screen:has(#menu-avatar:empty) #friends-btn { right: 32px; }
-            #games-btn { width: 36px; height: 36px; line-height: 36px; font-size: 1.15rem; top: -10px; left: 32px; }
+            #friends-btn { width: 36px; height: 36px; line-height: 36px; font-size: 1.15rem; top: -10px; right: 62px; }
+            #start-screen:has(#menu-avatar:empty) #friends-btn { right: 26px; }
+            #games-btn { width: 36px; height: 36px; line-height: 36px; font-size: 1.15rem; top: -10px; left: 26px; }
             #player-name { margin-top: 30px; }
             #menu-avatar { width: 36px; height: 36px; line-height: 30px; font-size: 1.2rem; top: -10px; right: -10px; }
             .game-container { padding: 14px; }
@@ -906,8 +906,8 @@
                 <div id="top-title">🏆 10 השחקנים המובילים</div>
             </div>
             <div class="top-scope" role="radiogroup" aria-label="של מי לראות">
-                <button type="button" role="radio" id="top-scope-all" aria-checked="true" onclick="showTop(topBy, 'all')">🌍 כולם</button>
                 <button type="button" role="radio" id="top-scope-friends" aria-checked="false" onclick="showTop(topBy, 'friends')">👫 החברים שלי</button>
+                <button type="button" role="radio" id="top-scope-all" aria-checked="true" onclick="showTop(topBy, 'all')">🌍 כולם</button>
             </div>
             <div class="top-tabs" role="tablist">
                 <button type="button" role="tab" id="top-tab-earned" class="top-tab" aria-selected="true" onclick="showTop('earned', topScope)">⭐ נקודות</button>
@@ -2010,7 +2010,7 @@
         // (the default) or by how many topics they finished; this player's line is marked
         // Above the tabs: everyone (the top 10 of all the players) or my friends (them and me, all of us, in order)
         let topToken = 0, topBy = "earned", topScope = "all";
-        async function showTop(by = "earned", scope = "all") {
+        async function showTop(by = "earned", scope = friends.length ? "friends" : "all") {   // opens on my friends (everyone when there are none yet)
             topBy = by; topScope = scope;
             document.getElementById("start-screen").style.display = "none";
             document.getElementById("top-screen").style.display = "flex";

@@ -1556,7 +1556,7 @@ async function testFriends() {
   // the top row: 🏪 🎮 ... 👫 🏆 🙂 (the shop and the character in the corners); no title; the name under the row, bigger
   await page.evaluate(() => { shop.owned.push('dog'); shop.avatar = 'dog'; applyShop(); setPlayerName('נועה'); });
   const [sh, gm, fr, tp, av, nm] = await Promise.all(['shop-btn', 'games-btn', 'friends-btn', 'top-btn', 'menu-avatar', 'player-name'].map(rect));
-  check([gm, fr, tp, av].every(x => Math.abs(x.top - sh.top) < 4) && sh.left < gm.left && fr.right <= tp.left + 1 && tp.right <= av.left + 1,
+  check([gm, fr, tp, av].every(x => Math.abs(x.top - sh.top) < 4) && sh.left < gm.left && fr.right <= tp.left + 1 && tp.right <= av.left + 1 && tp.left - fr.right < 2 && av.left - tp.right < 2 && gm.left - sh.right < 2,
     'one row at the top: shop and 🎮 on the left, 👫 🏆 and the character on the right');
   check(!(await page.$('#app-title')) && nm.top >= sh.bottom - 2 && nm.right <= 360, 'no title; the name is in its own line under the row');
   check(parseFloat(await page.$eval('#player-name', e => getComputedStyle(e).fontSize)) >= 18, 'the name is bigger');
@@ -2199,7 +2199,7 @@ async function testTop() {
   await page.evaluate(() => { shop.owned.push('dog'); shop.avatar = 'dog'; applyShop(); });   // a character in the corner
   const r = await page.$eval('#top-btn', b => b.getBoundingClientRect().toJSON());
   const av = await page.$eval('#menu-avatar', b => b.getBoundingClientRect().toJSON());
-  check(av.width > 0 && r.width > 0 && Math.abs(r.top - av.top) < 4 && r.right <= av.left + 1 && av.left - r.right < 16, 'the main screen has a 🏆 button in the top row, right next to the character');
+  check(av.width > 0 && r.width > 0 && Math.abs(r.top - av.top) < 4 && r.right <= av.left + 1 && av.left - r.right < 2, 'the main screen has a 🏆 button in the top row, touching the character');
   // no cloud (no network): it says so
   await page.click('#top-btn');
   check((await shown('top-screen')) && !(await shown('start-screen')) && !(await page.$('[data-dialog]')), 'it opens a page of its own (not a pop-up), instead of the main screen');
@@ -2274,6 +2274,12 @@ async function testTop() {
   await page.click('#top-scope-all');
   await page.waitForFunction(() => document.getElementById('top-msg')?.textContent.includes('עדיין אין'), { timeout: 3000 });
   check(await page.$eval('#top-tab-topics', b => b.getAttribute('aria-selected')) === 'true' && (await page.$eval('#top-title', e => e.textContent)).includes('10 השחקנים'), 'back to everyone keeps the topics tab');
+  const [frB, allB] = await Promise.all(['#top-scope-friends', '#top-scope-all'].map(id => page.$eval(id, b => b.getBoundingClientRect().toJSON())));
+  check(frB.left > allB.left, 'my friends comes first (on the right), then everyone');
+  await page.click('#top-back');
+  await page.click('#top-btn');
+  await page.waitForSelector('#top-screen .top-list li', { timeout: 3000 });
+  check(await page.$eval('#top-scope-friends', b => b.getAttribute('aria-checked')) === 'true', 'with friends, the 🏆 page opens on my friends');
   await page.evaluate(() => { localStorage.setItem('englishquiz-learn-progress', JSON.stringify({ 1: [0, 1, 2], 2: [4] })); });
   await page.reload({ waitUntil: 'load' });
   check(await page.$eval('#menu-topics', e => e.textContent) === '✅ 4', 'the main screen shows how many topics are green in all the levels (✅ 4)');
@@ -2346,9 +2352,10 @@ async function testGames() {
   const shown = id => page.$eval('#' + id, e => getComputedStyle(e).display !== 'none');
   const wait = ms => new Promise(r => setTimeout(r, ms));
   const money = () => page.evaluate(() => [grandTotal, earnedTotal]);
+  await wait(500);   // the screen comes in with a short animation (it scales the buttons)
   const r = await page.$eval('#games-btn', b => b.getBoundingClientRect().toJSON());
   const shopR = await page.$eval('#shop-btn', b => b.getBoundingClientRect().toJSON());
-  check(r.width > 0 && Math.abs(r.top - shopR.top) < 4 && r.left >= shopR.right - 1 && r.left - shopR.right < 16, 'the main screen has a 🎮 button in the top row, right next to the store');
+  check(r.width > 0 && Math.abs(r.top - shopR.top) < 4 && r.left >= shopR.right - 1 && r.left - shopR.right < 2, 'the main screen has a 🎮 button in the top row, touching the store');
   await page.evaluate(() => setMode('category'));   // from the learning tab: the level's words
   await page.click('#games-btn');
   check((await shown('games-screen')) && !(await shown('start-screen')), 'it opens the games page');
