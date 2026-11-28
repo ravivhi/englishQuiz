@@ -1534,7 +1534,7 @@
         function gamesBack() { if (curGame) gamesMenu(); else showStart(); }
 
         // how far to the next 🎁: a game with 4 ⭐ or more counts
-        const goodText = () => `🎁 ${goodLeft()}/${GOOD_GAMES} משחקים עם ${GOOD_MIN} ⭐ ומעלה (נכון או לא: ${TF_MAX} ⭐, בועות ותמונה: ${SMALL_MAX} ⭐) – ובונוס של ${GOOD_BONUS} מטבעות`;
+        const goodText = () => `🎁 ${goodLeft()}/${GOOD_GAMES} משחקים עם ${GOOD_MIN} ⭐ ומעלה – ובונוס של ${GOOD_BONUS} מטבעות`;
         function gamesMenu() {
             stopGame();
             document.getElementById("games-title").textContent = "🎮 משחקים";
