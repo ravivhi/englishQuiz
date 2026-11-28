@@ -2934,7 +2934,7 @@
             });
             const count = steps.filter((s, i) => passed.has(i)).length, pcount = steps.filter((s, i) => passed.has(i) && purple.has(i)).length;
             list.appendChild(prizeCard(level, count === steps.length, 1));
-            if (levelBonusGiven.includes(level)) list.appendChild(prizeCard(level, pcount === steps.length, 2));   // 💜 the second box: after the first one was won
+            list.appendChild(prizeCard(level, levelBonusGiven.includes(level) && pcount === steps.length, 2));   // 💜 the second box: always shown, opens once the first was won and all topics are purple
             document.getElementById("path-progress").textContent = `✅ ${count}/${steps.length}` + (pcount ? ` · 💜 ${pcount}/${steps.length}` : "");
             const first = steps.findIndex((s, i) => !passed.has(i));   // the first part not passed yet, in view
             const cur = list.children[first < 0 ? steps.length - 1 : first];
@@ -2944,7 +2944,7 @@
         // 🎁 the last box of every level's path: 1000 coins. Locked until all the level's topics are green; then a tap starts
         // the level's big quiz (EXAM_SIZE words of the level), and EXAM_PASS right answers on the first try give the coins
         // (once per level; levels that already gave the bonus show it as taken).
-        // A second box (tier 2) comes after the first one was won: it opens when all the level's topics are purple (💜), and its
+        // A second box (tier 2), always shown under it: it opens once the first one was won and all the level's topics are purple (💜), and its
         // quiz needs EXAM_PASS[2] right.
         function prizeCard(level, open, tier = 1) {
             const taken = bonusGiven(tier).includes(level), need = EXAM_PASS[tier];
@@ -2955,14 +2955,14 @@
             btn.querySelector(".cat-emoji").textContent = taken ? "💰" : open ? "🎁" : "🔒";
             const x2 = !taken && pointsDoubled();
             btn.querySelector(".cat-name").textContent = `${x2 ? LEVEL_BONUS * 2 : LEVEL_BONUS} מטבעות` + (x2 ? " 🔥" : "");
-            btn.querySelector(".cat-meta").textContent = taken ? "קיבלתם את הפרס של הרמה הזאת!" : (open ? `בוחן של ${EXAM_SIZE} שאלות – צדקו ב-${need} לפחות וקבלו את הפרס!` : tier === 2 ? "נפתח כשכל הנושאים ברמה סגולים 💜 (עוברים כל נושא בפעם השנייה)" : "נפתח כשכל הנושאים ברמה ירוקים") + (x2 ? " · כפול בזכות הימים ברצף!" : "");
+            btn.querySelector(".cat-meta").textContent = taken ? "קיבלתם את הפרס של הרמה הזאת!" : (open ? `בוחן של ${EXAM_SIZE} שאלות – צדקו ב-${need} לפחות וקבלו את הפרס!` : tier === 2 ? "נפתח אחרי הפרס הראשון, כשכל הנושאים ברמה סגולים 💜 (עוברים כל נושא בפעם השנייה)" : "נפתח כשכל הנושאים ברמה ירוקים") + (x2 ? " · כפול בזכות הימים ברצף!" : "");
             btn.querySelector(".cat-state").textContent = taken ? "✅" : open ? "👆" : "🔒";
             btn.setAttribute("aria-label", btn.querySelector(".cat-name").textContent + " – " + btn.querySelector(".cat-meta").textContent);
             btn.onclick = () => {
                 if (taken) return;
                 if (!open) {   // locked: a little shake and a hint
                     btn.animate([{ transform: "translateX(0)" }, { transform: "translateX(-6px)" }, { transform: "translateX(6px)" }, { transform: "translateX(0)" }], { duration: 300 });
-                    document.getElementById("cat-status").textContent = tier === 2 ? "🔒 עברו כל נושא ברמה בפעם השנייה (כולם סגולים 💜) כדי לפתוח את הבוחן השני" : "🔒 השלימו את כל הנושאים ברמה (כולם ירוקים) כדי לפתוח את 1000 המטבעות";
+                    document.getElementById("cat-status").textContent = tier === 2 ? (levelBonusGiven.includes(level) ? "🔒 עברו כל נושא ברמה בפעם השנייה (כולם סגולים 💜) כדי לפתוח את הבוחן השני" : "🔒 קודם זוכים בפרס הראשון, ואז עוברים כל נושא בפעם השנייה (כולם סגולים 💜)") : "🔒 השלימו את כל הנושאים ברמה (כולם ירוקים) כדי לפתוח את 1000 המטבעות";
                     return;
                 }
                 startLevelExam(level, tier);
