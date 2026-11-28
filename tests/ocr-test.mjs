@@ -107,7 +107,11 @@ const FIXTURES = {
   }],
 };
 
+// which tests: none = the fast ones (run on the computer before a push); "slow" = the slow ones (GitHub runs them after
+// every push, .github/workflows/tests.yml); "all" = every test; or one test's name
 const only = process.argv[2];
+const SLOW = new Set(['list', 'pairs', 'learn', 'keep']);   // OCR of photos, the whole learning path, app updates (each 45s-2.5min)
+const wanted = name => !only ? !SLOW.has(name) : only === 'slow' ? SLOW.has(name) : only === 'all' || only === name;
 const chromePath = [
   process.env.CHROME_PATH,
   'C:/Program Files/Google/Chrome/Application/chrome.exe',
@@ -1543,6 +1547,82 @@ async function testAvatar() {
   await page.close();
 }
 
+// 👫 friends: the top row of buttons, a search box with names from the cloud, who is playing now
+async function testFriends() {
+  console.log('\n[friends] the 👫 page: add friends from a list of names, see who is playing now');
+  const page = await openPage();
+  const shown = id => page.$eval('#' + id, e => getComputedStyle(e).display !== 'none');
+  const rect = id => page.$eval('#' + id, e => e.getBoundingClientRect().toJSON());
+  // the top row: 🏪 🎮 ... 👫 🏆 🙂 (the shop and the character in the corners); no title; the name under the row, bigger
+  await page.evaluate(() => { shop.owned.push('dog'); shop.avatar = 'dog'; applyShop(); setPlayerName('נועה'); });
+  const [sh, gm, fr, tp, av, nm] = await Promise.all(['shop-btn', 'games-btn', 'friends-btn', 'top-btn', 'menu-avatar', 'player-name'].map(rect));
+  check([gm, fr, tp, av].every(x => Math.abs(x.top - sh.top) < 4) && sh.left < gm.left && fr.right <= tp.left + 1 && tp.right <= av.left + 1,
+    'one row at the top: shop and 🎮 on the left, 👫 🏆 and the character on the right');
+  check(!(await page.$('#app-title')) && nm.top >= sh.bottom - 2 && nm.right <= 360, 'no title; the name is in its own line under the row');
+  check(parseFloat(await page.$eval('#player-name', e => getComputedStyle(e).fontSize)) >= 18, 'the name is bigger');
+  await page.evaluate(() => { shop.avatar = ''; applyShop(); });
+  const [tp2, fr2] = await Promise.all(['top-btn', 'friends-btn'].map(rect));
+  check(tp2.right > tp.right + 20 && fr2.right > fr.right + 20, 'no character: the 🏆 and 👫 move into the corner');
+  // the cloud is a stand-in: names of all the players, and the friends' entries
+  await page.evaluate(() => {
+    window.searched = [];
+    const all = ['נועה', 'נוי', 'נגה', 'Noam', 'דני', 'דנה'];
+    window.cloud = { sync() {}, claim: async () => 'ok', top: async () => [],
+      search: async t => { searched.push(t); const k = t.trim().toLowerCase(); return all.filter(n => n.toLowerCase().startsWith(k)).slice(0, 10); },
+      friends: async names => names.filter(n => n !== 'רון').map(n => ({ name: n, online: n === 'נגה', points: n.length * 10, avatar: n === 'נגה' ? 'dog' : '' })) };
+  });
+  await page.click('#friends-btn');
+  check((await shown('friends-screen')) && !(await shown('start-screen')), 'the 👫 button opens the friends page');
+  check((await page.$eval('#fr-msg', e => e.textContent)).includes('עדיין אין חברים'), 'no friends yet: it says how to add one');
+  await page.click('#fr-search');
+  await page.waitForSelector('#fr-drop.on li', { timeout: 3000 });
+  let drop = await page.$$eval('#fr-drop li', ls => ls.map(l => l.textContent));
+  check(drop.length === 5 && !drop.some(t => t.includes('נועה')), `a tap on the box lists all the names, without this player (${drop.join(', ')})`);
+  await page.type('#fr-search', 'נ');
+  await page.waitForFunction(() => document.querySelectorAll('#fr-drop li').length === 2, { timeout: 3000 });
+  drop = await page.$$eval('#fr-drop li', ls => ls.map(l => l.textContent));
+  check(drop.join() === '➕ נוי,➕ נגה', `typing shows the names that start with it (${drop.join(', ')})`);
+  await page.evaluate(() => [...document.querySelectorAll('#fr-drop li')].find(l => l.textContent.includes('נגה')).dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })));
+  await page.waitForSelector('#fr-body .fr-list li', { timeout: 3000 });
+  check(JSON.parse(await page.evaluate(() => localStorage.getItem('englishquiz-friends'))).join() === 'נגה' && (await page.$eval('#fr-search', i => i.value)) === '' && !(await page.$('#fr-drop.on')),
+    'picking a name adds the friend (saved on the device), and the box is cleared');
+  await page.type('#fr-search', 'נ');
+  await page.waitForFunction(() => document.querySelectorAll('#fr-drop li').length === 1, { timeout: 3000 });
+  check((await page.$eval('#fr-drop li', l => l.textContent)) === '➕ נוי', 'a friend already on the list is not offered again');
+  await page.evaluate(() => [...document.querySelectorAll('#fr-drop li')][0].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })));
+  await page.waitForFunction(() => document.querySelectorAll('#fr-body .fr-list li').length === 2, { timeout: 3000 });
+  await page.type('#fr-search', 'xyz');
+  await page.waitForFunction(() => document.querySelector('#fr-drop li')?.textContent === 'לא נמצאו שמות', { timeout: 3000 });
+  check(true, 'no match: the list says no names were found');
+  const rows = await page.$$eval('#fr-body .fr-list li', ls => ls.map(l => ({ text: l.textContent, on: l.classList.contains('on'), img: l.querySelector('.t-av').textContent })));
+  check(rows[0].text.includes('🟢') && rows[0].text.includes('נגה') && rows[0].text.includes('משחק עכשיו') && rows[0].on && rows[0].img,
+    `a friend playing now is first, with 🟢 and their character (${rows[0].text})`);
+  check(rows[1].text.includes('⚪') && rows[1].text.includes('נוי') && rows[1].text.includes('לא מחובר') && rows[1].text.includes('⭐ 30'), `one not playing: ⚪ "לא מחובר", with the points (${rows[1].text})`);
+  // a name that is no longer in the cloud
+  await page.evaluate(() => { friends.push('רון'); saveFriends(); renderFriends(); });
+  await page.waitForFunction(() => document.querySelectorAll('#fr-body .fr-list li').length === 3, { timeout: 3000 });
+  check((await page.$$eval('#fr-body .fr-list li', ls => ls.map(l => l.textContent))).some(t => t.includes('רון') && t.includes('השם לא נמצא')), 'a name that is gone from the cloud says so');
+  // remove one (asks first)
+  await page.evaluate(() => [...document.querySelectorAll('#fr-body .fr-list li')].find(l => l.textContent.includes('נוי')).querySelector('.fr-del').click());
+  await page.waitForSelector('[data-dialog]', { timeout: 3000 });
+  await page.evaluate(() => [...document.querySelectorAll('[data-dialog] button')].find(b => b.textContent.includes('הסרה')).click());
+  await page.waitForFunction(() => !JSON.parse(localStorage.getItem('englishquiz-friends')).includes('נוי'), { timeout: 3000 });
+  check(true, 'the ✕ removes a friend after asking');
+  // the app reopens on this page; back goes to the main screen
+  await page.reload({ waitUntil: 'load' });
+  await page.waitForFunction(() => getComputedStyle(document.getElementById('friends-screen')).display !== 'none', { timeout: 5000 }).catch(() => {});
+  check(await shown('friends-screen'), 'reopening the app comes back to the friends page');
+  await page.click('#friends-back');
+  check((await shown('start-screen')) && !(await shown('friends-screen')), 'the back button goes to the main screen');
+  // without the cloud
+  await page.evaluate(() => { window.cloud = undefined; });
+  await page.click('#friends-btn');
+  await page.waitForFunction(() => document.getElementById('fr-msg')?.textContent.includes('אין חיבור'), { timeout: 3000 });
+  check(true, 'without a network it says there is no connection');
+  check(page.pageErrors.length === 0, `no page errors${page.pageErrors.length ? ': ' + page.pageErrors.join('; ') : ''}`);
+  await page.close();
+}
+
 // 🔄 a new version while the app is open: it reloads itself on the main menu only (never in a quiz, a game or a pop-up)
 async function testUpdate() {
   console.log('\n[update] a new version reloads the app on the main menu, never in the middle of something');
@@ -2119,7 +2199,7 @@ async function testTop() {
   await page.evaluate(() => { shop.owned.push('dog'); shop.avatar = 'dog'; applyShop(); });   // a character in the corner
   const r = await page.$eval('#top-btn', b => b.getBoundingClientRect().toJSON());
   const av = await page.$eval('#menu-avatar', b => b.getBoundingClientRect().toJSON());
-  check(av.width > 0 && r.width > 0 && r.top >= av.bottom - 1 && Math.abs(r.right - av.right) < 4, 'the main screen has a 🏆 button right under the character, in the top-right corner');
+  check(av.width > 0 && r.width > 0 && Math.abs(r.top - av.top) < 4 && r.right <= av.left + 1 && av.left - r.right < 16, 'the main screen has a 🏆 button in the top row, right next to the character');
   // no cloud (no network): it says so
   await page.click('#top-btn');
   check((await shown('top-screen')) && !(await shown('start-screen')) && !(await page.$('[data-dialog]')), 'it opens a page of its own (not a pop-up), instead of the main screen');
@@ -2244,7 +2324,7 @@ async function testGames() {
   const money = () => page.evaluate(() => [grandTotal, earnedTotal]);
   const r = await page.$eval('#games-btn', b => b.getBoundingClientRect().toJSON());
   const shopR = await page.$eval('#shop-btn', b => b.getBoundingClientRect().toJSON());
-  check(r.width > 0 && r.top >= shopR.bottom - 1 && Math.abs(r.left - shopR.left) < 4, 'the main screen has a 🎮 button right under the store');
+  check(r.width > 0 && Math.abs(r.top - shopR.top) < 4 && r.left >= shopR.right - 1 && r.left - shopR.right < 16, 'the main screen has a 🎮 button in the top row, right next to the store');
   await page.evaluate(() => setMode('category'));   // from the learning tab: the level's words
   await page.click('#games-btn');
   check((await shown('games-screen')) && !(await shown('start-screen')), 'it opens the games page');
@@ -2647,14 +2727,14 @@ async function testPurple() {
   await page.close();
 }
 
-const TESTS = { fire: testFire, wordbank: testWordbank, random: testRandom, layout: testLayout, back: testBack, tabs: testTabs, streak: testStreak, pairs: () => eachFixture('pairs', testPairs), list: () => eachFixture('list', testList), translation: testTranslationRetry, practice: testPractice, chooser: testChooser, header: testHeader, persist: testPersist, learn: testLearn, purple: testPurple, shop: testShop, box: testBox, phoneback: testPhoneBack, avatar: testAvatar, celebrate: testCelebrate, boxextra: testBoxExtra, keep: testKeep, wand: testWand, pictures: testPictures, name: testName, top: testTop, listlearn: testListLearn, games: testGames, shapes: testShapes, ice: testIce, games2: testGames2, update: testUpdate };
+const TESTS = { fire: testFire, wordbank: testWordbank, random: testRandom, layout: testLayout, back: testBack, tabs: testTabs, streak: testStreak, pairs: () => eachFixture('pairs', testPairs), list: () => eachFixture('list', testList), translation: testTranslationRetry, practice: testPractice, chooser: testChooser, header: testHeader, persist: testPersist, learn: testLearn, purple: testPurple, shop: testShop, box: testBox, phoneback: testPhoneBack, avatar: testAvatar, celebrate: testCelebrate, boxextra: testBoxExtra, keep: testKeep, wand: testWand, pictures: testPictures, name: testName, top: testTop, listlearn: testListLearn, games: testGames, shapes: testShapes, ice: testIce, games2: testGames2, update: testUpdate, friends: testFriends };
 try {
   let ran = 0;
   for (const [name, run] of Object.entries(TESTS)) {
-    if (only && only !== name) continue;
+    if (!wanted(name)) continue;
     await run(); ran++;
   }
-  if (!ran) { console.error(`Nothing ran (known tests: ${Object.keys(TESTS).join(', ')}).`); process.exitCode = 2; }
+  if (!ran) { console.error(`Nothing ran (known tests: ${Object.keys(TESTS).join(', ')}; or slow / all).`); process.exitCode = 2; }
 } finally {
   await browser.close();
   server.close();

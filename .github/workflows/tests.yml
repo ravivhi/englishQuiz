@@ -1,0 +1,50 @@
+# Runs the slow browser tests on GitHub after every push (the fast ones run on the computer before the push):
+#   node tests/ocr-test.mjs slow
+# Chrome comes with the ubuntu runner. Tests never reach the real Firebase (they stub it).
+name: Slow tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'sw.js'
+      - 'wordbank/**'
+      - 'tests/**'
+      - '.github/workflows/tests.yml'
+  workflow_dispatch:
+    inputs:
+      which:
+        description: 'Which tests: slow (default), all, or one test name'
+        required: false
+        default: slow
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tests/package-lock.json
+      - run: npm ci
+      # the OCR library and its language files (downloaded from a CDN once, then kept)
+      - uses: actions/cache@v4
+        with:
+          path: tests/node_modules/.cdn-cache
+          key: cdn-cache-v1
+      - name: Run the tests
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+          TZ: Asia/Jerusalem
+        run: node ocr-test.mjs "${{ github.event.inputs.which || 'slow' }}"

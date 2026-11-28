@@ -325,9 +325,9 @@
         /* 💜 the second box (all topics purple) */
         .cat-prize.tier2.open { border-color: #553c9a; background: linear-gradient(135deg, #b794f4, #6b46c1); color: #fff; }
         .cat-prize.tier2.taken { border-color: #9f7aea; background: linear-gradient(135deg, #faf5ff, #d6bcfa); color: #553c9a; }
-        /* 👋 the child's name under the title (dashed until it is typed) */
-        #player-name { display: block; margin: 0 auto 6px; padding: 2px 12px; border: 1px solid transparent; border-radius: 14px; background: none;
-                       color: #553c9a; font-family: inherit; font-size: 0.95rem; font-weight: bold; cursor: pointer; touch-action: manipulation; }
+        /* 👋 the child's name under the row of buttons (dashed until it is typed) */
+        #player-name { display: block; margin: 42px auto 8px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 2px 12px; border: 1px solid transparent; border-radius: 14px; background: none;
+                       color: #553c9a; font-family: inherit; font-size: 1.2rem; font-weight: bold; cursor: pointer; touch-action: manipulation; }
         #player-name.empty { border: 1px dashed #b794f4; background: rgba(250, 245, 255, 0.9); }
         .cat-row { display: flex; gap: 6px; align-items: stretch; }
         .cat-row > .cat-step { flex: 1; min-width: 0; }
@@ -351,7 +351,7 @@
                     padding: 0 4px; box-sizing: border-box; border-radius: 9px; background: #e53e3e; color: #fff; font-size: 0.7rem;
                     font-weight: bold; line-height: 18px; font-family: sans-serif; }
         /* 🎮 games: a round button under the shop button, and a page with 4 games */
-        #games-btn { position: absolute; top: 46px; left: -8px; width: 46px; height: 46px; padding: 0; border: none; border-radius: 50%;
+        #games-btn { position: absolute; top: -8px; left: 46px; width: 46px; height: 46px; padding: 0; border: none; border-radius: 50%;
                      font-size: 1.5rem; line-height: 46px; cursor: pointer; background: linear-gradient(135deg, #90cdf4, #4299e1);
                      box-shadow: 0 3px 0 rgba(0,0,0,0.18); }
         #games-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.18); }
@@ -434,10 +434,31 @@
         .games-note.g-good { margin-top: 12px; font-weight: bold; color: #805ad5; }
         .game-end .g-end-points { font-size: 1.6rem; font-weight: bold; color: #d69e2e; margin: 6px 0 14px; }
         /* 🏆 the top 10 players: a round button under the character, in the top-right corner */
-        #top-btn { position: absolute; top: 46px; right: -8px; width: 46px; height: 46px; padding: 0; border: none; border-radius: 50%;
+        #top-btn { position: absolute; top: -8px; right: 46px; width: 46px; height: 46px; padding: 0; border: none; border-radius: 50%;
                    font-size: 1.5rem; line-height: 46px; cursor: pointer; background: linear-gradient(135deg, #faf089, #ecc94b);
                    box-shadow: 0 3px 0 rgba(0,0,0,0.18); }
         #top-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.18); }
+        #start-screen:has(#menu-avatar:empty) #top-btn { right: -8px; }   /* no character: the 🏆 in the corner */
+        /* 👫 friends: next to the 🏆 */
+        #friends-btn { position: absolute; top: -8px; right: 100px; width: 46px; height: 46px; padding: 0; border: none; border-radius: 50%;
+                       font-size: 1.5rem; line-height: 46px; cursor: pointer; background: linear-gradient(135deg, #c6f6d5, #68d391);
+                       box-shadow: 0 3px 0 rgba(0,0,0,0.18); }
+        #friends-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.18); }
+        #start-screen:has(#menu-avatar:empty) #friends-btn { right: 46px; }
+        #friends-title { font-weight: bold; font-size: 1.15rem; }
+        #fr-add { position: relative; margin: 0 0 10px; }
+        #fr-search { width: 100%; box-sizing: border-box; padding: 10px 12px; font-size: 1.05rem; font-family: inherit; border: 2px solid #68d391; border-radius: 12px; }
+        #fr-drop { position: absolute; top: 100%; left: 0; right: 0; z-index: 20; list-style: none; margin: 4px 0 0; padding: 4px; background: #fff;
+                   border: 2px solid #68d391; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); max-height: 260px; overflow-y: auto; display: none; }
+        #fr-drop.on { display: block; }
+        #fr-drop li { text-align: right; padding: 9px 10px; border-radius: 8px; cursor: pointer; font-size: 1.05rem; }
+        #fr-drop li:hover, #fr-drop li:focus { background: #f0fff4; outline: none; }
+        #fr-drop li.fr-none { color: #718096; cursor: default; background: none; }
+        #fr-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+        #fr-msg { text-align: center; color: #718096; margin: 24px 0; }
+        .fr-list .fr-state { flex-shrink: 0; font-size: 0.85rem; color: #718096; white-space: nowrap; }
+        .fr-list li.on .fr-state { color: #2f855a; font-weight: bold; }
+        .fr-list .fr-del { flex-shrink: 0; width: 30px; height: 30px; padding: 0; border: none; border-radius: 50%; background: #edf2f7; color: #4a5568; font-size: 0.95rem; cursor: pointer; }
         .top-list { list-style: none; margin: 0; padding: 0; text-align: right; }
         .top-list li { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 10px; font-size: 1.05rem; }
         .top-list li:nth-child(odd) { background: #f7fafc; }
@@ -556,7 +577,7 @@
         #game-avatar:empty { display: none; }
         #game-avatar.hop { animation: avatarHop 0.45s ease-out; }
         @keyframes avatarHop { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-10px) scale(1.15); } }
-        #shop-screen, #top-screen { flex-direction: column; flex: 1 1 auto; min-height: 0; }
+        #shop-screen, #top-screen, #friends-screen { flex-direction: column; flex: 1 1 auto; min-height: 0; }
         #top-title { flex: 1; font-weight: bold; color: #4a5568; font-size: 1.15rem; }
         #top-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
         #top-msg { text-align: center; color: #718096; margin: 24px 0; }
@@ -661,7 +682,6 @@
         /* ---- 🧸 the kid look: chunky round buttons that press down, a happy color for everything, little animations ---- */
         .game-container { position: relative; z-index: 1; border-radius: 28px; box-shadow: 0 8px 0 rgba(0,0,0,0.12), 0 16px 34px rgba(0,0,0,0.22); }
         /* the app's name: each letter its own solid rainbow color (a see-through gradient text vanished when the phone's dark mode recolored the page) */
-        #app-title span { display: inline-block; text-shadow: 0 2px 0 rgba(0,0,0,0.08); }
         .question-text { color: #4c51bf; }
         .header-info { border-bottom: 3px dashed #e9d8fd; }
         /* the 3 tabs: green / orange / blue */
@@ -701,7 +721,7 @@
         .words-box { border-color: #bee3f8 !important; border-radius: 14px !important; }
         #level-select, #cat-level-select { border: 2px solid #d6bcfa !important; border-radius: 12px !important; color: #553c9a !important; }
         /* every screen pops in */
-        #start-screen, #game-screen, #summary-screen, #shop-screen, #top-screen, #games-screen, #learn-screen, #learn-done-screen { animation: screenIn 0.35s ease-out; }
+        #start-screen, #game-screen, #summary-screen, #shop-screen, #top-screen, #friends-screen, #games-screen, #learn-screen, #learn-done-screen { animation: screenIn 0.35s ease-out; }
         @keyframes screenIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         /* clouds, stars and balloons drift slowly behind the card (not on picture backgrounds, they have their own) */
         #kid-sky { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
@@ -739,8 +759,12 @@
         /* Small screens. Keep these LAST: they must come after the base rules above to override them. */
         @media (max-width: 360px) {
             #shop-btn { width: 36px; height: 36px; line-height: 36px; font-size: 1.2rem; top: -10px; left: -10px; }
-            #top-btn { width: 36px; height: 36px; line-height: 36px; font-size: 1.15rem; top: 32px; right: -10px; }
-            #games-btn { width: 36px; height: 36px; line-height: 36px; font-size: 1.15rem; top: 32px; left: -10px; }
+            #top-btn { width: 36px; height: 36px; line-height: 36px; font-size: 1.15rem; top: -10px; right: 32px; }
+            #start-screen:has(#menu-avatar:empty) #top-btn { right: -10px; }
+            #friends-btn { width: 36px; height: 36px; line-height: 36px; font-size: 1.15rem; top: -10px; right: 74px; }
+            #start-screen:has(#menu-avatar:empty) #friends-btn { right: 32px; }
+            #games-btn { width: 36px; height: 36px; line-height: 36px; font-size: 1.15rem; top: -10px; left: 32px; }
+            #player-name { margin-top: 30px; }
             #menu-avatar { width: 36px; height: 36px; line-height: 30px; font-size: 1.2rem; top: -10px; right: -10px; }
             .game-container { padding: 14px; }
             /* narrow phones: slightly smaller buttons (all of them, so they keep one look) so the longer
@@ -779,9 +803,9 @@
             <button type="button" id="shop-btn" onclick="openShop()" aria-label="חנות" title="חנות">🏪</button>
             <button type="button" id="games-btn" onclick="openGames()" aria-label="משחקים" title="משחקים">🎮</button>
             <button type="button" id="top-btn" onclick="showTop()" aria-label="10 השחקנים המובילים" title="10 השחקנים המובילים">🏆</button>
+            <button type="button" id="friends-btn" onclick="showFriends()" aria-label="החברים שלי" title="החברים שלי">👫</button>
             <button type="button" id="menu-avatar" onclick="avatarTap()" aria-label="הדמות שלי – לחצו עליה" title="לחצו על הדמות!"></button>
             <div id="avatar-bubble" role="status" onclick="avatarBubbleTap()"></div>
-            <div class="result-title" id="app-title" style="margin-bottom:4px;" aria-label="בוחן באנגלית"><span style="color:#e53e3e">ב</span><span style="color:#dd6b20">ו</span><span style="color:#d69e2e">ח</span><span style="color:#38a169">ן</span> <span style="color:#3182ce">ב</span><span style="color:#805ad5">א</span><span style="color:#e53e3e">נ</span><span style="color:#dd6b20">ג</span><span style="color:#d69e2e">ל</span><span style="color:#38a169">י</span><span style="color:#3182ce">ת</span></div>
             <button type="button" id="player-name" onclick="askName()"></button>
             <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin:-4px 0 6px;">
                 <div id="grand-total" style="font-weight:bold;color:#2b6cb0;"></div>
@@ -878,6 +902,18 @@
                 <button type="button" role="tab" id="top-tab-topics" class="top-tab" aria-selected="false" onclick="showTop('topics')">✅ נושאים שהושלמו</button>
             </div>
             <div id="top-body"><p id="top-msg"></p></div>
+        </div>
+
+        <div id="friends-screen" style="display:none;">
+            <div class="learn-head">
+                <button type="button" id="friends-back" class="action-btn" onclick="showStart()" aria-label="חזרה" style="padding:5px 10px;font-size:0.9rem;">→ חזרה</button>
+                <div id="friends-title">👫 החברים שלי</div>
+            </div>
+            <div id="fr-add">
+                <input id="fr-search" type="search" autocomplete="off" placeholder="🔍 חפשו שם של חבר כדי להוסיף" aria-label="חיפוש שם של חבר" aria-controls="fr-drop">
+                <ul id="fr-drop" role="listbox" aria-label="שמות שנמצאו"></ul>
+            </div>
+            <div id="fr-body"><p id="fr-msg"></p></div>
         </div>
 
         <div id="shop-screen" style="display:none;">
@@ -1995,6 +2031,85 @@
             body.replaceChildren(ol);
         }
 
+        // 👫 Friends: names picked from all the players in the cloud (a search box with a list of the matching names), kept
+        // on this device. Each one shows if they are playing now (their app was open in the last minute) and their points.
+        const FRIENDS_KEY = "englishquiz-friends", ONLINE_MS = 60000;
+        let friends = [];
+        try { const v = JSON.parse(localStorage.getItem(FRIENDS_KEY)); if (Array.isArray(v)) friends = v.filter(x => typeof x === "string" && x); } catch (e) {}
+        const saveFriends = () => { try { localStorage.setItem(FRIENDS_KEY, JSON.stringify(friends)); } catch (e) {} };
+        const sameName = (a, b) => a.toLowerCase() === b.toLowerCase();
+        let frTimer = 0, frToken = 0, frSearchToken = 0, frSearchTimer = 0;
+        function showFriends() {
+            document.getElementById("start-screen").style.display = "none";
+            document.getElementById("friends-screen").style.display = "flex";
+            saveSession("friends");
+            document.getElementById("fr-search").value = "";
+            closeFriendDrop();
+            renderFriends();
+            clearInterval(frTimer);   // who is playing now: checked again every 20 seconds while the page is open
+            frTimer = setInterval(() => { if (shownEl("friends-screen")) renderFriends(true); else clearInterval(frTimer); }, 20000);
+        }
+        async function renderFriends(quiet) {
+            const body = document.getElementById("fr-body"), token = ++frToken;
+            if (!friends.length) { body.innerHTML = '<p id="fr-msg">עדיין אין חברים ברשימה – חפשו שם למעלה והוסיפו 👆</p>'; return; }
+            if (!quiet) body.innerHTML = '<p id="fr-msg">⏳ טוען...</p>';
+            let list = null;
+            try { list = window.cloud && cloud.friends ? await cloud.friends(friends) : null; } catch (e) {}
+            if (token !== frToken || !shownEl("friends-screen")) return;   // changed meanwhile, or the page was left
+            if (!list) { if (!quiet) body.innerHTML = '<p id="fr-msg">אין חיבור לאינטרנט, נסו שוב אחר כך</p>'; return; }
+            const rows = friends.map(n => list.find(p => sameName(p.name, n)) || { name: n, gone: true })
+                .sort((a, b) => (b.online ? 1 : 0) - (a.online ? 1 : 0));   // the ones playing now first
+            const ol = document.createElement("ol");
+            ol.className = "top-list fr-list";
+            for (const p of rows) {
+                const li = document.createElement("li");
+                if (p.online) li.className = "on";
+                const dot = document.createElement("span"), n = document.createElement("span"), av = document.createElement("span"),
+                      st = document.createElement("span"), pts = document.createElement("span"), del = document.createElement("button");
+                dot.className = "t-rank"; dot.textContent = p.online ? "🟢" : "⚪";
+                n.className = "t-name"; n.textContent = p.name;
+                av.className = "t-av"; putPic(av, SHOP_AVATARS.find(x => x.id === p.avatar));
+                st.className = "fr-state"; st.textContent = p.gone ? "השם לא נמצא" : p.online ? "משחק עכשיו" : "לא מחובר";
+                pts.className = "t-pts"; pts.textContent = p.gone ? "" : `⭐ ${p.points || 0}`;
+                del.type = "button"; del.className = "fr-del"; del.textContent = "✕"; del.setAttribute("aria-label", `הסרת ${p.name} מהחברים`);
+                del.onclick = async () => {
+                    if (!(await askConfirm(`להסיר את ${p.name} מהחברים?`, "הסרה"))) return;
+                    friends = friends.filter(x => !sameName(x, p.name)); saveFriends(); renderFriends();
+                };
+                li.append(dot, n, av, st, pts, del);
+                ol.append(li);
+            }
+            body.replaceChildren(ol);
+        }
+        function closeFriendDrop() { const d = document.getElementById("fr-drop"); d.classList.remove("on"); d.replaceChildren(); frSearchToken++; }
+        // the list under the search box: up to 10 names from the cloud that start with what was typed (all of them, from
+        // the first letter, when nothing is typed yet) - without this player and the friends already on the list
+        async function searchFriends() {
+            const input = document.getElementById("fr-search"), drop = document.getElementById("fr-drop"), token = ++frSearchToken;
+            let names = null;
+            try { names = window.cloud && cloud.search ? await cloud.search(input.value) : null; } catch (e) {}
+            if (token !== frSearchToken || !shownEl("friends-screen")) return;
+            const item = (text, cls) => { const li = document.createElement("li"); li.textContent = text; if (cls) li.className = cls; return li; };
+            if (!names) { drop.replaceChildren(item("אין חיבור לאינטרנט", "fr-none")); drop.classList.add("on"); return; }
+            names = names.filter(n => !(playerName && sameName(n, playerName)) && !friends.some(x => sameName(x, n)));
+            if (!names.length) { drop.replaceChildren(item("לא נמצאו שמות", "fr-none")); drop.classList.add("on"); return; }
+            drop.replaceChildren(...names.map(n => {
+                const li = item("➕ " + n);
+                li.setAttribute("role", "option"); li.tabIndex = 0;
+                const add = e => { e.preventDefault(); friends.push(n); saveFriends(); input.value = ""; closeFriendDrop(); renderFriends(); };
+                li.addEventListener("pointerdown", add);   // before the box loses focus
+                li.addEventListener("keydown", e => { if (e.key === "Enter") add(e); });
+                return li;
+            }));
+            drop.classList.add("on");
+        }
+        document.addEventListener("DOMContentLoaded", () => {
+            const input = document.getElementById("fr-search");
+            input.addEventListener("input", () => { clearTimeout(frSearchTimer); frSearchTimer = setTimeout(searchFriends, 250); });
+            input.addEventListener("focus", searchFriends);
+            input.addEventListener("blur", () => setTimeout(() => { if (!document.getElementById("fr-drop").contains(document.activeElement)) closeFriendDrop(); }, 150));
+        });
+
         // taken: the saved name belongs to another player (names are unique across all players)
         // first: the first time the app is opened - it says what the name is for
         function askName(taken, first) {
@@ -2226,7 +2341,7 @@
             stepQuiz = null;
             if (themePreview) { themePreview = null; applyShop(); }   // out of the shop: back to the background that was bought
             showDaily();   // (a day may have passed while the app was open)
-            for (const id of ["summary-screen", "game-screen", "learn-screen", "learn-done-screen", "shop-screen", "top-screen", "games-screen"]) document.getElementById(id).style.display = "none";
+            for (const id of ["summary-screen", "game-screen", "learn-screen", "learn-done-screen", "shop-screen", "top-screen", "friends-screen", "games-screen"]) document.getElementById(id).style.display = "none";
             if (curGame) stopGame();   // 🎮 leaving a game stops its timers
             document.getElementById("start-screen").style.display = "flex";
             if (mode === "category") renderPath();
@@ -4568,6 +4683,7 @@
             try {
                 if (s.screen === "shop") return openShop();
                 if (s.screen === "top") return showTop();
+                if (s.screen === "friends") return showFriends();
                 if (s.screen === "games") return openGames();
                 const lv = (s.step || s.learn || {}).level;
                 const steps = lv ? learnSteps(await loadLevel(lv)) : null;   // the learning path's steps (needs the word bank)
@@ -4652,7 +4768,7 @@
         // any screen change or pop-up updates the trap
         const trapWatch = new MutationObserver(updateBackTrap);
         trapWatch.observe(document.body, { childList: true });
-        for (const id of ["start-screen", "game-screen", "summary-screen", "learn-screen", "learn-done-screen", "shop-screen", "top-screen", "games-screen"])
+        for (const id of ["start-screen", "game-screen", "summary-screen", "learn-screen", "learn-done-screen", "shop-screen", "top-screen", "friends-screen", "games-screen"])
             trapWatch.observe(document.getElementById(id), { attributes: true, attributeFilter: ["style"] });
         // 🐾 no wandering character during a quiz or a learning card (body.busy hides it)
         const markBusy = () => document.body.classList.toggle("busy", shownEl("game-screen") || shownEl("learn-screen") || shownEl("games-screen"));
@@ -4668,7 +4784,7 @@
         // its own points under apps.<app name>. Without a network the game works as before.
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, deleteDoc, deleteField, serverTimestamp, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, deleteDoc, deleteField, serverTimestamp, collection, query, orderBy, limit, getDocs, where, documentId, startAt, endAt } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
         const APP = "englishQuiz";
         const app = initializeApp({
             apiKey: "AIzaSyCGMszu_Wg7ttVZNehGT5wTyVnKQFRQopo",
@@ -4730,7 +4846,30 @@
             return snap.docs.map(d => { const a = d.data().apps?.[APP] || {};
                 return { name: d.data().name, points: a.earned || 0, topics: a.topics || 0, purple: a.purple || 0, avatar: typeof a.avatar === "string" ? a.avatar : "" }; });
         }
-        window.cloud = { claim, sync, top };
+        // 👫 names of all the players that start with the text (up to 10; the first 10 when it is empty)
+        async function search(text) {
+            await user();
+            const k = idOf(cleanName(text)), players = collection(db, "players");
+            const q = k ? query(players, orderBy(documentId()), startAt(k), endAt(k + "\uf8ff"), limit(10)) : query(players, orderBy(documentId()), limit(10));
+            return (await getDocs(q)).docs.map(d => d.data().name).filter(n => typeof n === "string" && n);
+        }
+        // 👫 the friends' entries (10 at a time): online = their app saved something in the last minute
+        async function friendsInfo(names) {
+            await user();
+            const ids = [...new Set(names.map(idOf))], out = [];
+            for (let i = 0; i < ids.length; i += 10) {
+                const snap = await getDocs(query(collection(db, "players"), where(documentId(), "in", ids.slice(i, i + 10)), limit(10)));
+                for (const d of snap.docs) {
+                    const x = d.data(), a = x.apps?.[APP] || {}, at = x.updatedAt?.toMillis?.() || 0;
+                    out.push({ name: x.name, online: Date.now() - at < ONLINE_MS, points: a.earned || 0, avatar: typeof a.avatar === "string" ? a.avatar : "" });
+                }
+            }
+            return out;
+        }
+        // 🟢 "playing now": while the app is on the screen it saves every 30 seconds (and when it comes back to the screen)
+        setInterval(() => { if (document.visibilityState === "visible") sync(); }, 30000);
+        document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") sync(); });
+        window.cloud = { claim, sync, top, search, friends: friendsInfo };
         sync();   // on start: take the name typed before this version, and send the points
     </script>
 </body>
