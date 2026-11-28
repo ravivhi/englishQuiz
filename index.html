@@ -2517,6 +2517,9 @@
         }
 
         const isHe = s => /[\u0590-\u05FF]/.test(s);
+        // a lone letter split off the end of a Hebrew word goes back on it ("קר ח" -> "קרח"; the photo reader does this on
+        // some computers). Not the letters that start words as a prefix (ו ה ב ל מ ש כ): those belong to the next word.
+        const joinHeEnd = t => t.replace(/([\u05D0-\u05EA]) (?![והבלמשכ])([\u05D0-\u05EA])(?=$|[ ,])/g, "$1$2");
         const EN_ONLY_MIN_CONF = /*EN_THR*/60;   // min OCR confidence for a word in an English-only list
 
         // Real two-letter English words. Any other two-letter "word" with no Hebrew next to it is OCR noise (a speck, a page edge).
@@ -2541,8 +2544,7 @@
                     if (!cur.length) return;
                     const he = isHe(cur[0].text);
                     const t = he
-                        ? cur.slice().reverse().map(w => w.text).join(" ").replace(/[^\u0590-\u05FF' ,\-]/g, "").replace(/\s+/g, " ").replace(/^[ ,]+|[ ,]+$/g, "").trim()
-                            .replace(/([\u05D0-\u05EA]) (?![והבלמשכ])([\u05D0-\u05EA])(?=$|[ ,])/g, "$1$2")   // "קר ח" -> "קרח": a lone end letter goes back on its word
+                        ? joinHeEnd(cur.slice().reverse().map(w => w.text).join(" ").replace(/[^\u0590-\u05FF' ,\-]/g, "").replace(/\s+/g, " ").replace(/^[ ,]+|[ ,]+$/g, "").trim())
                         // a hair-thin gap is one word that was split in two ("anyo ne")
                         : cur.map((w, k) => (k && w.bbox.x0 - cur[k - 1].bbox.x1 > 0.15 * (w.bbox.y1 - w.bbox.y0) ? " " : "") + w.text).join("").replace(/[‘’`´]/g, "'").replace(POS_NOTE, "").replace(/[^A-Za-z' ]/g, "").replace(/\s+/g, " ").replace(/^[b-hj-zB-HJ-Z] /, "").trim();   // a stray letter before a word is noise (only "a"/"I" are real words)
                     if (t.length >= 2) all.push({ he, t, li, conf: Math.min(...cur.map(w => w.confidence)),
@@ -2695,7 +2697,7 @@
                         const res = await Promise.race([heWorker.recognize(crop), new Promise(r => setTimeout(r, 10000))]);
                         if (!res) throw new Error("reread timeout");
                         const ws = res.data.words.filter(w => isHe(w.text)).sort((p, q) => q.bbox.x0 - p.bbox.x0);
-                        const t = ws.map(w => w.text).join(" ").replace(/[^֐-׿' ,\-]/g, "").replace(/\s+/g, " ").replace(/^[ ,]+|[ ,]+$/g, "").trim();
+                        const t = joinHeEnd(ws.map(w => w.text).join(" ").replace(/[^֐-׿' ,\-]/g, "").replace(/\s+/g, " ").replace(/^[ ,]+|[ ,]+$/g, "").trim());
                         if (t.length < 2) continue;
                         const v = votes.get(t) || { t, sum: 0, best: 0 }, conf = Math.min(...ws.map(w => w.confidence));
                         v.sum += conf; v.best = Math.max(v.best, conf); votes.set(t, v);
